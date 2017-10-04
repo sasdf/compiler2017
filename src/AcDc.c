@@ -27,6 +27,7 @@ int main( int argc, char *argv[] )
             fclose(source);
             symtab = build(program);
             check(&program, &symtab);
+            constantFolding(program.statements);
             gencode(program, target, &symtab);
         }
     }
@@ -677,10 +678,16 @@ void fprint_expr( FILE *target, Expression *expr, SymbolTable* table)
                 fprintf(target,"l%c\n", lookup_id(table, (expr->v).val.id));
                 break;
             case IntConst:
-                fprintf(target,"%d\n",(expr->v).val.ivalue);
+                if (expr->v.val.ivalue < 0)
+                    fprintf(target,"0\n%d\n-",-(expr->v).val.ivalue);
+                else
+                    fprintf(target,"%d\n",(expr->v).val.ivalue);
                 break;
             case FloatConst:
-                fprintf(target,"%f\n", (expr->v).val.fvalue);
+                if (expr->v.val.fvalue < 0)
+                    fprintf(target,"0.0\n%f\n-", -(expr->v).val.fvalue);
+                else
+                    fprintf(target,"%f\n", (expr->v).val.fvalue);
                 break;
             default:
                 fprintf(target,"Error In fprint_left_expr. (expr->v).type=%d\n",(expr->v).type);
@@ -697,6 +704,103 @@ void fprint_expr( FILE *target, Expression *expr, SymbolTable* table)
             fprint_expr(target, expr->rightOperand, table);
             fprint_op(target, (expr->v).type);
         }
+    }
+}
+
+void foldNode(Expression *curr){
+    static short end = 0;
+    int lt = -1, rt = -1, swap = 0;
+    if(!curr || end) return;
+    Expression *lc = curr->leftOperand, *rc = curr->rightOperand, *tmp;
+    foldNode(lc);
+    foldNode(rc);
+    if(end) return;
+    printf("jizz: ");
+    print_expr(curr);
+    puts("");
+    if (lc) lt = lc->v.type;
+    if (rc) rt = rc->v.type;
+    switch((curr->v).type){
+            case Identifier:
+                //printf("%s ", (expr->v).val.id);
+                end = 1;
+                break;
+            case IntConst:
+            case FloatConst:
+            case IntToFloatConvertNode:
+                break;
+            case MinusNode:
+            case MulNode:
+            case DivNode:
+            case PlusNode:
+                //printf("+ ");
+                if (lt == IntConst && rt == IntConst){
+                    if (curr->v.type == PlusNode)
+                        curr->v.val.ivalue = lc->v.val.ivalue + rc->v.val.ivalue;
+                    if (curr->v.type == MinusNode)
+                        curr->v.val.ivalue = lc->v.val.ivalue - rc->v.val.ivalue;
+                    if (curr->v.type == MulNode)
+                        curr->v.val.ivalue = lc->v.val.ivalue * rc->v.val.ivalue;
+                    if (curr->v.type == DivNode)
+                        curr->v.val.ivalue = lc->v.val.ivalue / rc->v.val.ivalue;
+                    curr->v.type = IntConst;
+                    free(lc);
+                    free(rc);
+                    curr->leftOperand = NULL;
+                    curr->rightOperand = NULL;
+                }
+                else if (lt == FloatConst && rt == FloatConst){
+                    if (curr->v.type == PlusNode)
+                        curr->v.val.fvalue = lc->v.val.fvalue + rc->v.val.fvalue;
+                    if (curr->v.type == MinusNode)
+                        curr->v.val.fvalue = lc->v.val.fvalue - rc->v.val.fvalue;
+                    if (curr->v.type == MulNode)
+                        curr->v.val.fvalue = lc->v.val.fvalue * rc->v.val.fvalue;
+                    if (curr->v.type == DivNode)
+                        curr->v.val.fvalue = lc->v.val.fvalue / rc->v.val.fvalue;
+                    curr->v.type = FloatConst;
+                    free(lc);
+                    free(rc);
+                    curr->leftOperand = NULL;
+                    curr->rightOperand = NULL;
+                }
+                else if (lt == FloatConst || rt == FloatConst){
+                    if (rt == FloatConst){
+                        tmp = rc;
+                        rc = lc;
+                        lc = tmp;
+                        swap = 1;
+                    }
+                    if (curr->v.type == PlusNode)
+                        curr->v.val.fvalue = lc->v.val.fvalue + rc->leftOperand->v.val.ivalue;
+                    if (curr->v.type == MinusNode)
+                        if (swap) curr->v.val.fvalue = -lc->v.val.fvalue + rc->leftOperand->v.val.ivalue;
+                        else curr->v.val.fvalue = lc->v.val.fvalue - rc->leftOperand->v.val.ivalue;
+                    if (curr->v.type == MulNode)
+                        curr->v.val.fvalue = lc->v.val.fvalue * rc->leftOperand->v.val.ivalue;
+                    if (curr->v.type == DivNode)
+                        if (swap) curr->v.val.fvalue = rc->leftOperand->v.val.ivalue / lc->v.val.fvalue;
+                        else curr->v.val.fvalue = lc->v.val.fvalue / rc->leftOperand->v.val.ivalue;
+                    curr->v.type = FloatConst;
+                    free(rc->leftOperand);
+                    free(lc);
+                    free(rc);
+                    curr->leftOperand = NULL;
+                    curr->rightOperand = NULL;
+                }
+                break;
+            default:
+                printf("error %d\n", curr->v.type);
+                break;
+    }
+}
+
+
+void constantFolding(Statements *curr){
+    while(curr){
+        printf("folding: %s\n", curr->first.stmt.variable);
+        foldNode(curr->first.stmt.assign.expr);
+        curr = curr->rest;
     }
 }
 
@@ -743,7 +847,7 @@ void print_expr(Expression *expr)
         print_expr(expr->leftOperand);
         switch((expr->v).type){
             case Identifier:
-                printf("%c ", (expr->v).val.id);
+                printf("%s ", (expr->v).val.id);
                 break;
             case IntConst:
                 printf("%d ", (expr->v).val.ivalue);
@@ -767,7 +871,7 @@ void print_expr(Expression *expr)
                 printf("(float) ");
                 break;
             default:
-                printf("error ");
+                printf("error %d\n", expr->v.type);
                 break;
         }
         print_expr(expr->rightOperand);
@@ -790,7 +894,7 @@ void test_parser( FILE *source )
             printf("i ");
         if(decl.type == Float)
             printf("f ");
-        printf("%c ",decl.name);
+        printf("%s ",decl.name);
         decls = decls->rest;
     }
 
@@ -799,11 +903,11 @@ void test_parser( FILE *source )
     while(stmts != NULL){
         stmt = stmts->first;
         if(stmt.type == Print){
-            printf("p %c ", stmt.stmt.variable);
+            printf("p %s ", stmt.stmt.variable);
         }
 
         if(stmt.type == Assignment){
-            printf("%c = ", stmt.stmt.assign.id);
+            printf("%s = ", stmt.stmt.assign.id);
             print_expr(stmt.stmt.assign.expr);
         }
         stmts = stmts->rest;

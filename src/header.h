@@ -142,6 +142,8 @@ void checkstmt( Statement *stmt, SymbolTable * table );
 void check( Program *program, SymbolTable * table);
 void fprint_op( FILE *target, ValueType op );
 void fprint_expr( FILE *target, Expression *expr, SymbolTable* table );
+void constantFolding(Statements *curr);
+void foldNode(Expression *curr);
 void gencode( Program prog, FILE * target, SymbolTable* table );
 
 void print_expr( Expression *expr );
