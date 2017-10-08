@@ -710,11 +710,12 @@ void fprint_expr( FILE *target, Expression *expr, SymbolTable* table)
 void foldNode(Expression *curr){
     static short end = 0;
     int lt = -1, rt = -1, swap = 0;
-    if(!curr || end) return;
+    /* if(!curr || end) return; */
+    if(!curr) return;
     Expression *lc = curr->leftOperand, *rc = curr->rightOperand, *tmp;
     foldNode(lc);
     foldNode(rc);
-    if(end) return;
+    /* if(end) return; */
     printf("jizz: ");
     print_expr(curr);
     puts("");
