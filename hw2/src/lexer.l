@@ -133,7 +133,7 @@ error           .
 {newline}         linenumber += 1;
 {error}           {
   printf("ERR %s\n", yytext);
-  exit(ERROR);
+  /* exit(ERROR); */
   return ERROR;
                   }
 
