@@ -27,14 +27,17 @@ void    printSymTab();
 #define OP_AND    25
 #define OP_NOT    26
 #define OP_ASSIGN 27
-#define MK_LPAREN 28
-#define MK_RPAREN 29
-#define MK_LBRACK 30
-#define MK_RBRACK 31
-#define MK_LBRACE 32
-#define MK_RBRACE 33
+#define OP_DOT    28
+#define MK_LPAREN 29
+#define MK_RPAREN 30
+#define MK_LBRACK 31
+#define MK_RBRACK 32
+#define MK_LBRACE 33
+#define MK_RBRACE 34
 #define ERROR     100
 
+/* #define DBGRE(t)  printf("[DEBUG] %s: %s\n", t, yytext) */
+#define DBGRE(t)
 
 %}
 
@@ -54,8 +57,8 @@ Float_dec3      {digit}+"."{digit}*({exp})?
 Float_hex1      {hexprefix}{hex}+{bin_exp}
 Float_hex2      {hexprefix}{hex}*"."{hex}+({bin_exp})?
 Float_hex3      {hexprefix}{hex}+"."{hex}*({bin_exp})?
-Float_constant  [+-]?({Float_dec1}|{Float_dec2}|{Float_dec3}|{Float_hex1}|{Float_hex2}|{Float_hex3})({fsuffix})?
-String_constant \".*\"
+Float_constant  ({Float_dec1}|{Float_dec2}|{Float_dec3}|{Float_hex1}|{Float_hex2}|{Float_hex3})
+String_constant \"[^\"\n]*\"
 comment         ("/*"[^*]*[*]+([^*/][^*]*[*]+)*"/"|"//".*)
 
 OP_add          "+"
@@ -72,6 +75,7 @@ OP_or           "||"
 OP_and          "&&"
 OP_not          "!"
 OP_assign       "="
+OP_dot          "."
 
 newline         "\n"
 
@@ -90,11 +94,12 @@ error           .
 %%
 
 {WS}              {}
-{Int_constant}    /* return INT; */
-{Float_constant}  /* return FLOAT; */
-{String_constant} /* return STRING; */
-{comment}         puts(yytext);/* return COMMENT; */
+{Int_constant}    DBGRE("INT"); /* return INT; */
+{Float_constant}  DBGRE("FLOAT"); /* return FLOAT; */
+{String_constant} DBGRE("STRING"); /* return STRING; */
+{comment}         DBGRE("COMMENT"); puts(yytext);/* return COMMENT; */
 {ID}              {
+  DBGRE("ID");
   ptr = lookup(yytext);
   if (ptr == NULL)
     insertID(yytext);
@@ -102,26 +107,27 @@ error           .
     ptr->counter++;
                   }
 
-{OP_add}          /* return OP_ADD; */
-{OP_sub}          /* return OP_SUB; */
-{OP_div}          /* return OP_DIV; */
-{OP_mul}          /* return OP_MUL; */
-{OP_lt}           /* return OP_LT; */
-{OP_gt}           /* return OP_GT; */
-{OP_ge}           /* return OP_GE; */
-{OP_le}           /* return OP_LE; */
-{OP_ne}           /* return OP_NE; */
-{OP_eq}           /* return OP_EQ; */
-{OP_or}           /* return OP_OR; */
-{OP_and}          /* return OP_AND; */
-{OP_not}          /* return OP_NOT; */
-{OP_assign}       /* return OP_ASSIGN; */
-{DL_lparen}       /* return MK_LPAREN; */
-{DL_rparen}       /* return MK_RPAREN; */
-{DL_lbrack}       /* return MK_LBRACK; */
-{DL_rbrack}       /* return MK_RBRACK; */
-{DL_lbrace}       /* return MK_LBRACE; */
-{DL_rbrace}       /* return MK_RBRACE; */
+{OP_add}          DBGRE("OP_ADD"); /* return OP_ADD; */
+{OP_sub}          DBGRE("OP_SUB"); /* return OP_SUB; */
+{OP_div}          DBGRE("OP_DIV"); /* return OP_DIV; */
+{OP_mul}          DBGRE("OP_MUL"); /* return OP_MUL; */
+{OP_lt}           DBGRE("OP_LT"); /* return OP_LT; */
+{OP_gt}           DBGRE("OP_GT"); /* return OP_GT; */
+{OP_ge}           DBGRE("OP_GE"); /* return OP_GE; */
+{OP_le}           DBGRE("OP_LE"); /* return OP_LE; */
+{OP_ne}           DBGRE("OP_NE"); /* return OP_NE; */
+{OP_eq}           DBGRE("OP_EQ"); /* return OP_EQ; */
+{OP_or}           DBGRE("OP_OR"); /* return OP_OR; */
+{OP_and}          DBGRE("OP_AND"); /* return OP_AND; */
+{OP_not}          DBGRE("OP_NOT"); /* return OP_NOT; */
+{OP_assign}       DBGRE("OP_ASSIGN"); /* return OP_ASSIGN; */
+{OP_dot}          DBGRE("OP_DOT"); /* return OP_DOT; */
+{DL_lparen}       DBGRE("MK_LPAREN"); /* return MK_LPAREN; */
+{DL_rparen}       DBGRE("MK_RPAREN"); /* return MK_RPAREN; */
+{DL_lbrack}       DBGRE("MK_LBRACK"); /* return MK_LBRACK; */
+{DL_rbrack}       DBGRE("MK_RBRACK"); /* return MK_RBRACK; */
+{DL_lbrace}       DBGRE("MK_LBRACE"); /* return MK_LBRACE; */
+{DL_rbrace}       DBGRE("MK_RBRACE"); /* return MK_RBRACE; */
 {DL_comma}        {}
 {DL_semicol}      {}
 {newline}         linenumber += 1;

@@ -11,7 +11,8 @@ write("Enter a number");
  comment
 */
 n = read();
-abc = n + -1e10;
+abc = n + -1e10f;
 def = abc * abc;
+def.abc();
 write(def); /* 3: this is /* the end ***/
 }
