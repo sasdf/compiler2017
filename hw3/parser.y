@@ -470,10 +470,13 @@ init_id		: ID
 stmt_list	: stmt_list stmt 
                 {
                     /*TODO*/
+                    $$ = $1;
+                    makeSibling($$, $2);
                 }
             | stmt
                 {
                     /*TODO*/
+                    $$ = $1;
                 }
             ;
 
