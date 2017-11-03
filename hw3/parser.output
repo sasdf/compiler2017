@@ -4,9 +4,9 @@ Terminals unused in grammar
    ERROR
 
 
-State 197 conflicts: 1 shift/reduce
-State 213 conflicts: 1 shift/reduce
-State 214 conflicts: 9 reduce/reduce
+State 199 conflicts: 1 shift/reduce
+State 215 conflicts: 1 shift/reduce
+State 216 conflicts: 9 reduce/reduce
 
 
 Grammar
@@ -64,147 +64,145 @@ Grammar
    35        | id_list MK_COMMA ID dim_decl
    36        | ID dim_decl
 
-   37 dim_decl: dim_decl_t MK_LB cexpr MK_RB
+   37 dim_decl: dim_decl MK_LB cexpr MK_RB
+   38         | MK_LB cexpr MK_RB
 
-   38 dim_decl_t: dim_decl_t MK_LB cexpr MK_RB
-   39           | %empty
+   39 cexpr: cexpr OP_PLUS mcexpr
+   40      | cexpr OP_MINUS mcexpr
+   41      | mcexpr
 
-   40 cexpr: cexpr OP_PLUS mcexpr
-   41      | cexpr OP_MINUS mcexpr
-   42      | mcexpr
+   42 mcexpr: mcexpr OP_TIMES cfactor
+   43       | mcexpr OP_DIVIDE cfactor
+   44       | cfactor
 
-   43 mcexpr: mcexpr OP_TIMES cfactor
-   44       | mcexpr OP_DIVIDE cfactor
-   45       | cfactor
+   45 cfactor: CONST
+   46        | MK_LPAREN cexpr MK_RPAREN
 
-   46 cfactor: CONST
-   47        | MK_LPAREN cexpr MK_RPAREN
+   47 init_id_list: init_id
+   48             | init_id_list MK_COMMA init_id
 
-   48 init_id_list: init_id
-   49             | init_id_list MK_COMMA init_id
+   49 init_id: ID
+   50        | ID dim_decl
+   51        | ID OP_ASSIGN relop_expr
 
-   50 init_id: ID
-   51        | ID dim_decl
-   52        | ID OP_ASSIGN relop_expr
+   52 stmt_list: stmt_list stmt
+   53          | stmt
 
-   53 stmt_list: stmt_list stmt
-   54          | stmt
+   54 elseif: ELSE stmt
+   55       | ELSE IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   56       | %empty
 
-   55 elseif: ELSE stmt
-   56       | ELSE IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
-   57       | %empty
+   57 stmt: MK_LBRACE block MK_RBRACE
+   58     | WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   59     | FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   60     | var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   62     | ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | MK_SEMICOLON
+   64     | RETURN MK_SEMICOLON
+   65     | RETURN relop_expr MK_SEMICOLON
 
-   58 stmt: MK_LBRACE block MK_RBRACE
-   59     | WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
-   60     | FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
-   61     | var_ref OP_ASSIGN relop_expr MK_SEMICOLON
-   62     | IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
-   63     | ID MK_LPAREN relop_expr_list MK_RPAREN
-   64     | MK_SEMICOLON
-   65     | RETURN MK_SEMICOLON
-   66     | RETURN relop_expr MK_SEMICOLON
+   66 assign_expr_list: nonempty_assign_expr_list
+   67                 | %empty
 
-   67 assign_expr_list: nonempty_assign_expr_list
-   68                 | %empty
+   68 nonempty_assign_expr_list: nonempty_assign_expr_list MK_COMMA assign_expr
+   69                          | assign_expr
 
-   69 nonempty_assign_expr_list: nonempty_assign_expr_list MK_COMMA assign_expr
-   70                          | assign_expr
+   70 assign_expr: ID OP_ASSIGN relop_expr
+   71            | relop_expr
 
-   71 assign_expr: ID OP_ASSIGN relop_expr
-   72            | relop_expr
+   72 relop_expr: relop_term
+   73           | relop_expr OP_OR relop_term
 
-   73 relop_expr: relop_term
-   74           | relop_expr OP_OR relop_term
+   74 relop_term: relop_factor
+   75           | relop_term OP_AND relop_factor
 
-   75 relop_term: relop_factor
-   76           | relop_term OP_AND relop_factor
+   76 relop_factor: expr
+   77             | expr rel_op expr
 
-   77 relop_factor: expr
-   78             | expr rel_op expr
+   78 rel_op: OP_EQ
+   79       | OP_GE
+   80       | OP_LE
+   81       | OP_NE
+   82       | OP_GT
+   83       | OP_LT
 
-   79 rel_op: OP_EQ
-   80       | OP_GE
-   81       | OP_LE
-   82       | OP_NE
-   83       | OP_GT
-   84       | OP_LT
+   84 relop_expr_list: nonempty_relop_expr_list
+   85                | %empty
 
-   85 relop_expr_list: nonempty_relop_expr_list
-   86                | %empty
+   86 nonempty_relop_expr_list: nonempty_relop_expr_list MK_COMMA relop_expr
+   87                         | relop_expr
 
-   87 nonempty_relop_expr_list: nonempty_relop_expr_list MK_COMMA relop_expr
-   88                         | relop_expr
+   88 expr: expr add_op term
+   89     | term
 
-   89 expr: expr add_op term
-   90     | term
+   90 add_op: OP_PLUS
+   91       | OP_MINUS
 
-   91 add_op: OP_PLUS
-   92       | OP_MINUS
+   92 term: term mul_op factor
+   93     | factor
 
-   93 term: term mul_op factor
-   94     | factor
+   94 mul_op: OP_TIMES
+   95       | OP_DIVIDE
 
-   95 mul_op: OP_TIMES
-   96       | OP_DIVIDE
+   96 factor: MK_LPAREN relop_expr MK_RPAREN
+   97       | OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | CONST
+  100       | OP_MINUS CONST
+  101       | OP_NOT CONST
+  102       | ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | var_ref
+  105       | OP_MINUS var_ref
+  106       | OP_NOT var_ref
 
-   97 factor: MK_LPAREN relop_expr MK_RPAREN
-   98       | OP_MINUS MK_LPAREN relop_expr MK_RPAREN
-   99       | OP_NOT MK_LPAREN relop_expr MK_RPAREN
-  100       | CONST
-  101       | OP_MINUS CONST
-  102       | OP_NOT CONST
-  103       | ID MK_LPAREN relop_expr_list MK_RPAREN
-  104       | OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
-  105       | var_ref
-  106       | OP_MINUS var_ref
-  107       | OP_NOT var_ref
+  107 var_ref: ID
+  108        | ID dim_list
 
-  108 var_ref: ID
-  109        | ID dim_list
-
-  110 dim_list: dim_list MK_LB expr MK_RB
-  111         | MK_LB expr MK_RB
+  109 dim_list: dim_list MK_LB expr MK_RB
+  110         | MK_LB expr MK_RB
 
 
 Terminals, with rules where they appear
 
 $end (0) 0
 error (256)
-ID (258) 7 8 9 10 13 14 30 33 34 35 36 50 51 52 63 71 103 104 108 109
-CONST (259) 46 100 101 102
+ID (258) 7 8 9 10 13 14 30 33 34 35 36 49 50 51 62 70 102 103 107 108
+CONST (259) 45 99 100 101
 VOID (260) 8 10 28
 INT (261) 31
 FLOAT (262) 32
-IF (263) 56 62
-ELSE (264) 55 56
-WHILE (265) 59
-FOR (266) 60
+IF (263) 55 61
+ELSE (264) 54 55
+WHILE (265) 58
+FOR (266) 59
 TYPEDEF (267) 27 28
-OP_ASSIGN (268) 52 61 71
-OP_OR (269) 74
-OP_AND (270) 76
-OP_NOT (271) 99 102 104 107
-OP_EQ (272) 79
-OP_NE (273) 82
-OP_GT (274) 83
-OP_LT (275) 84
-OP_GE (276) 80
-OP_LE (277) 81
-OP_PLUS (278) 40 91
-OP_MINUS (279) 41 92 98 101 106
-OP_TIMES (280) 43 95
-OP_DIVIDE (281) 44 96
-MK_LB (282) 15 16 37 38 110 111
-MK_RB (283) 15 16 37 38 110 111
-MK_LPAREN (284) 7 8 9 10 47 56 59 60 62 63 97 98 99 103 104
-MK_RPAREN (285) 7 8 9 10 47 56 59 60 62 63 97 98 99 103 104
-MK_LBRACE (286) 7 8 9 10 58
-MK_RBRACE (287) 7 8 9 10 58
-MK_COMMA (288) 11 34 35 49 69 87
-MK_SEMICOLON (289) 27 28 29 30 60 61 64 65 66
+OP_ASSIGN (268) 51 60 70
+OP_OR (269) 73
+OP_AND (270) 75
+OP_NOT (271) 98 101 103 106
+OP_EQ (272) 78
+OP_NE (273) 81
+OP_GT (274) 82
+OP_LT (275) 83
+OP_GE (276) 79
+OP_LE (277) 80
+OP_PLUS (278) 39 90
+OP_MINUS (279) 40 91 97 100 105
+OP_TIMES (280) 42 94
+OP_DIVIDE (281) 43 95
+MK_LB (282) 15 16 37 38 109 110
+MK_RB (283) 15 16 37 38 109 110
+MK_LPAREN (284) 7 8 9 10 46 55 58 59 61 62 96 97 98 102 103
+MK_RPAREN (285) 7 8 9 10 46 55 58 59 61 62 96 97 98 102 103
+MK_LBRACE (286) 7 8 9 10 57
+MK_RBRACE (287) 7 8 9 10 57
+MK_COMMA (288) 11 34 35 48 68 86
+MK_SEMICOLON (289) 27 28 29 30 59 60 63 64 65
 MK_DOT (290)
 ERROR (291)
-RETURN (292) 65 66
+RETURN (292) 64 65
 
 
 Nonterminals, with rules where they appear
@@ -228,7 +226,7 @@ dim_fn (45)
 expr_null (46)
     on left: 17 18, on right: 15
 block (47)
-    on left: 19 20 21 22, on right: 7 8 9 10 58
+    on left: 19 20 21 22, on right: 7 8 9 10 57
 decl_list (48)
     on left: 23 24, on right: 5 19 21 23
 decl (49)
@@ -242,64 +240,82 @@ type (52)
 id_list (53)
     on left: 33 34 35 36, on right: 27 28 30 34 35
 dim_decl (54)
-    on left: 37, on right: 35 36 51
-dim_decl_t (55)
-    on left: 38 39, on right: 37 38
-cexpr (56)
-    on left: 40 41 42, on right: 37 38 40 41 47
-mcexpr (57)
-    on left: 43 44 45, on right: 40 41 42 43 44
-cfactor (58)
-    on left: 46 47, on right: 43 44 45
-init_id_list (59)
-    on left: 48 49, on right: 29 49
-init_id (60)
-    on left: 50 51 52, on right: 48 49
-stmt_list (61)
-    on left: 53 54, on right: 19 20 53
-elseif (62)
-    on left: 55 56 57, on right: 56 62
-stmt (63)
-    on left: 58 59 60 61 62 63 64 65 66, on right: 53 54 55 56 59 60
-    62
-assign_expr_list (64)
-    on left: 67 68, on right: 60
-nonempty_assign_expr_list (65)
-    on left: 69 70, on right: 67 69
-assign_expr (66)
-    on left: 71 72, on right: 69 70
-relop_expr (67)
-    on left: 73 74, on right: 52 61 66 71 72 74 87 88 97 98 99
-relop_term (68)
-    on left: 75 76, on right: 73 74 76
-relop_factor (69)
-    on left: 77 78, on right: 75 76
-rel_op (70)
-    on left: 79 80 81 82 83 84, on right: 78
-relop_expr_list (71)
-    on left: 85 86, on right: 56 59 60 62 63 103 104
-nonempty_relop_expr_list (72)
-    on left: 87 88, on right: 85 87
-expr (73)
-    on left: 89 90, on right: 16 17 77 78 89 110 111
-add_op (74)
-    on left: 91 92, on right: 89
-term (75)
-    on left: 93 94, on right: 89 90 93
-mul_op (76)
-    on left: 95 96, on right: 93
-factor (77)
-    on left: 97 98 99 100 101 102 103 104 105 106 107, on right: 93
-    94
-var_ref (78)
-    on left: 108 109, on right: 61 105 106 107
-dim_list (79)
-    on left: 110 111, on right: 109 110
+    on left: 37 38, on right: 35 36 37 50
+cexpr (55)
+    on left: 39 40 41, on right: 37 38 39 40 46
+mcexpr (56)
+    on left: 42 43 44, on right: 39 40 41 42 43
+cfactor (57)
+    on left: 45 46, on right: 42 43 44
+init_id_list (58)
+    on left: 47 48, on right: 29 48
+init_id (59)
+    on left: 49 50 51, on right: 47 48
+stmt_list (60)
+    on left: 52 53, on right: 19 20 52
+elseif (61)
+    on left: 54 55 56, on right: 55 61
+stmt (62)
+    on left: 57 58 59 60 61 62 63 64 65, on right: 52 53 54 55 58 59
+    61
+assign_expr_list (63)
+    on left: 66 67, on right: 59
+nonempty_assign_expr_list (64)
+    on left: 68 69, on right: 66 68
+assign_expr (65)
+    on left: 70 71, on right: 68 69
+relop_expr (66)
+    on left: 72 73, on right: 51 60 65 70 71 73 86 87 96 97 98
+relop_term (67)
+    on left: 74 75, on right: 72 73 75
+relop_factor (68)
+    on left: 76 77, on right: 74 75
+rel_op (69)
+    on left: 78 79 80 81 82 83, on right: 77
+relop_expr_list (70)
+    on left: 84 85, on right: 55 58 59 61 62 102 103
+nonempty_relop_expr_list (71)
+    on left: 86 87, on right: 84 86
+expr (72)
+    on left: 88 89, on right: 16 17 76 77 88 109 110
+add_op (73)
+    on left: 90 91, on right: 88
+term (74)
+    on left: 92 93, on right: 88 89 92
+mul_op (75)
+    on left: 94 95, on right: 92
+factor (76)
+    on left: 96 97 98 99 100 101 102 103 104 105 106, on right: 92
+    93
+var_ref (77)
+    on left: 107 108, on right: 60 104 105 106
+dim_list (78)
+    on left: 109 110, on right: 108 109
 
 
 State 0
 
     0 $accept: . program $end
+    1 program: . global_decl_list
+    2        | . %empty  [$end]
+    3 global_decl_list: . global_decl_list global_decl
+    4                 | . global_decl
+    5 global_decl: . decl_list function_decl
+    6            | . function_decl
+    7 function_decl: . type ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block MK_RBRACE
+    8              | . VOID ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block MK_RBRACE
+    9              | . type ID MK_LPAREN MK_RPAREN MK_LBRACE block MK_RBRACE
+   10              | . VOID ID MK_LPAREN MK_RPAREN MK_LBRACE block MK_RBRACE
+   23 decl_list: . decl_list decl
+   24          | . decl
+   25 decl: . type_decl
+   26     | . var_decl
+   27 type_decl: . TYPEDEF type id_list MK_SEMICOLON
+   28          | . TYPEDEF VOID id_list MK_SEMICOLON
+   29 var_decl: . type init_id_list MK_SEMICOLON
+   30         | . ID id_list MK_SEMICOLON
+   31 type: . INT
+   32     | . FLOAT
 
     ID       shift, and go to state 1
     VOID     shift, and go to state 2
@@ -323,6 +339,10 @@ State 0
 State 1
 
    30 var_decl: ID . id_list MK_SEMICOLON
+   33 id_list: . ID
+   34        | . id_list MK_COMMA ID
+   35        | . id_list MK_COMMA ID dim_decl
+   36        | . ID dim_decl
 
     ID  shift, and go to state 15
 
@@ -355,6 +375,8 @@ State 5
 
    27 type_decl: TYPEDEF . type id_list MK_SEMICOLON
    28          | TYPEDEF . VOID id_list MK_SEMICOLON
+   31 type: . INT
+   32     | . FLOAT
 
     VOID   shift, and go to state 18
     INT    shift, and go to state 3
@@ -372,8 +394,24 @@ State 6
 
 State 7
 
-    1 program: global_decl_list .
+    1 program: global_decl_list .  [$end]
     3 global_decl_list: global_decl_list . global_decl
+    5 global_decl: . decl_list function_decl
+    6            | . function_decl
+    7 function_decl: . type ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block MK_RBRACE
+    8              | . VOID ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block MK_RBRACE
+    9              | . type ID MK_LPAREN MK_RPAREN MK_LBRACE block MK_RBRACE
+   10              | . VOID ID MK_LPAREN MK_RPAREN MK_LBRACE block MK_RBRACE
+   23 decl_list: . decl_list decl
+   24          | . decl
+   25 decl: . type_decl
+   26     | . var_decl
+   27 type_decl: . TYPEDEF type id_list MK_SEMICOLON
+   28          | . TYPEDEF VOID id_list MK_SEMICOLON
+   29 var_decl: . type init_id_list MK_SEMICOLON
+   30         | . ID id_list MK_SEMICOLON
+   31 type: . INT
+   32     | . FLOAT
 
     ID       shift, and go to state 1
     VOID     shift, and go to state 2
@@ -409,7 +447,19 @@ State 9
 State 10
 
     5 global_decl: decl_list . function_decl
+    7 function_decl: . type ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block MK_RBRACE
+    8              | . VOID ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block MK_RBRACE
+    9              | . type ID MK_LPAREN MK_RPAREN MK_LBRACE block MK_RBRACE
+   10              | . VOID ID MK_LPAREN MK_RPAREN MK_LBRACE block MK_RBRACE
    23 decl_list: decl_list . decl
+   25 decl: . type_decl
+   26     | . var_decl
+   27 type_decl: . TYPEDEF type id_list MK_SEMICOLON
+   28          | . TYPEDEF VOID id_list MK_SEMICOLON
+   29 var_decl: . type init_id_list MK_SEMICOLON
+   30         | . ID id_list MK_SEMICOLON
+   31 type: . INT
+   32     | . FLOAT
 
     ID       shift, and go to state 1
     VOID     shift, and go to state 2
@@ -450,6 +500,11 @@ State 14
     7 function_decl: type . ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block MK_RBRACE
     9              | type . ID MK_LPAREN MK_RPAREN MK_LBRACE block MK_RBRACE
    29 var_decl: type . init_id_list MK_SEMICOLON
+   47 init_id_list: . init_id
+   48             | . init_id_list MK_COMMA init_id
+   49 init_id: . ID
+   50        | . ID dim_decl
+   51        | . ID OP_ASSIGN relop_expr
 
     ID  shift, and go to state 24
 
@@ -459,14 +514,16 @@ State 14
 
 State 15
 
-   33 id_list: ID .
+   33 id_list: ID .  [MK_COMMA, MK_SEMICOLON]
    36        | ID . dim_decl
+   37 dim_decl: . dim_decl MK_LB cexpr MK_RB
+   38         | . MK_LB cexpr MK_RB
 
-    MK_LB     reduce using rule 39 (dim_decl_t)
+    MK_LB  shift, and go to state 27
+
     $default  reduce using rule 33 (id_list)
 
-    dim_decl    go to state 27
-    dim_decl_t  go to state 28
+    dim_decl  go to state 28
 
 
 State 16
@@ -490,6 +547,10 @@ State 17
 State 18
 
    28 type_decl: TYPEDEF VOID . id_list MK_SEMICOLON
+   33 id_list: . ID
+   34        | . id_list MK_COMMA ID
+   35        | . id_list MK_COMMA ID dim_decl
+   36        | . ID dim_decl
 
     ID  shift, and go to state 15
 
@@ -499,6 +560,10 @@ State 18
 State 19
 
    27 type_decl: TYPEDEF type . id_list MK_SEMICOLON
+   33 id_list: . ID
+   34        | . id_list MK_COMMA ID
+   35        | . id_list MK_COMMA ID dim_decl
+   36        | . ID dim_decl
 
     ID  shift, and go to state 15
 
@@ -537,24 +602,25 @@ State 24
 
     7 function_decl: type ID . MK_LPAREN param_list MK_RPAREN MK_LBRACE block MK_RBRACE
     9              | type ID . MK_LPAREN MK_RPAREN MK_LBRACE block MK_RBRACE
-   50 init_id: ID .
-   51        | ID . dim_decl
-   52        | ID . OP_ASSIGN relop_expr
+   37 dim_decl: . dim_decl MK_LB cexpr MK_RB
+   38         | . MK_LB cexpr MK_RB
+   49 init_id: ID .  [MK_COMMA, MK_SEMICOLON]
+   50        | ID . dim_decl
+   51        | ID . OP_ASSIGN relop_expr
 
     OP_ASSIGN  shift, and go to state 34
+    MK_LB      shift, and go to state 27
     MK_LPAREN  shift, and go to state 35
 
-    MK_LB     reduce using rule 39 (dim_decl_t)
-    $default  reduce using rule 50 (init_id)
+    $default  reduce using rule 49 (init_id)
 
-    dim_decl    go to state 36
-    dim_decl_t  go to state 28
+    dim_decl  go to state 36
 
 
 State 25
 
    29 var_decl: type init_id_list . MK_SEMICOLON
-   49 init_id_list: init_id_list . MK_COMMA init_id
+   48 init_id_list: init_id_list . MK_COMMA init_id
 
     MK_COMMA      shift, and go to state 37
     MK_SEMICOLON  shift, and go to state 38
@@ -562,24 +628,39 @@ State 25
 
 State 26
 
-   48 init_id_list: init_id .
+   47 init_id_list: init_id .
 
-    $default  reduce using rule 48 (init_id_list)
+    $default  reduce using rule 47 (init_id_list)
 
 
 State 27
 
-   36 id_list: ID dim_decl .
+   38 dim_decl: MK_LB . cexpr MK_RB
+   39 cexpr: . cexpr OP_PLUS mcexpr
+   40      | . cexpr OP_MINUS mcexpr
+   41      | . mcexpr
+   42 mcexpr: . mcexpr OP_TIMES cfactor
+   43       | . mcexpr OP_DIVIDE cfactor
+   44       | . cfactor
+   45 cfactor: . CONST
+   46        | . MK_LPAREN cexpr MK_RPAREN
 
-    $default  reduce using rule 36 (id_list)
+    CONST      shift, and go to state 39
+    MK_LPAREN  shift, and go to state 40
+
+    cexpr    go to state 41
+    mcexpr   go to state 42
+    cfactor  go to state 43
 
 
 State 28
 
-   37 dim_decl: dim_decl_t . MK_LB cexpr MK_RB
-   38 dim_decl_t: dim_decl_t . MK_LB cexpr MK_RB
+   36 id_list: ID dim_decl .  [MK_COMMA, MK_SEMICOLON]
+   37 dim_decl: dim_decl . MK_LB cexpr MK_RB
 
-    MK_LB  shift, and go to state 39
+    MK_LB  shift, and go to state 44
+
+    $default  reduce using rule 36 (id_list)
 
 
 State 29
@@ -587,7 +668,7 @@ State 29
    34 id_list: id_list MK_COMMA . ID
    35        | id_list MK_COMMA . ID dim_decl
 
-    ID  shift, and go to state 40
+    ID  shift, and go to state 45
 
 
 State 30
@@ -601,14 +682,20 @@ State 31
 
     8 function_decl: VOID ID MK_LPAREN . param_list MK_RPAREN MK_LBRACE block MK_RBRACE
    10              | VOID ID MK_LPAREN . MK_RPAREN MK_LBRACE block MK_RBRACE
+   11 param_list: . param_list MK_COMMA param
+   12           | . param
+   13 param: . type ID
+   14      | . type ID dim_fn
+   31 type: . INT
+   32     | . FLOAT
 
     INT        shift, and go to state 3
     FLOAT      shift, and go to state 4
-    MK_RPAREN  shift, and go to state 41
+    MK_RPAREN  shift, and go to state 46
 
-    param_list  go to state 42
-    param       go to state 43
-    type        go to state 44
+    param_list  go to state 47
+    param       go to state 48
+    type        go to state 49
 
 
 State 32
@@ -618,7 +705,7 @@ State 32
    35        | id_list . MK_COMMA ID dim_decl
 
     MK_COMMA      shift, and go to state 29
-    MK_SEMICOLON  shift, and go to state 45
+    MK_SEMICOLON  shift, and go to state 50
 
 
 State 33
@@ -628,56 +715,91 @@ State 33
    35        | id_list . MK_COMMA ID dim_decl
 
     MK_COMMA      shift, and go to state 29
-    MK_SEMICOLON  shift, and go to state 46
+    MK_SEMICOLON  shift, and go to state 51
 
 
 State 34
 
-   52 init_id: ID OP_ASSIGN . relop_expr
+   51 init_id: ID OP_ASSIGN . relop_expr
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
 
-    relop_expr    go to state 52
-    relop_term    go to state 53
-    relop_factor  go to state 54
-    expr          go to state 55
-    term          go to state 56
-    factor        go to state 57
-    var_ref       go to state 58
+    relop_expr    go to state 57
+    relop_term    go to state 58
+    relop_factor  go to state 59
+    expr          go to state 60
+    term          go to state 61
+    factor        go to state 62
+    var_ref       go to state 63
 
 
 State 35
 
     7 function_decl: type ID MK_LPAREN . param_list MK_RPAREN MK_LBRACE block MK_RBRACE
     9              | type ID MK_LPAREN . MK_RPAREN MK_LBRACE block MK_RBRACE
+   11 param_list: . param_list MK_COMMA param
+   12           | . param
+   13 param: . type ID
+   14      | . type ID dim_fn
+   31 type: . INT
+   32     | . FLOAT
 
     INT        shift, and go to state 3
     FLOAT      shift, and go to state 4
-    MK_RPAREN  shift, and go to state 59
+    MK_RPAREN  shift, and go to state 64
 
-    param_list  go to state 60
-    param       go to state 43
-    type        go to state 44
+    param_list  go to state 65
+    param       go to state 48
+    type        go to state 49
 
 
 State 36
 
-   51 init_id: ID dim_decl .
+   37 dim_decl: dim_decl . MK_LB cexpr MK_RB
+   50 init_id: ID dim_decl .  [MK_COMMA, MK_SEMICOLON]
 
-    $default  reduce using rule 51 (init_id)
+    MK_LB  shift, and go to state 44
+
+    $default  reduce using rule 50 (init_id)
 
 
 State 37
 
-   49 init_id_list: init_id_list MK_COMMA . init_id
+   48 init_id_list: init_id_list MK_COMMA . init_id
+   49 init_id: . ID
+   50        | . ID dim_decl
+   51        | . ID OP_ASSIGN relop_expr
 
-    ID  shift, and go to state 61
+    ID  shift, and go to state 66
 
-    init_id  go to state 62
+    init_id  go to state 67
 
 
 State 38
@@ -689,2025 +811,2955 @@ State 38
 
 State 39
 
-   37 dim_decl: dim_decl_t MK_LB . cexpr MK_RB
-   38 dim_decl_t: dim_decl_t MK_LB . cexpr MK_RB
+   45 cfactor: CONST .
 
-    CONST      shift, and go to state 63
-    MK_LPAREN  shift, and go to state 64
-
-    cexpr    go to state 65
-    mcexpr   go to state 66
-    cfactor  go to state 67
+    $default  reduce using rule 45 (cfactor)
 
 
 State 40
 
-   34 id_list: id_list MK_COMMA ID .
-   35        | id_list MK_COMMA ID . dim_decl
+   39 cexpr: . cexpr OP_PLUS mcexpr
+   40      | . cexpr OP_MINUS mcexpr
+   41      | . mcexpr
+   42 mcexpr: . mcexpr OP_TIMES cfactor
+   43       | . mcexpr OP_DIVIDE cfactor
+   44       | . cfactor
+   45 cfactor: . CONST
+   46        | . MK_LPAREN cexpr MK_RPAREN
+   46        | MK_LPAREN . cexpr MK_RPAREN
 
-    MK_LB     reduce using rule 39 (dim_decl_t)
-    $default  reduce using rule 34 (id_list)
+    CONST      shift, and go to state 39
+    MK_LPAREN  shift, and go to state 40
 
-    dim_decl    go to state 68
-    dim_decl_t  go to state 28
+    cexpr    go to state 68
+    mcexpr   go to state 42
+    cfactor  go to state 43
 
 
 State 41
 
-   10 function_decl: VOID ID MK_LPAREN MK_RPAREN . MK_LBRACE block MK_RBRACE
+   38 dim_decl: MK_LB cexpr . MK_RB
+   39 cexpr: cexpr . OP_PLUS mcexpr
+   40      | cexpr . OP_MINUS mcexpr
 
-    MK_LBRACE  shift, and go to state 69
+    OP_PLUS   shift, and go to state 69
+    OP_MINUS  shift, and go to state 70
+    MK_RB     shift, and go to state 71
 
 
 State 42
 
-    8 function_decl: VOID ID MK_LPAREN param_list . MK_RPAREN MK_LBRACE block MK_RBRACE
-   11 param_list: param_list . MK_COMMA param
+   41 cexpr: mcexpr .  [OP_PLUS, OP_MINUS, MK_RB, MK_RPAREN]
+   42 mcexpr: mcexpr . OP_TIMES cfactor
+   43       | mcexpr . OP_DIVIDE cfactor
 
-    MK_RPAREN  shift, and go to state 70
-    MK_COMMA   shift, and go to state 71
+    OP_TIMES   shift, and go to state 72
+    OP_DIVIDE  shift, and go to state 73
+
+    $default  reduce using rule 41 (cexpr)
 
 
 State 43
+
+   44 mcexpr: cfactor .
+
+    $default  reduce using rule 44 (mcexpr)
+
+
+State 44
+
+   37 dim_decl: dim_decl MK_LB . cexpr MK_RB
+   39 cexpr: . cexpr OP_PLUS mcexpr
+   40      | . cexpr OP_MINUS mcexpr
+   41      | . mcexpr
+   42 mcexpr: . mcexpr OP_TIMES cfactor
+   43       | . mcexpr OP_DIVIDE cfactor
+   44       | . cfactor
+   45 cfactor: . CONST
+   46        | . MK_LPAREN cexpr MK_RPAREN
+
+    CONST      shift, and go to state 39
+    MK_LPAREN  shift, and go to state 40
+
+    cexpr    go to state 74
+    mcexpr   go to state 42
+    cfactor  go to state 43
+
+
+State 45
+
+   34 id_list: id_list MK_COMMA ID .  [MK_COMMA, MK_SEMICOLON]
+   35        | id_list MK_COMMA ID . dim_decl
+   37 dim_decl: . dim_decl MK_LB cexpr MK_RB
+   38         | . MK_LB cexpr MK_RB
+
+    MK_LB  shift, and go to state 27
+
+    $default  reduce using rule 34 (id_list)
+
+    dim_decl  go to state 75
+
+
+State 46
+
+   10 function_decl: VOID ID MK_LPAREN MK_RPAREN . MK_LBRACE block MK_RBRACE
+
+    MK_LBRACE  shift, and go to state 76
+
+
+State 47
+
+    8 function_decl: VOID ID MK_LPAREN param_list . MK_RPAREN MK_LBRACE block MK_RBRACE
+   11 param_list: param_list . MK_COMMA param
+
+    MK_RPAREN  shift, and go to state 77
+    MK_COMMA   shift, and go to state 78
+
+
+State 48
 
    12 param_list: param .
 
     $default  reduce using rule 12 (param_list)
 
 
-State 44
+State 49
 
    13 param: type . ID
    14      | type . ID dim_fn
 
-    ID  shift, and go to state 72
+    ID  shift, and go to state 79
 
 
-State 45
+State 50
 
    28 type_decl: TYPEDEF VOID id_list MK_SEMICOLON .
 
     $default  reduce using rule 28 (type_decl)
 
 
-State 46
+State 51
 
    27 type_decl: TYPEDEF type id_list MK_SEMICOLON .
 
     $default  reduce using rule 27 (type_decl)
 
 
-State 47
-
-  103 factor: ID . MK_LPAREN relop_expr_list MK_RPAREN
-  108 var_ref: ID .
-  109        | ID . dim_list
-
-    MK_LB      shift, and go to state 73
-    MK_LPAREN  shift, and go to state 74
-
-    $default  reduce using rule 108 (var_ref)
-
-    dim_list  go to state 75
-
-
-State 48
-
-  100 factor: CONST .
-
-    $default  reduce using rule 100 (factor)
-
-
-State 49
-
-   99 factor: OP_NOT . MK_LPAREN relop_expr MK_RPAREN
-  102       | OP_NOT . CONST
-  104       | OP_NOT . ID MK_LPAREN relop_expr_list MK_RPAREN
-  107       | OP_NOT . var_ref
-
-    ID         shift, and go to state 76
-    CONST      shift, and go to state 77
-    MK_LPAREN  shift, and go to state 78
-
-    var_ref  go to state 79
-
-
-State 50
-
-   98 factor: OP_MINUS . MK_LPAREN relop_expr MK_RPAREN
-  101       | OP_MINUS . CONST
-  106       | OP_MINUS . var_ref
-
-    ID         shift, and go to state 80
-    CONST      shift, and go to state 81
-    MK_LPAREN  shift, and go to state 82
-
-    var_ref  go to state 83
-
-
-State 51
-
-   97 factor: MK_LPAREN . relop_expr MK_RPAREN
-
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
-
-    relop_expr    go to state 84
-    relop_term    go to state 53
-    relop_factor  go to state 54
-    expr          go to state 55
-    term          go to state 56
-    factor        go to state 57
-    var_ref       go to state 58
-
-
 State 52
 
-   52 init_id: ID OP_ASSIGN relop_expr .
-   74 relop_expr: relop_expr . OP_OR relop_term
+  102 factor: ID . MK_LPAREN relop_expr_list MK_RPAREN
+  107 var_ref: ID .  [OP_OR, OP_AND, OP_EQ, OP_NE, OP_GT, OP_LT, OP_GE, OP_LE, OP_PLUS, OP_MINUS, OP_TIMES, OP_DIVIDE, MK_RB, MK_RPAREN, MK_COMMA, MK_SEMICOLON]
+  108        | ID . dim_list
+  109 dim_list: . dim_list MK_LB expr MK_RB
+  110         | . MK_LB expr MK_RB
 
-    OP_OR  shift, and go to state 85
+    MK_LB      shift, and go to state 80
+    MK_LPAREN  shift, and go to state 81
 
-    $default  reduce using rule 52 (init_id)
+    $default  reduce using rule 107 (var_ref)
+
+    dim_list  go to state 82
 
 
 State 53
 
-   73 relop_expr: relop_term .
-   76 relop_term: relop_term . OP_AND relop_factor
+   99 factor: CONST .
 
-    OP_AND  shift, and go to state 86
-
-    $default  reduce using rule 73 (relop_expr)
+    $default  reduce using rule 99 (factor)
 
 
 State 54
 
-   75 relop_term: relop_factor .
+   98 factor: OP_NOT . MK_LPAREN relop_expr MK_RPAREN
+  101       | OP_NOT . CONST
+  103       | OP_NOT . ID MK_LPAREN relop_expr_list MK_RPAREN
+  106       | OP_NOT . var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    $default  reduce using rule 75 (relop_term)
+    ID         shift, and go to state 83
+    CONST      shift, and go to state 84
+    MK_LPAREN  shift, and go to state 85
+
+    var_ref  go to state 86
 
 
 State 55
 
-   77 relop_factor: expr .
-   78             | expr . rel_op expr
-   89 expr: expr . add_op term
+   97 factor: OP_MINUS . MK_LPAREN relop_expr MK_RPAREN
+  100       | OP_MINUS . CONST
+  105       | OP_MINUS . var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    OP_EQ     shift, and go to state 87
-    OP_NE     shift, and go to state 88
-    OP_GT     shift, and go to state 89
-    OP_LT     shift, and go to state 90
-    OP_GE     shift, and go to state 91
-    OP_LE     shift, and go to state 92
-    OP_PLUS   shift, and go to state 93
-    OP_MINUS  shift, and go to state 94
+    ID         shift, and go to state 87
+    CONST      shift, and go to state 88
+    MK_LPAREN  shift, and go to state 89
 
-    $default  reduce using rule 77 (relop_factor)
-
-    rel_op  go to state 95
-    add_op  go to state 96
+    var_ref  go to state 90
 
 
 State 56
 
-   90 expr: term .
-   93 term: term . mul_op factor
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   96       | MK_LPAREN . relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    OP_TIMES   shift, and go to state 97
-    OP_DIVIDE  shift, and go to state 98
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
 
-    $default  reduce using rule 90 (expr)
-
-    mul_op  go to state 99
+    relop_expr    go to state 91
+    relop_term    go to state 58
+    relop_factor  go to state 59
+    expr          go to state 60
+    term          go to state 61
+    factor        go to state 62
+    var_ref       go to state 63
 
 
 State 57
 
-   94 term: factor .
+   51 init_id: ID OP_ASSIGN relop_expr .  [MK_COMMA, MK_SEMICOLON]
+   73 relop_expr: relop_expr . OP_OR relop_term
 
-    $default  reduce using rule 94 (term)
+    OP_OR  shift, and go to state 92
+
+    $default  reduce using rule 51 (init_id)
 
 
 State 58
 
-  105 factor: var_ref .
+   72 relop_expr: relop_term .  [OP_OR, MK_RPAREN, MK_COMMA, MK_SEMICOLON]
+   75 relop_term: relop_term . OP_AND relop_factor
 
-    $default  reduce using rule 105 (factor)
+    OP_AND  shift, and go to state 93
+
+    $default  reduce using rule 72 (relop_expr)
 
 
 State 59
 
-    9 function_decl: type ID MK_LPAREN MK_RPAREN . MK_LBRACE block MK_RBRACE
+   74 relop_term: relop_factor .
 
-    MK_LBRACE  shift, and go to state 100
+    $default  reduce using rule 74 (relop_term)
 
 
 State 60
 
-    7 function_decl: type ID MK_LPAREN param_list . MK_RPAREN MK_LBRACE block MK_RBRACE
-   11 param_list: param_list . MK_COMMA param
+   76 relop_factor: expr .  [OP_OR, OP_AND, MK_RPAREN, MK_COMMA, MK_SEMICOLON]
+   77             | expr . rel_op expr
+   78 rel_op: . OP_EQ
+   79       | . OP_GE
+   80       | . OP_LE
+   81       | . OP_NE
+   82       | . OP_GT
+   83       | . OP_LT
+   88 expr: expr . add_op term
+   90 add_op: . OP_PLUS
+   91       | . OP_MINUS
 
-    MK_RPAREN  shift, and go to state 101
-    MK_COMMA   shift, and go to state 71
+    OP_EQ     shift, and go to state 94
+    OP_NE     shift, and go to state 95
+    OP_GT     shift, and go to state 96
+    OP_LT     shift, and go to state 97
+    OP_GE     shift, and go to state 98
+    OP_LE     shift, and go to state 99
+    OP_PLUS   shift, and go to state 100
+    OP_MINUS  shift, and go to state 101
+
+    $default  reduce using rule 76 (relop_factor)
+
+    rel_op  go to state 102
+    add_op  go to state 103
 
 
 State 61
 
-   50 init_id: ID .
-   51        | ID . dim_decl
-   52        | ID . OP_ASSIGN relop_expr
+   89 expr: term .  [OP_OR, OP_AND, OP_EQ, OP_NE, OP_GT, OP_LT, OP_GE, OP_LE, OP_PLUS, OP_MINUS, MK_RB, MK_RPAREN, MK_COMMA, MK_SEMICOLON]
+   92 term: term . mul_op factor
+   94 mul_op: . OP_TIMES
+   95       | . OP_DIVIDE
 
-    OP_ASSIGN  shift, and go to state 34
+    OP_TIMES   shift, and go to state 104
+    OP_DIVIDE  shift, and go to state 105
 
-    MK_LB     reduce using rule 39 (dim_decl_t)
-    $default  reduce using rule 50 (init_id)
+    $default  reduce using rule 89 (expr)
 
-    dim_decl    go to state 36
-    dim_decl_t  go to state 28
+    mul_op  go to state 106
 
 
 State 62
 
-   49 init_id_list: init_id_list MK_COMMA init_id .
+   93 term: factor .
 
-    $default  reduce using rule 49 (init_id_list)
+    $default  reduce using rule 93 (term)
 
 
 State 63
 
-   46 cfactor: CONST .
+  104 factor: var_ref .
 
-    $default  reduce using rule 46 (cfactor)
+    $default  reduce using rule 104 (factor)
 
 
 State 64
 
-   47 cfactor: MK_LPAREN . cexpr MK_RPAREN
+    9 function_decl: type ID MK_LPAREN MK_RPAREN . MK_LBRACE block MK_RBRACE
 
-    CONST      shift, and go to state 63
-    MK_LPAREN  shift, and go to state 64
-
-    cexpr    go to state 102
-    mcexpr   go to state 66
-    cfactor  go to state 67
+    MK_LBRACE  shift, and go to state 107
 
 
 State 65
 
-   37 dim_decl: dim_decl_t MK_LB cexpr . MK_RB
-   38 dim_decl_t: dim_decl_t MK_LB cexpr . MK_RB
-   40 cexpr: cexpr . OP_PLUS mcexpr
-   41      | cexpr . OP_MINUS mcexpr
+    7 function_decl: type ID MK_LPAREN param_list . MK_RPAREN MK_LBRACE block MK_RBRACE
+   11 param_list: param_list . MK_COMMA param
 
-    OP_PLUS   shift, and go to state 103
-    OP_MINUS  shift, and go to state 104
-    MK_RB     shift, and go to state 105
+    MK_RPAREN  shift, and go to state 108
+    MK_COMMA   shift, and go to state 78
 
 
 State 66
 
-   42 cexpr: mcexpr .
-   43 mcexpr: mcexpr . OP_TIMES cfactor
-   44       | mcexpr . OP_DIVIDE cfactor
+   37 dim_decl: . dim_decl MK_LB cexpr MK_RB
+   38         | . MK_LB cexpr MK_RB
+   49 init_id: ID .  [MK_COMMA, MK_SEMICOLON]
+   50        | ID . dim_decl
+   51        | ID . OP_ASSIGN relop_expr
 
-    OP_TIMES   shift, and go to state 106
-    OP_DIVIDE  shift, and go to state 107
+    OP_ASSIGN  shift, and go to state 34
+    MK_LB      shift, and go to state 27
 
-    $default  reduce using rule 42 (cexpr)
+    $default  reduce using rule 49 (init_id)
+
+    dim_decl  go to state 36
 
 
 State 67
 
-   45 mcexpr: cfactor .
+   48 init_id_list: init_id_list MK_COMMA init_id .
 
-    $default  reduce using rule 45 (mcexpr)
+    $default  reduce using rule 48 (init_id_list)
 
 
 State 68
 
-   35 id_list: id_list MK_COMMA ID dim_decl .
+   39 cexpr: cexpr . OP_PLUS mcexpr
+   40      | cexpr . OP_MINUS mcexpr
+   46 cfactor: MK_LPAREN cexpr . MK_RPAREN
 
-    $default  reduce using rule 35 (id_list)
+    OP_PLUS    shift, and go to state 69
+    OP_MINUS   shift, and go to state 70
+    MK_RPAREN  shift, and go to state 109
 
 
 State 69
 
-   10 function_decl: VOID ID MK_LPAREN MK_RPAREN MK_LBRACE . block MK_RBRACE
+   39 cexpr: cexpr OP_PLUS . mcexpr
+   42 mcexpr: . mcexpr OP_TIMES cfactor
+   43       | . mcexpr OP_DIVIDE cfactor
+   44       | . cfactor
+   45 cfactor: . CONST
+   46        | . MK_LPAREN cexpr MK_RPAREN
 
-    ID            shift, and go to state 108
-    INT           shift, and go to state 3
-    FLOAT         shift, and go to state 4
-    IF            shift, and go to state 109
-    WHILE         shift, and go to state 110
-    FOR           shift, and go to state 111
-    TYPEDEF       shift, and go to state 5
-    MK_LBRACE     shift, and go to state 112
-    MK_SEMICOLON  shift, and go to state 113
-    RETURN        shift, and go to state 114
+    CONST      shift, and go to state 39
+    MK_LPAREN  shift, and go to state 40
 
-    $default  reduce using rule 22 (block)
-
-    block      go to state 115
-    decl_list  go to state 116
-    decl       go to state 11
-    type_decl  go to state 12
-    var_decl   go to state 13
-    type       go to state 117
-    stmt_list  go to state 118
-    stmt       go to state 119
-    var_ref    go to state 120
+    mcexpr   go to state 110
+    cfactor  go to state 43
 
 
 State 70
 
-    8 function_decl: VOID ID MK_LPAREN param_list MK_RPAREN . MK_LBRACE block MK_RBRACE
+   40 cexpr: cexpr OP_MINUS . mcexpr
+   42 mcexpr: . mcexpr OP_TIMES cfactor
+   43       | . mcexpr OP_DIVIDE cfactor
+   44       | . cfactor
+   45 cfactor: . CONST
+   46        | . MK_LPAREN cexpr MK_RPAREN
 
-    MK_LBRACE  shift, and go to state 121
+    CONST      shift, and go to state 39
+    MK_LPAREN  shift, and go to state 40
+
+    mcexpr   go to state 111
+    cfactor  go to state 43
 
 
 State 71
 
-   11 param_list: param_list MK_COMMA . param
+   38 dim_decl: MK_LB cexpr MK_RB .
 
-    INT    shift, and go to state 3
-    FLOAT  shift, and go to state 4
-
-    param  go to state 122
-    type   go to state 44
+    $default  reduce using rule 38 (dim_decl)
 
 
 State 72
 
-   13 param: type ID .
-   14      | type ID . dim_fn
+   42 mcexpr: mcexpr OP_TIMES . cfactor
+   45 cfactor: . CONST
+   46        | . MK_LPAREN cexpr MK_RPAREN
 
-    MK_LB  shift, and go to state 123
+    CONST      shift, and go to state 39
+    MK_LPAREN  shift, and go to state 40
 
-    $default  reduce using rule 13 (param)
-
-    dim_fn  go to state 124
+    cfactor  go to state 112
 
 
 State 73
 
-  111 dim_list: MK_LB . expr MK_RB
+   43 mcexpr: mcexpr OP_DIVIDE . cfactor
+   45 cfactor: . CONST
+   46        | . MK_LPAREN cexpr MK_RPAREN
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    CONST      shift, and go to state 39
+    MK_LPAREN  shift, and go to state 40
 
-    expr     go to state 125
-    term     go to state 56
-    factor   go to state 57
-    var_ref  go to state 58
+    cfactor  go to state 113
 
 
 State 74
 
-  103 factor: ID MK_LPAREN . relop_expr_list MK_RPAREN
+   37 dim_decl: dim_decl MK_LB cexpr . MK_RB
+   39 cexpr: cexpr . OP_PLUS mcexpr
+   40      | cexpr . OP_MINUS mcexpr
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
-
-    $default  reduce using rule 86 (relop_expr_list)
-
-    relop_expr                go to state 126
-    relop_term                go to state 53
-    relop_factor              go to state 54
-    relop_expr_list           go to state 127
-    nonempty_relop_expr_list  go to state 128
-    expr                      go to state 55
-    term                      go to state 56
-    factor                    go to state 57
-    var_ref                   go to state 58
+    OP_PLUS   shift, and go to state 69
+    OP_MINUS  shift, and go to state 70
+    MK_RB     shift, and go to state 114
 
 
 State 75
 
-  109 var_ref: ID dim_list .
-  110 dim_list: dim_list . MK_LB expr MK_RB
+   35 id_list: id_list MK_COMMA ID dim_decl .  [MK_COMMA, MK_SEMICOLON]
+   37 dim_decl: dim_decl . MK_LB cexpr MK_RB
 
-    MK_LB  shift, and go to state 129
+    MK_LB  shift, and go to state 44
 
-    $default  reduce using rule 109 (var_ref)
+    $default  reduce using rule 35 (id_list)
 
 
 State 76
 
-  104 factor: OP_NOT ID . MK_LPAREN relop_expr_list MK_RPAREN
-  108 var_ref: ID .
-  109        | ID . dim_list
+   10 function_decl: VOID ID MK_LPAREN MK_RPAREN MK_LBRACE . block MK_RBRACE
+   19 block: . decl_list stmt_list
+   20      | . stmt_list
+   21      | . decl_list
+   22      | . %empty  [MK_RBRACE]
+   23 decl_list: . decl_list decl
+   24          | . decl
+   25 decl: . type_decl
+   26     | . var_decl
+   27 type_decl: . TYPEDEF type id_list MK_SEMICOLON
+   28          | . TYPEDEF VOID id_list MK_SEMICOLON
+   29 var_decl: . type init_id_list MK_SEMICOLON
+   30         | . ID id_list MK_SEMICOLON
+   31 type: . INT
+   32     | . FLOAT
+   52 stmt_list: . stmt_list stmt
+   53          | . stmt
+   57 stmt: . MK_LBRACE block MK_RBRACE
+   58     | . WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   59     | . FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   60     | . var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   62     | . ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | . MK_SEMICOLON
+   64     | . RETURN MK_SEMICOLON
+   65     | . RETURN relop_expr MK_SEMICOLON
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    MK_LB      shift, and go to state 73
-    MK_LPAREN  shift, and go to state 130
+    ID            shift, and go to state 115
+    INT           shift, and go to state 3
+    FLOAT         shift, and go to state 4
+    IF            shift, and go to state 116
+    WHILE         shift, and go to state 117
+    FOR           shift, and go to state 118
+    TYPEDEF       shift, and go to state 5
+    MK_LBRACE     shift, and go to state 119
+    MK_SEMICOLON  shift, and go to state 120
+    RETURN        shift, and go to state 121
 
-    $default  reduce using rule 108 (var_ref)
+    $default  reduce using rule 22 (block)
 
-    dim_list  go to state 75
+    block      go to state 122
+    decl_list  go to state 123
+    decl       go to state 11
+    type_decl  go to state 12
+    var_decl   go to state 13
+    type       go to state 124
+    stmt_list  go to state 125
+    stmt       go to state 126
+    var_ref    go to state 127
 
 
 State 77
 
-  102 factor: OP_NOT CONST .
+    8 function_decl: VOID ID MK_LPAREN param_list MK_RPAREN . MK_LBRACE block MK_RBRACE
 
-    $default  reduce using rule 102 (factor)
+    MK_LBRACE  shift, and go to state 128
 
 
 State 78
 
-   99 factor: OP_NOT MK_LPAREN . relop_expr MK_RPAREN
+   11 param_list: param_list MK_COMMA . param
+   13 param: . type ID
+   14      | . type ID dim_fn
+   31 type: . INT
+   32     | . FLOAT
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    INT    shift, and go to state 3
+    FLOAT  shift, and go to state 4
 
-    relop_expr    go to state 131
-    relop_term    go to state 53
-    relop_factor  go to state 54
-    expr          go to state 55
-    term          go to state 56
-    factor        go to state 57
-    var_ref       go to state 58
+    param  go to state 129
+    type   go to state 49
 
 
 State 79
 
-  107 factor: OP_NOT var_ref .
+   13 param: type ID .  [MK_RPAREN, MK_COMMA]
+   14      | type ID . dim_fn
+   15 dim_fn: . MK_LB expr_null MK_RB
+   16       | . dim_fn MK_LB expr MK_RB
 
-    $default  reduce using rule 107 (factor)
+    MK_LB  shift, and go to state 130
+
+    $default  reduce using rule 13 (param)
+
+    dim_fn  go to state 131
 
 
 State 80
 
-  108 var_ref: ID .
-  109        | ID . dim_list
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
+  110 dim_list: MK_LB . expr MK_RB
 
-    MK_LB  shift, and go to state 73
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
 
-    $default  reduce using rule 108 (var_ref)
-
-    dim_list  go to state 75
+    expr     go to state 132
+    term     go to state 61
+    factor   go to state 62
+    var_ref  go to state 63
 
 
 State 81
 
-  101 factor: OP_MINUS CONST .
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   84 relop_expr_list: . nonempty_relop_expr_list
+   85                | . %empty  [MK_RPAREN]
+   86 nonempty_relop_expr_list: . nonempty_relop_expr_list MK_COMMA relop_expr
+   87                         | . relop_expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  102       | ID MK_LPAREN . relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    $default  reduce using rule 101 (factor)
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    $default  reduce using rule 85 (relop_expr_list)
+
+    relop_expr                go to state 133
+    relop_term                go to state 58
+    relop_factor              go to state 59
+    relop_expr_list           go to state 134
+    nonempty_relop_expr_list  go to state 135
+    expr                      go to state 60
+    term                      go to state 61
+    factor                    go to state 62
+    var_ref                   go to state 63
 
 
 State 82
 
-   98 factor: OP_MINUS MK_LPAREN . relop_expr MK_RPAREN
+  108 var_ref: ID dim_list .  [OP_ASSIGN, OP_OR, OP_AND, OP_EQ, OP_NE, OP_GT, OP_LT, OP_GE, OP_LE, OP_PLUS, OP_MINUS, OP_TIMES, OP_DIVIDE, MK_RB, MK_RPAREN, MK_COMMA, MK_SEMICOLON]
+  109 dim_list: dim_list . MK_LB expr MK_RB
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    MK_LB  shift, and go to state 136
 
-    relop_expr    go to state 132
-    relop_term    go to state 53
-    relop_factor  go to state 54
-    expr          go to state 55
-    term          go to state 56
-    factor        go to state 57
-    var_ref       go to state 58
+    $default  reduce using rule 108 (var_ref)
 
 
 State 83
 
-  106 factor: OP_MINUS var_ref .
+  103 factor: OP_NOT ID . MK_LPAREN relop_expr_list MK_RPAREN
+  107 var_ref: ID .  [OP_OR, OP_AND, OP_EQ, OP_NE, OP_GT, OP_LT, OP_GE, OP_LE, OP_PLUS, OP_MINUS, OP_TIMES, OP_DIVIDE, MK_RB, MK_RPAREN, MK_COMMA, MK_SEMICOLON]
+  108        | ID . dim_list
+  109 dim_list: . dim_list MK_LB expr MK_RB
+  110         | . MK_LB expr MK_RB
 
-    $default  reduce using rule 106 (factor)
+    MK_LB      shift, and go to state 80
+    MK_LPAREN  shift, and go to state 137
+
+    $default  reduce using rule 107 (var_ref)
+
+    dim_list  go to state 82
 
 
 State 84
 
-   74 relop_expr: relop_expr . OP_OR relop_term
-   97 factor: MK_LPAREN relop_expr . MK_RPAREN
+  101 factor: OP_NOT CONST .
 
-    OP_OR      shift, and go to state 85
-    MK_RPAREN  shift, and go to state 133
+    $default  reduce using rule 101 (factor)
 
 
 State 85
 
-   74 relop_expr: relop_expr OP_OR . relop_term
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   98       | OP_NOT MK_LPAREN . relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
 
-    relop_term    go to state 134
-    relop_factor  go to state 54
-    expr          go to state 55
-    term          go to state 56
-    factor        go to state 57
-    var_ref       go to state 58
+    relop_expr    go to state 138
+    relop_term    go to state 58
+    relop_factor  go to state 59
+    expr          go to state 60
+    term          go to state 61
+    factor        go to state 62
+    var_ref       go to state 63
 
 
 State 86
 
-   76 relop_term: relop_term OP_AND . relop_factor
+  106 factor: OP_NOT var_ref .
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
-
-    relop_factor  go to state 135
-    expr          go to state 55
-    term          go to state 56
-    factor        go to state 57
-    var_ref       go to state 58
+    $default  reduce using rule 106 (factor)
 
 
 State 87
 
-   79 rel_op: OP_EQ .
+  107 var_ref: ID .  [OP_OR, OP_AND, OP_EQ, OP_NE, OP_GT, OP_LT, OP_GE, OP_LE, OP_PLUS, OP_MINUS, OP_TIMES, OP_DIVIDE, MK_RB, MK_RPAREN, MK_COMMA, MK_SEMICOLON]
+  108        | ID . dim_list
+  109 dim_list: . dim_list MK_LB expr MK_RB
+  110         | . MK_LB expr MK_RB
 
-    $default  reduce using rule 79 (rel_op)
+    MK_LB  shift, and go to state 80
+
+    $default  reduce using rule 107 (var_ref)
+
+    dim_list  go to state 82
 
 
 State 88
 
-   82 rel_op: OP_NE .
+  100 factor: OP_MINUS CONST .
 
-    $default  reduce using rule 82 (rel_op)
+    $default  reduce using rule 100 (factor)
 
 
 State 89
 
-   83 rel_op: OP_GT .
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   97       | OP_MINUS MK_LPAREN . relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    $default  reduce using rule 83 (rel_op)
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    relop_expr    go to state 139
+    relop_term    go to state 58
+    relop_factor  go to state 59
+    expr          go to state 60
+    term          go to state 61
+    factor        go to state 62
+    var_ref       go to state 63
 
 
 State 90
 
-   84 rel_op: OP_LT .
+  105 factor: OP_MINUS var_ref .
 
-    $default  reduce using rule 84 (rel_op)
+    $default  reduce using rule 105 (factor)
 
 
 State 91
 
-   80 rel_op: OP_GE .
+   73 relop_expr: relop_expr . OP_OR relop_term
+   96 factor: MK_LPAREN relop_expr . MK_RPAREN
 
-    $default  reduce using rule 80 (rel_op)
+    OP_OR      shift, and go to state 92
+    MK_RPAREN  shift, and go to state 140
 
 
 State 92
 
-   81 rel_op: OP_LE .
+   73 relop_expr: relop_expr OP_OR . relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    $default  reduce using rule 81 (rel_op)
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    relop_term    go to state 141
+    relop_factor  go to state 59
+    expr          go to state 60
+    term          go to state 61
+    factor        go to state 62
+    var_ref       go to state 63
 
 
 State 93
 
-   91 add_op: OP_PLUS .
+   75 relop_term: relop_term OP_AND . relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    $default  reduce using rule 91 (add_op)
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    relop_factor  go to state 142
+    expr          go to state 60
+    term          go to state 61
+    factor        go to state 62
+    var_ref       go to state 63
 
 
 State 94
 
-   92 add_op: OP_MINUS .
+   78 rel_op: OP_EQ .
 
-    $default  reduce using rule 92 (add_op)
+    $default  reduce using rule 78 (rel_op)
 
 
 State 95
 
-   78 relop_factor: expr rel_op . expr
+   81 rel_op: OP_NE .
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
-
-    expr     go to state 136
-    term     go to state 56
-    factor   go to state 57
-    var_ref  go to state 58
+    $default  reduce using rule 81 (rel_op)
 
 
 State 96
 
-   89 expr: expr add_op . term
+   82 rel_op: OP_GT .
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
-
-    term     go to state 137
-    factor   go to state 57
-    var_ref  go to state 58
+    $default  reduce using rule 82 (rel_op)
 
 
 State 97
 
-   95 mul_op: OP_TIMES .
+   83 rel_op: OP_LT .
 
-    $default  reduce using rule 95 (mul_op)
+    $default  reduce using rule 83 (rel_op)
 
 
 State 98
 
-   96 mul_op: OP_DIVIDE .
+   79 rel_op: OP_GE .
 
-    $default  reduce using rule 96 (mul_op)
+    $default  reduce using rule 79 (rel_op)
 
 
 State 99
 
-   93 term: term mul_op . factor
+   80 rel_op: OP_LE .
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
-
-    factor   go to state 138
-    var_ref  go to state 58
+    $default  reduce using rule 80 (rel_op)
 
 
 State 100
 
-    9 function_decl: type ID MK_LPAREN MK_RPAREN MK_LBRACE . block MK_RBRACE
+   90 add_op: OP_PLUS .
 
-    ID            shift, and go to state 108
-    INT           shift, and go to state 3
-    FLOAT         shift, and go to state 4
-    IF            shift, and go to state 109
-    WHILE         shift, and go to state 110
-    FOR           shift, and go to state 111
-    TYPEDEF       shift, and go to state 5
-    MK_LBRACE     shift, and go to state 112
-    MK_SEMICOLON  shift, and go to state 113
-    RETURN        shift, and go to state 114
-
-    $default  reduce using rule 22 (block)
-
-    block      go to state 139
-    decl_list  go to state 116
-    decl       go to state 11
-    type_decl  go to state 12
-    var_decl   go to state 13
-    type       go to state 117
-    stmt_list  go to state 118
-    stmt       go to state 119
-    var_ref    go to state 120
+    $default  reduce using rule 90 (add_op)
 
 
 State 101
 
-    7 function_decl: type ID MK_LPAREN param_list MK_RPAREN . MK_LBRACE block MK_RBRACE
+   91 add_op: OP_MINUS .
 
-    MK_LBRACE  shift, and go to state 140
+    $default  reduce using rule 91 (add_op)
 
 
 State 102
 
-   40 cexpr: cexpr . OP_PLUS mcexpr
-   41      | cexpr . OP_MINUS mcexpr
-   47 cfactor: MK_LPAREN cexpr . MK_RPAREN
+   77 relop_factor: expr rel_op . expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    OP_PLUS    shift, and go to state 103
-    OP_MINUS   shift, and go to state 104
-    MK_RPAREN  shift, and go to state 141
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    expr     go to state 143
+    term     go to state 61
+    factor   go to state 62
+    var_ref  go to state 63
 
 
 State 103
 
-   40 cexpr: cexpr OP_PLUS . mcexpr
+   88 expr: expr add_op . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    CONST      shift, and go to state 63
-    MK_LPAREN  shift, and go to state 64
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
 
-    mcexpr   go to state 142
-    cfactor  go to state 67
+    term     go to state 144
+    factor   go to state 62
+    var_ref  go to state 63
 
 
 State 104
 
-   41 cexpr: cexpr OP_MINUS . mcexpr
+   94 mul_op: OP_TIMES .
 
-    CONST      shift, and go to state 63
-    MK_LPAREN  shift, and go to state 64
-
-    mcexpr   go to state 143
-    cfactor  go to state 67
+    $default  reduce using rule 94 (mul_op)
 
 
 State 105
 
-   37 dim_decl: dim_decl_t MK_LB cexpr MK_RB .
-   38 dim_decl_t: dim_decl_t MK_LB cexpr MK_RB .
+   95 mul_op: OP_DIVIDE .
 
-    MK_LB     reduce using rule 38 (dim_decl_t)
-    $default  reduce using rule 37 (dim_decl)
+    $default  reduce using rule 95 (mul_op)
 
 
 State 106
 
-   43 mcexpr: mcexpr OP_TIMES . cfactor
+   92 term: term mul_op . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    CONST      shift, and go to state 63
-    MK_LPAREN  shift, and go to state 64
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
 
-    cfactor  go to state 144
+    factor   go to state 145
+    var_ref  go to state 63
 
 
 State 107
 
-   44 mcexpr: mcexpr OP_DIVIDE . cfactor
+    9 function_decl: type ID MK_LPAREN MK_RPAREN MK_LBRACE . block MK_RBRACE
+   19 block: . decl_list stmt_list
+   20      | . stmt_list
+   21      | . decl_list
+   22      | . %empty  [MK_RBRACE]
+   23 decl_list: . decl_list decl
+   24          | . decl
+   25 decl: . type_decl
+   26     | . var_decl
+   27 type_decl: . TYPEDEF type id_list MK_SEMICOLON
+   28          | . TYPEDEF VOID id_list MK_SEMICOLON
+   29 var_decl: . type init_id_list MK_SEMICOLON
+   30         | . ID id_list MK_SEMICOLON
+   31 type: . INT
+   32     | . FLOAT
+   52 stmt_list: . stmt_list stmt
+   53          | . stmt
+   57 stmt: . MK_LBRACE block MK_RBRACE
+   58     | . WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   59     | . FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   60     | . var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   62     | . ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | . MK_SEMICOLON
+   64     | . RETURN MK_SEMICOLON
+   65     | . RETURN relop_expr MK_SEMICOLON
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    CONST      shift, and go to state 63
-    MK_LPAREN  shift, and go to state 64
+    ID            shift, and go to state 115
+    INT           shift, and go to state 3
+    FLOAT         shift, and go to state 4
+    IF            shift, and go to state 116
+    WHILE         shift, and go to state 117
+    FOR           shift, and go to state 118
+    TYPEDEF       shift, and go to state 5
+    MK_LBRACE     shift, and go to state 119
+    MK_SEMICOLON  shift, and go to state 120
+    RETURN        shift, and go to state 121
 
-    cfactor  go to state 145
+    $default  reduce using rule 22 (block)
+
+    block      go to state 146
+    decl_list  go to state 123
+    decl       go to state 11
+    type_decl  go to state 12
+    var_decl   go to state 13
+    type       go to state 124
+    stmt_list  go to state 125
+    stmt       go to state 126
+    var_ref    go to state 127
 
 
 State 108
 
-   30 var_decl: ID . id_list MK_SEMICOLON
-   63 stmt: ID . MK_LPAREN relop_expr_list MK_RPAREN
-  108 var_ref: ID .
-  109        | ID . dim_list
+    7 function_decl: type ID MK_LPAREN param_list MK_RPAREN . MK_LBRACE block MK_RBRACE
 
-    ID         shift, and go to state 15
-    MK_LB      shift, and go to state 73
-    MK_LPAREN  shift, and go to state 146
-
-    $default  reduce using rule 108 (var_ref)
-
-    id_list   go to state 16
-    dim_list  go to state 75
+    MK_LBRACE  shift, and go to state 147
 
 
 State 109
 
-   62 stmt: IF . MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   46 cfactor: MK_LPAREN cexpr MK_RPAREN .
 
-    MK_LPAREN  shift, and go to state 147
+    $default  reduce using rule 46 (cfactor)
 
 
 State 110
 
-   59 stmt: WHILE . MK_LPAREN relop_expr_list MK_RPAREN stmt
+   39 cexpr: cexpr OP_PLUS mcexpr .  [OP_PLUS, OP_MINUS, MK_RB, MK_RPAREN]
+   42 mcexpr: mcexpr . OP_TIMES cfactor
+   43       | mcexpr . OP_DIVIDE cfactor
 
-    MK_LPAREN  shift, and go to state 148
+    OP_TIMES   shift, and go to state 72
+    OP_DIVIDE  shift, and go to state 73
+
+    $default  reduce using rule 39 (cexpr)
 
 
 State 111
 
-   60 stmt: FOR . MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   40 cexpr: cexpr OP_MINUS mcexpr .  [OP_PLUS, OP_MINUS, MK_RB, MK_RPAREN]
+   42 mcexpr: mcexpr . OP_TIMES cfactor
+   43       | mcexpr . OP_DIVIDE cfactor
 
-    MK_LPAREN  shift, and go to state 149
+    OP_TIMES   shift, and go to state 72
+    OP_DIVIDE  shift, and go to state 73
+
+    $default  reduce using rule 40 (cexpr)
 
 
 State 112
 
-   58 stmt: MK_LBRACE . block MK_RBRACE
+   42 mcexpr: mcexpr OP_TIMES cfactor .
 
-    ID            shift, and go to state 108
-    INT           shift, and go to state 3
-    FLOAT         shift, and go to state 4
-    IF            shift, and go to state 109
-    WHILE         shift, and go to state 110
-    FOR           shift, and go to state 111
-    TYPEDEF       shift, and go to state 5
-    MK_LBRACE     shift, and go to state 112
-    MK_SEMICOLON  shift, and go to state 113
-    RETURN        shift, and go to state 114
-
-    $default  reduce using rule 22 (block)
-
-    block      go to state 150
-    decl_list  go to state 116
-    decl       go to state 11
-    type_decl  go to state 12
-    var_decl   go to state 13
-    type       go to state 117
-    stmt_list  go to state 118
-    stmt       go to state 119
-    var_ref    go to state 120
+    $default  reduce using rule 42 (mcexpr)
 
 
 State 113
 
-   64 stmt: MK_SEMICOLON .
+   43 mcexpr: mcexpr OP_DIVIDE cfactor .
 
-    $default  reduce using rule 64 (stmt)
+    $default  reduce using rule 43 (mcexpr)
 
 
 State 114
 
-   65 stmt: RETURN . MK_SEMICOLON
-   66     | RETURN . relop_expr MK_SEMICOLON
+   37 dim_decl: dim_decl MK_LB cexpr MK_RB .
 
-    ID            shift, and go to state 47
-    CONST         shift, and go to state 48
-    OP_NOT        shift, and go to state 49
-    OP_MINUS      shift, and go to state 50
-    MK_LPAREN     shift, and go to state 51
-    MK_SEMICOLON  shift, and go to state 151
-
-    relop_expr    go to state 152
-    relop_term    go to state 53
-    relop_factor  go to state 54
-    expr          go to state 55
-    term          go to state 56
-    factor        go to state 57
-    var_ref       go to state 58
+    $default  reduce using rule 37 (dim_decl)
 
 
 State 115
 
-   10 function_decl: VOID ID MK_LPAREN MK_RPAREN MK_LBRACE block . MK_RBRACE
+   30 var_decl: ID . id_list MK_SEMICOLON
+   33 id_list: . ID
+   34        | . id_list MK_COMMA ID
+   35        | . id_list MK_COMMA ID dim_decl
+   36        | . ID dim_decl
+   62 stmt: ID . MK_LPAREN relop_expr_list MK_RPAREN
+  107 var_ref: ID .  [OP_ASSIGN]
+  108        | ID . dim_list
+  109 dim_list: . dim_list MK_LB expr MK_RB
+  110         | . MK_LB expr MK_RB
 
-    MK_RBRACE  shift, and go to state 153
+    ID         shift, and go to state 15
+    MK_LB      shift, and go to state 80
+    MK_LPAREN  shift, and go to state 148
+
+    $default  reduce using rule 107 (var_ref)
+
+    id_list   go to state 16
+    dim_list  go to state 82
 
 
 State 116
 
-   19 block: decl_list . stmt_list
-   21      | decl_list .
-   23 decl_list: decl_list . decl
+   61 stmt: IF . MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
 
-    ID            shift, and go to state 108
+    MK_LPAREN  shift, and go to state 149
+
+
+State 117
+
+   58 stmt: WHILE . MK_LPAREN relop_expr_list MK_RPAREN stmt
+
+    MK_LPAREN  shift, and go to state 150
+
+
+State 118
+
+   59 stmt: FOR . MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+
+    MK_LPAREN  shift, and go to state 151
+
+
+State 119
+
+   19 block: . decl_list stmt_list
+   20      | . stmt_list
+   21      | . decl_list
+   22      | . %empty  [MK_RBRACE]
+   23 decl_list: . decl_list decl
+   24          | . decl
+   25 decl: . type_decl
+   26     | . var_decl
+   27 type_decl: . TYPEDEF type id_list MK_SEMICOLON
+   28          | . TYPEDEF VOID id_list MK_SEMICOLON
+   29 var_decl: . type init_id_list MK_SEMICOLON
+   30         | . ID id_list MK_SEMICOLON
+   31 type: . INT
+   32     | . FLOAT
+   52 stmt_list: . stmt_list stmt
+   53          | . stmt
+   57 stmt: . MK_LBRACE block MK_RBRACE
+   57     | MK_LBRACE . block MK_RBRACE
+   58     | . WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   59     | . FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   60     | . var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   62     | . ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | . MK_SEMICOLON
+   64     | . RETURN MK_SEMICOLON
+   65     | . RETURN relop_expr MK_SEMICOLON
+  107 var_ref: . ID
+  108        | . ID dim_list
+
+    ID            shift, and go to state 115
     INT           shift, and go to state 3
     FLOAT         shift, and go to state 4
-    IF            shift, and go to state 109
-    WHILE         shift, and go to state 110
-    FOR           shift, and go to state 111
+    IF            shift, and go to state 116
+    WHILE         shift, and go to state 117
+    FOR           shift, and go to state 118
     TYPEDEF       shift, and go to state 5
-    MK_LBRACE     shift, and go to state 112
-    MK_SEMICOLON  shift, and go to state 113
-    RETURN        shift, and go to state 114
+    MK_LBRACE     shift, and go to state 119
+    MK_SEMICOLON  shift, and go to state 120
+    RETURN        shift, and go to state 121
+
+    $default  reduce using rule 22 (block)
+
+    block      go to state 152
+    decl_list  go to state 123
+    decl       go to state 11
+    type_decl  go to state 12
+    var_decl   go to state 13
+    type       go to state 124
+    stmt_list  go to state 125
+    stmt       go to state 126
+    var_ref    go to state 127
+
+
+State 120
+
+   63 stmt: MK_SEMICOLON .
+
+    $default  reduce using rule 63 (stmt)
+
+
+State 121
+
+   64 stmt: RETURN . MK_SEMICOLON
+   65     | RETURN . relop_expr MK_SEMICOLON
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
+
+    ID            shift, and go to state 52
+    CONST         shift, and go to state 53
+    OP_NOT        shift, and go to state 54
+    OP_MINUS      shift, and go to state 55
+    MK_LPAREN     shift, and go to state 56
+    MK_SEMICOLON  shift, and go to state 153
+
+    relop_expr    go to state 154
+    relop_term    go to state 58
+    relop_factor  go to state 59
+    expr          go to state 60
+    term          go to state 61
+    factor        go to state 62
+    var_ref       go to state 63
+
+
+State 122
+
+   10 function_decl: VOID ID MK_LPAREN MK_RPAREN MK_LBRACE block . MK_RBRACE
+
+    MK_RBRACE  shift, and go to state 155
+
+
+State 123
+
+   19 block: decl_list . stmt_list
+   21      | decl_list .  [MK_RBRACE]
+   23 decl_list: decl_list . decl
+   25 decl: . type_decl
+   26     | . var_decl
+   27 type_decl: . TYPEDEF type id_list MK_SEMICOLON
+   28          | . TYPEDEF VOID id_list MK_SEMICOLON
+   29 var_decl: . type init_id_list MK_SEMICOLON
+   30         | . ID id_list MK_SEMICOLON
+   31 type: . INT
+   32     | . FLOAT
+   52 stmt_list: . stmt_list stmt
+   53          | . stmt
+   57 stmt: . MK_LBRACE block MK_RBRACE
+   58     | . WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   59     | . FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   60     | . var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   62     | . ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | . MK_SEMICOLON
+   64     | . RETURN MK_SEMICOLON
+   65     | . RETURN relop_expr MK_SEMICOLON
+  107 var_ref: . ID
+  108        | . ID dim_list
+
+    ID            shift, and go to state 115
+    INT           shift, and go to state 3
+    FLOAT         shift, and go to state 4
+    IF            shift, and go to state 116
+    WHILE         shift, and go to state 117
+    FOR           shift, and go to state 118
+    TYPEDEF       shift, and go to state 5
+    MK_LBRACE     shift, and go to state 119
+    MK_SEMICOLON  shift, and go to state 120
+    RETURN        shift, and go to state 121
 
     $default  reduce using rule 21 (block)
 
     decl       go to state 23
     type_decl  go to state 12
     var_decl   go to state 13
-    type       go to state 117
-    stmt_list  go to state 154
-    stmt       go to state 119
-    var_ref    go to state 120
+    type       go to state 124
+    stmt_list  go to state 156
+    stmt       go to state 126
+    var_ref    go to state 127
 
 
-State 117
+State 124
 
    29 var_decl: type . init_id_list MK_SEMICOLON
+   47 init_id_list: . init_id
+   48             | . init_id_list MK_COMMA init_id
+   49 init_id: . ID
+   50        | . ID dim_decl
+   51        | . ID OP_ASSIGN relop_expr
 
-    ID  shift, and go to state 61
+    ID  shift, and go to state 66
 
     init_id_list  go to state 25
     init_id       go to state 26
 
 
-State 118
+State 125
 
-   20 block: stmt_list .
-   53 stmt_list: stmt_list . stmt
+   20 block: stmt_list .  [MK_RBRACE]
+   52 stmt_list: stmt_list . stmt
+   57 stmt: . MK_LBRACE block MK_RBRACE
+   58     | . WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   59     | . FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   60     | . var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   62     | . ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | . MK_SEMICOLON
+   64     | . RETURN MK_SEMICOLON
+   65     | . RETURN relop_expr MK_SEMICOLON
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID            shift, and go to state 155
-    IF            shift, and go to state 109
-    WHILE         shift, and go to state 110
-    FOR           shift, and go to state 111
-    MK_LBRACE     shift, and go to state 112
-    MK_SEMICOLON  shift, and go to state 113
-    RETURN        shift, and go to state 114
+    ID            shift, and go to state 157
+    IF            shift, and go to state 116
+    WHILE         shift, and go to state 117
+    FOR           shift, and go to state 118
+    MK_LBRACE     shift, and go to state 119
+    MK_SEMICOLON  shift, and go to state 120
+    RETURN        shift, and go to state 121
 
     $default  reduce using rule 20 (block)
 
-    stmt     go to state 156
-    var_ref  go to state 120
+    stmt     go to state 158
+    var_ref  go to state 127
 
 
-State 119
+State 126
 
-   54 stmt_list: stmt .
+   53 stmt_list: stmt .
 
-    $default  reduce using rule 54 (stmt_list)
-
-
-State 120
-
-   61 stmt: var_ref . OP_ASSIGN relop_expr MK_SEMICOLON
-
-    OP_ASSIGN  shift, and go to state 157
+    $default  reduce using rule 53 (stmt_list)
 
 
-State 121
+State 127
+
+   60 stmt: var_ref . OP_ASSIGN relop_expr MK_SEMICOLON
+
+    OP_ASSIGN  shift, and go to state 159
+
+
+State 128
 
     8 function_decl: VOID ID MK_LPAREN param_list MK_RPAREN MK_LBRACE . block MK_RBRACE
+   19 block: . decl_list stmt_list
+   20      | . stmt_list
+   21      | . decl_list
+   22      | . %empty  [MK_RBRACE]
+   23 decl_list: . decl_list decl
+   24          | . decl
+   25 decl: . type_decl
+   26     | . var_decl
+   27 type_decl: . TYPEDEF type id_list MK_SEMICOLON
+   28          | . TYPEDEF VOID id_list MK_SEMICOLON
+   29 var_decl: . type init_id_list MK_SEMICOLON
+   30         | . ID id_list MK_SEMICOLON
+   31 type: . INT
+   32     | . FLOAT
+   52 stmt_list: . stmt_list stmt
+   53          | . stmt
+   57 stmt: . MK_LBRACE block MK_RBRACE
+   58     | . WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   59     | . FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   60     | . var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   62     | . ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | . MK_SEMICOLON
+   64     | . RETURN MK_SEMICOLON
+   65     | . RETURN relop_expr MK_SEMICOLON
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID            shift, and go to state 108
+    ID            shift, and go to state 115
     INT           shift, and go to state 3
     FLOAT         shift, and go to state 4
-    IF            shift, and go to state 109
-    WHILE         shift, and go to state 110
-    FOR           shift, and go to state 111
+    IF            shift, and go to state 116
+    WHILE         shift, and go to state 117
+    FOR           shift, and go to state 118
     TYPEDEF       shift, and go to state 5
-    MK_LBRACE     shift, and go to state 112
-    MK_SEMICOLON  shift, and go to state 113
-    RETURN        shift, and go to state 114
+    MK_LBRACE     shift, and go to state 119
+    MK_SEMICOLON  shift, and go to state 120
+    RETURN        shift, and go to state 121
 
     $default  reduce using rule 22 (block)
 
-    block      go to state 158
-    decl_list  go to state 116
+    block      go to state 160
+    decl_list  go to state 123
     decl       go to state 11
     type_decl  go to state 12
     var_decl   go to state 13
-    type       go to state 117
-    stmt_list  go to state 118
-    stmt       go to state 119
-    var_ref    go to state 120
+    type       go to state 124
+    stmt_list  go to state 125
+    stmt       go to state 126
+    var_ref    go to state 127
 
 
-State 122
+State 129
 
    11 param_list: param_list MK_COMMA param .
 
     $default  reduce using rule 11 (param_list)
 
 
-State 123
+State 130
 
    15 dim_fn: MK_LB . expr_null MK_RB
+   17 expr_null: . expr
+   18          | . %empty  [MK_RB]
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
 
     $default  reduce using rule 18 (expr_null)
 
-    expr_null  go to state 159
-    expr       go to state 160
-    term       go to state 56
-    factor     go to state 57
-    var_ref    go to state 58
-
-
-State 124
-
-   14 param: type ID dim_fn .
-   16 dim_fn: dim_fn . MK_LB expr MK_RB
-
-    MK_LB  shift, and go to state 161
-
-    $default  reduce using rule 14 (param)
-
-
-State 125
-
-   89 expr: expr . add_op term
-  111 dim_list: MK_LB expr . MK_RB
-
-    OP_PLUS   shift, and go to state 93
-    OP_MINUS  shift, and go to state 94
-    MK_RB     shift, and go to state 162
-
-    add_op  go to state 96
-
-
-State 126
-
-   74 relop_expr: relop_expr . OP_OR relop_term
-   88 nonempty_relop_expr_list: relop_expr .
-
-    OP_OR  shift, and go to state 85
-
-    $default  reduce using rule 88 (nonempty_relop_expr_list)
-
-
-State 127
-
-  103 factor: ID MK_LPAREN relop_expr_list . MK_RPAREN
-
-    MK_RPAREN  shift, and go to state 163
-
-
-State 128
-
-   85 relop_expr_list: nonempty_relop_expr_list .
-   87 nonempty_relop_expr_list: nonempty_relop_expr_list . MK_COMMA relop_expr
-
-    MK_COMMA  shift, and go to state 164
-
-    $default  reduce using rule 85 (relop_expr_list)
-
-
-State 129
-
-  110 dim_list: dim_list MK_LB . expr MK_RB
-
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
-
-    expr     go to state 165
-    term     go to state 56
-    factor   go to state 57
-    var_ref  go to state 58
-
-
-State 130
-
-  104 factor: OP_NOT ID MK_LPAREN . relop_expr_list MK_RPAREN
-
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
-
-    $default  reduce using rule 86 (relop_expr_list)
-
-    relop_expr                go to state 126
-    relop_term                go to state 53
-    relop_factor              go to state 54
-    relop_expr_list           go to state 166
-    nonempty_relop_expr_list  go to state 128
-    expr                      go to state 55
-    term                      go to state 56
-    factor                    go to state 57
-    var_ref                   go to state 58
+    expr_null  go to state 161
+    expr       go to state 162
+    term       go to state 61
+    factor     go to state 62
+    var_ref    go to state 63
 
 
 State 131
 
-   74 relop_expr: relop_expr . OP_OR relop_term
-   99 factor: OP_NOT MK_LPAREN relop_expr . MK_RPAREN
+   14 param: type ID dim_fn .  [MK_RPAREN, MK_COMMA]
+   16 dim_fn: dim_fn . MK_LB expr MK_RB
 
-    OP_OR      shift, and go to state 85
-    MK_RPAREN  shift, and go to state 167
+    MK_LB  shift, and go to state 163
+
+    $default  reduce using rule 14 (param)
 
 
 State 132
 
-   74 relop_expr: relop_expr . OP_OR relop_term
-   98 factor: OP_MINUS MK_LPAREN relop_expr . MK_RPAREN
+   88 expr: expr . add_op term
+   90 add_op: . OP_PLUS
+   91       | . OP_MINUS
+  110 dim_list: MK_LB expr . MK_RB
 
-    OP_OR      shift, and go to state 85
-    MK_RPAREN  shift, and go to state 168
+    OP_PLUS   shift, and go to state 100
+    OP_MINUS  shift, and go to state 101
+    MK_RB     shift, and go to state 164
+
+    add_op  go to state 103
 
 
 State 133
 
-   97 factor: MK_LPAREN relop_expr MK_RPAREN .
+   73 relop_expr: relop_expr . OP_OR relop_term
+   87 nonempty_relop_expr_list: relop_expr .  [MK_RPAREN, MK_COMMA, MK_SEMICOLON]
 
-    $default  reduce using rule 97 (factor)
+    OP_OR  shift, and go to state 92
+
+    $default  reduce using rule 87 (nonempty_relop_expr_list)
 
 
 State 134
 
-   74 relop_expr: relop_expr OP_OR relop_term .
-   76 relop_term: relop_term . OP_AND relop_factor
+  102 factor: ID MK_LPAREN relop_expr_list . MK_RPAREN
 
-    OP_AND  shift, and go to state 86
-
-    $default  reduce using rule 74 (relop_expr)
+    MK_RPAREN  shift, and go to state 165
 
 
 State 135
 
-   76 relop_term: relop_term OP_AND relop_factor .
+   84 relop_expr_list: nonempty_relop_expr_list .  [MK_RPAREN, MK_SEMICOLON]
+   86 nonempty_relop_expr_list: nonempty_relop_expr_list . MK_COMMA relop_expr
 
-    $default  reduce using rule 76 (relop_term)
+    MK_COMMA  shift, and go to state 166
+
+    $default  reduce using rule 84 (relop_expr_list)
 
 
 State 136
 
-   78 relop_factor: expr rel_op expr .
-   89 expr: expr . add_op term
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
+  109 dim_list: dim_list MK_LB . expr MK_RB
 
-    OP_PLUS   shift, and go to state 93
-    OP_MINUS  shift, and go to state 94
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
 
-    $default  reduce using rule 78 (relop_factor)
-
-    add_op  go to state 96
+    expr     go to state 167
+    term     go to state 61
+    factor   go to state 62
+    var_ref  go to state 63
 
 
 State 137
 
-   89 expr: expr add_op term .
-   93 term: term . mul_op factor
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   84 relop_expr_list: . nonempty_relop_expr_list
+   85                | . %empty  [MK_RPAREN]
+   86 nonempty_relop_expr_list: . nonempty_relop_expr_list MK_COMMA relop_expr
+   87                         | . relop_expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | OP_NOT ID MK_LPAREN . relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    OP_TIMES   shift, and go to state 97
-    OP_DIVIDE  shift, and go to state 98
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
 
-    $default  reduce using rule 89 (expr)
+    $default  reduce using rule 85 (relop_expr_list)
 
-    mul_op  go to state 99
+    relop_expr                go to state 133
+    relop_term                go to state 58
+    relop_factor              go to state 59
+    relop_expr_list           go to state 168
+    nonempty_relop_expr_list  go to state 135
+    expr                      go to state 60
+    term                      go to state 61
+    factor                    go to state 62
+    var_ref                   go to state 63
 
 
 State 138
 
-   93 term: term mul_op factor .
+   73 relop_expr: relop_expr . OP_OR relop_term
+   98 factor: OP_NOT MK_LPAREN relop_expr . MK_RPAREN
 
-    $default  reduce using rule 93 (term)
+    OP_OR      shift, and go to state 92
+    MK_RPAREN  shift, and go to state 169
 
 
 State 139
 
-    9 function_decl: type ID MK_LPAREN MK_RPAREN MK_LBRACE block . MK_RBRACE
+   73 relop_expr: relop_expr . OP_OR relop_term
+   97 factor: OP_MINUS MK_LPAREN relop_expr . MK_RPAREN
 
-    MK_RBRACE  shift, and go to state 169
+    OP_OR      shift, and go to state 92
+    MK_RPAREN  shift, and go to state 170
 
 
 State 140
 
-    7 function_decl: type ID MK_LPAREN param_list MK_RPAREN MK_LBRACE . block MK_RBRACE
+   96 factor: MK_LPAREN relop_expr MK_RPAREN .
 
-    ID            shift, and go to state 108
-    INT           shift, and go to state 3
-    FLOAT         shift, and go to state 4
-    IF            shift, and go to state 109
-    WHILE         shift, and go to state 110
-    FOR           shift, and go to state 111
-    TYPEDEF       shift, and go to state 5
-    MK_LBRACE     shift, and go to state 112
-    MK_SEMICOLON  shift, and go to state 113
-    RETURN        shift, and go to state 114
-
-    $default  reduce using rule 22 (block)
-
-    block      go to state 170
-    decl_list  go to state 116
-    decl       go to state 11
-    type_decl  go to state 12
-    var_decl   go to state 13
-    type       go to state 117
-    stmt_list  go to state 118
-    stmt       go to state 119
-    var_ref    go to state 120
+    $default  reduce using rule 96 (factor)
 
 
 State 141
 
-   47 cfactor: MK_LPAREN cexpr MK_RPAREN .
+   73 relop_expr: relop_expr OP_OR relop_term .  [OP_OR, MK_RPAREN, MK_COMMA, MK_SEMICOLON]
+   75 relop_term: relop_term . OP_AND relop_factor
 
-    $default  reduce using rule 47 (cfactor)
+    OP_AND  shift, and go to state 93
+
+    $default  reduce using rule 73 (relop_expr)
 
 
 State 142
 
-   40 cexpr: cexpr OP_PLUS mcexpr .
-   43 mcexpr: mcexpr . OP_TIMES cfactor
-   44       | mcexpr . OP_DIVIDE cfactor
+   75 relop_term: relop_term OP_AND relop_factor .
 
-    OP_TIMES   shift, and go to state 106
-    OP_DIVIDE  shift, and go to state 107
-
-    $default  reduce using rule 40 (cexpr)
+    $default  reduce using rule 75 (relop_term)
 
 
 State 143
 
-   41 cexpr: cexpr OP_MINUS mcexpr .
-   43 mcexpr: mcexpr . OP_TIMES cfactor
-   44       | mcexpr . OP_DIVIDE cfactor
+   77 relop_factor: expr rel_op expr .  [OP_OR, OP_AND, MK_RPAREN, MK_COMMA, MK_SEMICOLON]
+   88 expr: expr . add_op term
+   90 add_op: . OP_PLUS
+   91       | . OP_MINUS
 
-    OP_TIMES   shift, and go to state 106
-    OP_DIVIDE  shift, and go to state 107
+    OP_PLUS   shift, and go to state 100
+    OP_MINUS  shift, and go to state 101
 
-    $default  reduce using rule 41 (cexpr)
+    $default  reduce using rule 77 (relop_factor)
+
+    add_op  go to state 103
 
 
 State 144
 
-   43 mcexpr: mcexpr OP_TIMES cfactor .
+   88 expr: expr add_op term .  [OP_OR, OP_AND, OP_EQ, OP_NE, OP_GT, OP_LT, OP_GE, OP_LE, OP_PLUS, OP_MINUS, MK_RB, MK_RPAREN, MK_COMMA, MK_SEMICOLON]
+   92 term: term . mul_op factor
+   94 mul_op: . OP_TIMES
+   95       | . OP_DIVIDE
 
-    $default  reduce using rule 43 (mcexpr)
+    OP_TIMES   shift, and go to state 104
+    OP_DIVIDE  shift, and go to state 105
+
+    $default  reduce using rule 88 (expr)
+
+    mul_op  go to state 106
 
 
 State 145
 
-   44 mcexpr: mcexpr OP_DIVIDE cfactor .
+   92 term: term mul_op factor .
 
-    $default  reduce using rule 44 (mcexpr)
+    $default  reduce using rule 92 (term)
 
 
 State 146
 
-   63 stmt: ID MK_LPAREN . relop_expr_list MK_RPAREN
+    9 function_decl: type ID MK_LPAREN MK_RPAREN MK_LBRACE block . MK_RBRACE
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
-
-    $default  reduce using rule 86 (relop_expr_list)
-
-    relop_expr                go to state 126
-    relop_term                go to state 53
-    relop_factor              go to state 54
-    relop_expr_list           go to state 171
-    nonempty_relop_expr_list  go to state 128
-    expr                      go to state 55
-    term                      go to state 56
-    factor                    go to state 57
-    var_ref                   go to state 58
+    MK_RBRACE  shift, and go to state 171
 
 
 State 147
 
-   62 stmt: IF MK_LPAREN . relop_expr_list MK_RPAREN stmt elseif
+    7 function_decl: type ID MK_LPAREN param_list MK_RPAREN MK_LBRACE . block MK_RBRACE
+   19 block: . decl_list stmt_list
+   20      | . stmt_list
+   21      | . decl_list
+   22      | . %empty  [MK_RBRACE]
+   23 decl_list: . decl_list decl
+   24          | . decl
+   25 decl: . type_decl
+   26     | . var_decl
+   27 type_decl: . TYPEDEF type id_list MK_SEMICOLON
+   28          | . TYPEDEF VOID id_list MK_SEMICOLON
+   29 var_decl: . type init_id_list MK_SEMICOLON
+   30         | . ID id_list MK_SEMICOLON
+   31 type: . INT
+   32     | . FLOAT
+   52 stmt_list: . stmt_list stmt
+   53          | . stmt
+   57 stmt: . MK_LBRACE block MK_RBRACE
+   58     | . WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   59     | . FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   60     | . var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   62     | . ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | . MK_SEMICOLON
+   64     | . RETURN MK_SEMICOLON
+   65     | . RETURN relop_expr MK_SEMICOLON
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    ID            shift, and go to state 115
+    INT           shift, and go to state 3
+    FLOAT         shift, and go to state 4
+    IF            shift, and go to state 116
+    WHILE         shift, and go to state 117
+    FOR           shift, and go to state 118
+    TYPEDEF       shift, and go to state 5
+    MK_LBRACE     shift, and go to state 119
+    MK_SEMICOLON  shift, and go to state 120
+    RETURN        shift, and go to state 121
 
-    $default  reduce using rule 86 (relop_expr_list)
+    $default  reduce using rule 22 (block)
 
-    relop_expr                go to state 126
-    relop_term                go to state 53
-    relop_factor              go to state 54
-    relop_expr_list           go to state 172
-    nonempty_relop_expr_list  go to state 128
-    expr                      go to state 55
-    term                      go to state 56
-    factor                    go to state 57
-    var_ref                   go to state 58
+    block      go to state 172
+    decl_list  go to state 123
+    decl       go to state 11
+    type_decl  go to state 12
+    var_decl   go to state 13
+    type       go to state 124
+    stmt_list  go to state 125
+    stmt       go to state 126
+    var_ref    go to state 127
 
 
 State 148
 
-   59 stmt: WHILE MK_LPAREN . relop_expr_list MK_RPAREN stmt
+   62 stmt: ID MK_LPAREN . relop_expr_list MK_RPAREN
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   84 relop_expr_list: . nonempty_relop_expr_list
+   85                | . %empty  [MK_RPAREN]
+   86 nonempty_relop_expr_list: . nonempty_relop_expr_list MK_COMMA relop_expr
+   87                         | . relop_expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
 
-    $default  reduce using rule 86 (relop_expr_list)
+    $default  reduce using rule 85 (relop_expr_list)
 
-    relop_expr                go to state 126
-    relop_term                go to state 53
-    relop_factor              go to state 54
+    relop_expr                go to state 133
+    relop_term                go to state 58
+    relop_factor              go to state 59
     relop_expr_list           go to state 173
-    nonempty_relop_expr_list  go to state 128
-    expr                      go to state 55
-    term                      go to state 56
-    factor                    go to state 57
-    var_ref                   go to state 58
+    nonempty_relop_expr_list  go to state 135
+    expr                      go to state 60
+    term                      go to state 61
+    factor                    go to state 62
+    var_ref                   go to state 63
 
 
 State 149
 
-   60 stmt: FOR MK_LPAREN . assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   61 stmt: IF MK_LPAREN . relop_expr_list MK_RPAREN stmt elseif
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   84 relop_expr_list: . nonempty_relop_expr_list
+   85                | . %empty  [MK_RPAREN]
+   86 nonempty_relop_expr_list: . nonempty_relop_expr_list MK_COMMA relop_expr
+   87                         | . relop_expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID         shift, and go to state 174
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
 
-    $default  reduce using rule 68 (assign_expr_list)
+    $default  reduce using rule 85 (relop_expr_list)
 
-    assign_expr_list           go to state 175
-    nonempty_assign_expr_list  go to state 176
-    assign_expr                go to state 177
-    relop_expr                 go to state 178
-    relop_term                 go to state 53
-    relop_factor               go to state 54
-    expr                       go to state 55
-    term                       go to state 56
-    factor                     go to state 57
-    var_ref                    go to state 58
+    relop_expr                go to state 133
+    relop_term                go to state 58
+    relop_factor              go to state 59
+    relop_expr_list           go to state 174
+    nonempty_relop_expr_list  go to state 135
+    expr                      go to state 60
+    term                      go to state 61
+    factor                    go to state 62
+    var_ref                   go to state 63
 
 
 State 150
 
-   58 stmt: MK_LBRACE block . MK_RBRACE
+   58 stmt: WHILE MK_LPAREN . relop_expr_list MK_RPAREN stmt
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   84 relop_expr_list: . nonempty_relop_expr_list
+   85                | . %empty  [MK_RPAREN]
+   86 nonempty_relop_expr_list: . nonempty_relop_expr_list MK_COMMA relop_expr
+   87                         | . relop_expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    MK_RBRACE  shift, and go to state 179
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    $default  reduce using rule 85 (relop_expr_list)
+
+    relop_expr                go to state 133
+    relop_term                go to state 58
+    relop_factor              go to state 59
+    relop_expr_list           go to state 175
+    nonempty_relop_expr_list  go to state 135
+    expr                      go to state 60
+    term                      go to state 61
+    factor                    go to state 62
+    var_ref                   go to state 63
 
 
 State 151
 
-   65 stmt: RETURN MK_SEMICOLON .
+   59 stmt: FOR MK_LPAREN . assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   66 assign_expr_list: . nonempty_assign_expr_list
+   67                 | . %empty  [MK_SEMICOLON]
+   68 nonempty_assign_expr_list: . nonempty_assign_expr_list MK_COMMA assign_expr
+   69                          | . assign_expr
+   70 assign_expr: . ID OP_ASSIGN relop_expr
+   71            | . relop_expr
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    $default  reduce using rule 65 (stmt)
+    ID         shift, and go to state 176
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    $default  reduce using rule 67 (assign_expr_list)
+
+    assign_expr_list           go to state 177
+    nonempty_assign_expr_list  go to state 178
+    assign_expr                go to state 179
+    relop_expr                 go to state 180
+    relop_term                 go to state 58
+    relop_factor               go to state 59
+    expr                       go to state 60
+    term                       go to state 61
+    factor                     go to state 62
+    var_ref                    go to state 63
 
 
 State 152
 
-   66 stmt: RETURN relop_expr . MK_SEMICOLON
-   74 relop_expr: relop_expr . OP_OR relop_term
+   57 stmt: MK_LBRACE block . MK_RBRACE
 
-    OP_OR         shift, and go to state 85
-    MK_SEMICOLON  shift, and go to state 180
+    MK_RBRACE  shift, and go to state 181
 
 
 State 153
+
+   64 stmt: RETURN MK_SEMICOLON .
+
+    $default  reduce using rule 64 (stmt)
+
+
+State 154
+
+   65 stmt: RETURN relop_expr . MK_SEMICOLON
+   73 relop_expr: relop_expr . OP_OR relop_term
+
+    OP_OR         shift, and go to state 92
+    MK_SEMICOLON  shift, and go to state 182
+
+
+State 155
 
    10 function_decl: VOID ID MK_LPAREN MK_RPAREN MK_LBRACE block MK_RBRACE .
 
     $default  reduce using rule 10 (function_decl)
 
 
-State 154
+State 156
 
-   19 block: decl_list stmt_list .
-   53 stmt_list: stmt_list . stmt
+   19 block: decl_list stmt_list .  [MK_RBRACE]
+   52 stmt_list: stmt_list . stmt
+   57 stmt: . MK_LBRACE block MK_RBRACE
+   58     | . WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   59     | . FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   60     | . var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   62     | . ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | . MK_SEMICOLON
+   64     | . RETURN MK_SEMICOLON
+   65     | . RETURN relop_expr MK_SEMICOLON
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID            shift, and go to state 155
-    IF            shift, and go to state 109
-    WHILE         shift, and go to state 110
-    FOR           shift, and go to state 111
-    MK_LBRACE     shift, and go to state 112
-    MK_SEMICOLON  shift, and go to state 113
-    RETURN        shift, and go to state 114
+    ID            shift, and go to state 157
+    IF            shift, and go to state 116
+    WHILE         shift, and go to state 117
+    FOR           shift, and go to state 118
+    MK_LBRACE     shift, and go to state 119
+    MK_SEMICOLON  shift, and go to state 120
+    RETURN        shift, and go to state 121
 
     $default  reduce using rule 19 (block)
 
-    stmt     go to state 156
-    var_ref  go to state 120
-
-
-State 155
-
-   63 stmt: ID . MK_LPAREN relop_expr_list MK_RPAREN
-  108 var_ref: ID .
-  109        | ID . dim_list
-
-    MK_LB      shift, and go to state 73
-    MK_LPAREN  shift, and go to state 146
-
-    $default  reduce using rule 108 (var_ref)
-
-    dim_list  go to state 75
-
-
-State 156
-
-   53 stmt_list: stmt_list stmt .
-
-    $default  reduce using rule 53 (stmt_list)
+    stmt     go to state 158
+    var_ref  go to state 127
 
 
 State 157
 
-   61 stmt: var_ref OP_ASSIGN . relop_expr MK_SEMICOLON
+   62 stmt: ID . MK_LPAREN relop_expr_list MK_RPAREN
+  107 var_ref: ID .  [OP_ASSIGN]
+  108        | ID . dim_list
+  109 dim_list: . dim_list MK_LB expr MK_RB
+  110         | . MK_LB expr MK_RB
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    MK_LB      shift, and go to state 80
+    MK_LPAREN  shift, and go to state 148
 
-    relop_expr    go to state 181
-    relop_term    go to state 53
-    relop_factor  go to state 54
-    expr          go to state 55
-    term          go to state 56
-    factor        go to state 57
-    var_ref       go to state 58
+    $default  reduce using rule 107 (var_ref)
+
+    dim_list  go to state 82
 
 
 State 158
 
-    8 function_decl: VOID ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block . MK_RBRACE
+   52 stmt_list: stmt_list stmt .
 
-    MK_RBRACE  shift, and go to state 182
+    $default  reduce using rule 52 (stmt_list)
 
 
 State 159
 
-   15 dim_fn: MK_LB expr_null . MK_RB
+   60 stmt: var_ref OP_ASSIGN . relop_expr MK_SEMICOLON
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    MK_RB  shift, and go to state 183
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    relop_expr    go to state 183
+    relop_term    go to state 58
+    relop_factor  go to state 59
+    expr          go to state 60
+    term          go to state 61
+    factor        go to state 62
+    var_ref       go to state 63
 
 
 State 160
 
-   17 expr_null: expr .
-   89 expr: expr . add_op term
+    8 function_decl: VOID ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block . MK_RBRACE
 
-    OP_PLUS   shift, and go to state 93
-    OP_MINUS  shift, and go to state 94
-
-    $default  reduce using rule 17 (expr_null)
-
-    add_op  go to state 96
+    MK_RBRACE  shift, and go to state 184
 
 
 State 161
 
-   16 dim_fn: dim_fn MK_LB . expr MK_RB
+   15 dim_fn: MK_LB expr_null . MK_RB
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
-
-    expr     go to state 184
-    term     go to state 56
-    factor   go to state 57
-    var_ref  go to state 58
+    MK_RB  shift, and go to state 185
 
 
 State 162
 
-  111 dim_list: MK_LB expr MK_RB .
+   17 expr_null: expr .  [MK_RB]
+   88 expr: expr . add_op term
+   90 add_op: . OP_PLUS
+   91       | . OP_MINUS
 
-    $default  reduce using rule 111 (dim_list)
+    OP_PLUS   shift, and go to state 100
+    OP_MINUS  shift, and go to state 101
+
+    $default  reduce using rule 17 (expr_null)
+
+    add_op  go to state 103
 
 
 State 163
 
-  103 factor: ID MK_LPAREN relop_expr_list MK_RPAREN .
+   16 dim_fn: dim_fn MK_LB . expr MK_RB
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    $default  reduce using rule 103 (factor)
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    expr     go to state 186
+    term     go to state 61
+    factor   go to state 62
+    var_ref  go to state 63
 
 
 State 164
 
-   87 nonempty_relop_expr_list: nonempty_relop_expr_list MK_COMMA . relop_expr
+  110 dim_list: MK_LB expr MK_RB .
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
-
-    relop_expr    go to state 185
-    relop_term    go to state 53
-    relop_factor  go to state 54
-    expr          go to state 55
-    term          go to state 56
-    factor        go to state 57
-    var_ref       go to state 58
+    $default  reduce using rule 110 (dim_list)
 
 
 State 165
 
-   89 expr: expr . add_op term
-  110 dim_list: dim_list MK_LB expr . MK_RB
+  102 factor: ID MK_LPAREN relop_expr_list MK_RPAREN .
 
-    OP_PLUS   shift, and go to state 93
-    OP_MINUS  shift, and go to state 94
-    MK_RB     shift, and go to state 186
-
-    add_op  go to state 96
+    $default  reduce using rule 102 (factor)
 
 
 State 166
 
-  104 factor: OP_NOT ID MK_LPAREN relop_expr_list . MK_RPAREN
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   86 nonempty_relop_expr_list: nonempty_relop_expr_list MK_COMMA . relop_expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    MK_RPAREN  shift, and go to state 187
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    relop_expr    go to state 187
+    relop_term    go to state 58
+    relop_factor  go to state 59
+    expr          go to state 60
+    term          go to state 61
+    factor        go to state 62
+    var_ref       go to state 63
 
 
 State 167
 
-   99 factor: OP_NOT MK_LPAREN relop_expr MK_RPAREN .
+   88 expr: expr . add_op term
+   90 add_op: . OP_PLUS
+   91       | . OP_MINUS
+  109 dim_list: dim_list MK_LB expr . MK_RB
 
-    $default  reduce using rule 99 (factor)
+    OP_PLUS   shift, and go to state 100
+    OP_MINUS  shift, and go to state 101
+    MK_RB     shift, and go to state 188
+
+    add_op  go to state 103
 
 
 State 168
 
-   98 factor: OP_MINUS MK_LPAREN relop_expr MK_RPAREN .
+  103 factor: OP_NOT ID MK_LPAREN relop_expr_list . MK_RPAREN
+
+    MK_RPAREN  shift, and go to state 189
+
+
+State 169
+
+   98 factor: OP_NOT MK_LPAREN relop_expr MK_RPAREN .
 
     $default  reduce using rule 98 (factor)
 
 
-State 169
+State 170
+
+   97 factor: OP_MINUS MK_LPAREN relop_expr MK_RPAREN .
+
+    $default  reduce using rule 97 (factor)
+
+
+State 171
 
     9 function_decl: type ID MK_LPAREN MK_RPAREN MK_LBRACE block MK_RBRACE .
 
     $default  reduce using rule 9 (function_decl)
 
 
-State 170
+State 172
 
     7 function_decl: type ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block . MK_RBRACE
 
-    MK_RBRACE  shift, and go to state 188
-
-
-State 171
-
-   63 stmt: ID MK_LPAREN relop_expr_list . MK_RPAREN
-
-    MK_RPAREN  shift, and go to state 189
-
-
-State 172
-
-   62 stmt: IF MK_LPAREN relop_expr_list . MK_RPAREN stmt elseif
-
-    MK_RPAREN  shift, and go to state 190
+    MK_RBRACE  shift, and go to state 190
 
 
 State 173
 
-   59 stmt: WHILE MK_LPAREN relop_expr_list . MK_RPAREN stmt
+   62 stmt: ID MK_LPAREN relop_expr_list . MK_RPAREN
 
     MK_RPAREN  shift, and go to state 191
 
 
 State 174
 
-   71 assign_expr: ID . OP_ASSIGN relop_expr
-  103 factor: ID . MK_LPAREN relop_expr_list MK_RPAREN
-  108 var_ref: ID .
-  109        | ID . dim_list
+   61 stmt: IF MK_LPAREN relop_expr_list . MK_RPAREN stmt elseif
 
-    OP_ASSIGN  shift, and go to state 192
-    MK_LB      shift, and go to state 73
-    MK_LPAREN  shift, and go to state 74
-
-    $default  reduce using rule 108 (var_ref)
-
-    dim_list  go to state 75
+    MK_RPAREN  shift, and go to state 192
 
 
 State 175
 
-   60 stmt: FOR MK_LPAREN assign_expr_list . MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   58 stmt: WHILE MK_LPAREN relop_expr_list . MK_RPAREN stmt
 
-    MK_SEMICOLON  shift, and go to state 193
+    MK_RPAREN  shift, and go to state 193
 
 
 State 176
 
-   67 assign_expr_list: nonempty_assign_expr_list .
-   69 nonempty_assign_expr_list: nonempty_assign_expr_list . MK_COMMA assign_expr
+   70 assign_expr: ID . OP_ASSIGN relop_expr
+  102 factor: ID . MK_LPAREN relop_expr_list MK_RPAREN
+  107 var_ref: ID .  [OP_OR, OP_AND, OP_EQ, OP_NE, OP_GT, OP_LT, OP_GE, OP_LE, OP_PLUS, OP_MINUS, OP_TIMES, OP_DIVIDE, MK_RPAREN, MK_COMMA, MK_SEMICOLON]
+  108        | ID . dim_list
+  109 dim_list: . dim_list MK_LB expr MK_RB
+  110         | . MK_LB expr MK_RB
 
-    MK_COMMA  shift, and go to state 194
+    OP_ASSIGN  shift, and go to state 194
+    MK_LB      shift, and go to state 80
+    MK_LPAREN  shift, and go to state 81
 
-    $default  reduce using rule 67 (assign_expr_list)
+    $default  reduce using rule 107 (var_ref)
+
+    dim_list  go to state 82
 
 
 State 177
 
-   70 nonempty_assign_expr_list: assign_expr .
+   59 stmt: FOR MK_LPAREN assign_expr_list . MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
 
-    $default  reduce using rule 70 (nonempty_assign_expr_list)
+    MK_SEMICOLON  shift, and go to state 195
 
 
 State 178
 
-   72 assign_expr: relop_expr .
-   74 relop_expr: relop_expr . OP_OR relop_term
+   66 assign_expr_list: nonempty_assign_expr_list .  [MK_RPAREN, MK_SEMICOLON]
+   68 nonempty_assign_expr_list: nonempty_assign_expr_list . MK_COMMA assign_expr
 
-    OP_OR  shift, and go to state 85
+    MK_COMMA  shift, and go to state 196
 
-    $default  reduce using rule 72 (assign_expr)
+    $default  reduce using rule 66 (assign_expr_list)
 
 
 State 179
 
-   58 stmt: MK_LBRACE block MK_RBRACE .
+   69 nonempty_assign_expr_list: assign_expr .
 
-    $default  reduce using rule 58 (stmt)
+    $default  reduce using rule 69 (nonempty_assign_expr_list)
 
 
 State 180
 
-   66 stmt: RETURN relop_expr MK_SEMICOLON .
+   71 assign_expr: relop_expr .  [MK_RPAREN, MK_COMMA, MK_SEMICOLON]
+   73 relop_expr: relop_expr . OP_OR relop_term
 
-    $default  reduce using rule 66 (stmt)
+    OP_OR  shift, and go to state 92
+
+    $default  reduce using rule 71 (assign_expr)
 
 
 State 181
 
-   61 stmt: var_ref OP_ASSIGN relop_expr . MK_SEMICOLON
-   74 relop_expr: relop_expr . OP_OR relop_term
+   57 stmt: MK_LBRACE block MK_RBRACE .
 
-    OP_OR         shift, and go to state 85
-    MK_SEMICOLON  shift, and go to state 195
+    $default  reduce using rule 57 (stmt)
 
 
 State 182
+
+   65 stmt: RETURN relop_expr MK_SEMICOLON .
+
+    $default  reduce using rule 65 (stmt)
+
+
+State 183
+
+   60 stmt: var_ref OP_ASSIGN relop_expr . MK_SEMICOLON
+   73 relop_expr: relop_expr . OP_OR relop_term
+
+    OP_OR         shift, and go to state 92
+    MK_SEMICOLON  shift, and go to state 197
+
+
+State 184
 
     8 function_decl: VOID ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block MK_RBRACE .
 
     $default  reduce using rule 8 (function_decl)
 
 
-State 183
+State 185
 
    15 dim_fn: MK_LB expr_null MK_RB .
 
     $default  reduce using rule 15 (dim_fn)
 
 
-State 184
-
-   16 dim_fn: dim_fn MK_LB expr . MK_RB
-   89 expr: expr . add_op term
-
-    OP_PLUS   shift, and go to state 93
-    OP_MINUS  shift, and go to state 94
-    MK_RB     shift, and go to state 196
-
-    add_op  go to state 96
-
-
-State 185
-
-   74 relop_expr: relop_expr . OP_OR relop_term
-   87 nonempty_relop_expr_list: nonempty_relop_expr_list MK_COMMA relop_expr .
-
-    OP_OR  shift, and go to state 85
-
-    $default  reduce using rule 87 (nonempty_relop_expr_list)
-
-
 State 186
 
-  110 dim_list: dim_list MK_LB expr MK_RB .
+   16 dim_fn: dim_fn MK_LB expr . MK_RB
+   88 expr: expr . add_op term
+   90 add_op: . OP_PLUS
+   91       | . OP_MINUS
 
-    $default  reduce using rule 110 (dim_list)
+    OP_PLUS   shift, and go to state 100
+    OP_MINUS  shift, and go to state 101
+    MK_RB     shift, and go to state 198
+
+    add_op  go to state 103
 
 
 State 187
 
-  104 factor: OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN .
+   73 relop_expr: relop_expr . OP_OR relop_term
+   86 nonempty_relop_expr_list: nonempty_relop_expr_list MK_COMMA relop_expr .  [MK_RPAREN, MK_COMMA, MK_SEMICOLON]
 
-    $default  reduce using rule 104 (factor)
+    OP_OR  shift, and go to state 92
+
+    $default  reduce using rule 86 (nonempty_relop_expr_list)
 
 
 State 188
+
+  109 dim_list: dim_list MK_LB expr MK_RB .
+
+    $default  reduce using rule 109 (dim_list)
+
+
+State 189
+
+  103 factor: OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN .
+
+    $default  reduce using rule 103 (factor)
+
+
+State 190
 
     7 function_decl: type ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block MK_RBRACE .
 
     $default  reduce using rule 7 (function_decl)
 
 
-State 189
-
-   63 stmt: ID MK_LPAREN relop_expr_list MK_RPAREN .
-
-    $default  reduce using rule 63 (stmt)
-
-
-State 190
-
-   62 stmt: IF MK_LPAREN relop_expr_list MK_RPAREN . stmt elseif
-
-    ID            shift, and go to state 155
-    IF            shift, and go to state 109
-    WHILE         shift, and go to state 110
-    FOR           shift, and go to state 111
-    MK_LBRACE     shift, and go to state 112
-    MK_SEMICOLON  shift, and go to state 113
-    RETURN        shift, and go to state 114
-
-    stmt     go to state 197
-    var_ref  go to state 120
-
-
 State 191
 
-   59 stmt: WHILE MK_LPAREN relop_expr_list MK_RPAREN . stmt
+   62 stmt: ID MK_LPAREN relop_expr_list MK_RPAREN .
 
-    ID            shift, and go to state 155
-    IF            shift, and go to state 109
-    WHILE         shift, and go to state 110
-    FOR           shift, and go to state 111
-    MK_LBRACE     shift, and go to state 112
-    MK_SEMICOLON  shift, and go to state 113
-    RETURN        shift, and go to state 114
-
-    stmt     go to state 198
-    var_ref  go to state 120
+    $default  reduce using rule 62 (stmt)
 
 
 State 192
 
-   71 assign_expr: ID OP_ASSIGN . relop_expr
+   57 stmt: . MK_LBRACE block MK_RBRACE
+   58     | . WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   59     | . FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   60     | . var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   61     | IF MK_LPAREN relop_expr_list MK_RPAREN . stmt elseif
+   62     | . ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | . MK_SEMICOLON
+   64     | . RETURN MK_SEMICOLON
+   65     | . RETURN relop_expr MK_SEMICOLON
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    ID            shift, and go to state 157
+    IF            shift, and go to state 116
+    WHILE         shift, and go to state 117
+    FOR           shift, and go to state 118
+    MK_LBRACE     shift, and go to state 119
+    MK_SEMICOLON  shift, and go to state 120
+    RETURN        shift, and go to state 121
 
-    relop_expr    go to state 199
-    relop_term    go to state 53
-    relop_factor  go to state 54
-    expr          go to state 55
-    term          go to state 56
-    factor        go to state 57
-    var_ref       go to state 58
+    stmt     go to state 199
+    var_ref  go to state 127
 
 
 State 193
 
-   60 stmt: FOR MK_LPAREN assign_expr_list MK_SEMICOLON . relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   57 stmt: . MK_LBRACE block MK_RBRACE
+   58     | . WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   58     | WHILE MK_LPAREN relop_expr_list MK_RPAREN . stmt
+   59     | . FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   60     | . var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   62     | . ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | . MK_SEMICOLON
+   64     | . RETURN MK_SEMICOLON
+   65     | . RETURN relop_expr MK_SEMICOLON
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    ID            shift, and go to state 157
+    IF            shift, and go to state 116
+    WHILE         shift, and go to state 117
+    FOR           shift, and go to state 118
+    MK_LBRACE     shift, and go to state 119
+    MK_SEMICOLON  shift, and go to state 120
+    RETURN        shift, and go to state 121
 
-    $default  reduce using rule 86 (relop_expr_list)
-
-    relop_expr                go to state 126
-    relop_term                go to state 53
-    relop_factor              go to state 54
-    relop_expr_list           go to state 200
-    nonempty_relop_expr_list  go to state 128
-    expr                      go to state 55
-    term                      go to state 56
-    factor                    go to state 57
-    var_ref                   go to state 58
+    stmt     go to state 200
+    var_ref  go to state 127
 
 
 State 194
 
-   69 nonempty_assign_expr_list: nonempty_assign_expr_list MK_COMMA . assign_expr
+   70 assign_expr: ID OP_ASSIGN . relop_expr
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID         shift, and go to state 174
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
 
-    assign_expr   go to state 201
-    relop_expr    go to state 178
-    relop_term    go to state 53
-    relop_factor  go to state 54
-    expr          go to state 55
-    term          go to state 56
-    factor        go to state 57
-    var_ref       go to state 58
+    relop_expr    go to state 201
+    relop_term    go to state 58
+    relop_factor  go to state 59
+    expr          go to state 60
+    term          go to state 61
+    factor        go to state 62
+    var_ref       go to state 63
 
 
 State 195
 
-   61 stmt: var_ref OP_ASSIGN relop_expr MK_SEMICOLON .
+   59 stmt: FOR MK_LPAREN assign_expr_list MK_SEMICOLON . relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   84 relop_expr_list: . nonempty_relop_expr_list
+   85                | . %empty  [MK_SEMICOLON]
+   86 nonempty_relop_expr_list: . nonempty_relop_expr_list MK_COMMA relop_expr
+   87                         | . relop_expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    $default  reduce using rule 61 (stmt)
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    $default  reduce using rule 85 (relop_expr_list)
+
+    relop_expr                go to state 133
+    relop_term                go to state 58
+    relop_factor              go to state 59
+    relop_expr_list           go to state 202
+    nonempty_relop_expr_list  go to state 135
+    expr                      go to state 60
+    term                      go to state 61
+    factor                    go to state 62
+    var_ref                   go to state 63
 
 
 State 196
+
+   68 nonempty_assign_expr_list: nonempty_assign_expr_list MK_COMMA . assign_expr
+   70 assign_expr: . ID OP_ASSIGN relop_expr
+   71            | . relop_expr
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
+
+    ID         shift, and go to state 176
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    assign_expr   go to state 203
+    relop_expr    go to state 180
+    relop_term    go to state 58
+    relop_factor  go to state 59
+    expr          go to state 60
+    term          go to state 61
+    factor        go to state 62
+    var_ref       go to state 63
+
+
+State 197
+
+   60 stmt: var_ref OP_ASSIGN relop_expr MK_SEMICOLON .
+
+    $default  reduce using rule 60 (stmt)
+
+
+State 198
 
    16 dim_fn: dim_fn MK_LB expr MK_RB .
 
     $default  reduce using rule 16 (dim_fn)
 
 
-State 197
-
-   62 stmt: IF MK_LPAREN relop_expr_list MK_RPAREN stmt . elseif
-
-    ELSE  shift, and go to state 202
-
-    ELSE      [reduce using rule 57 (elseif)]
-    $default  reduce using rule 57 (elseif)
-
-    elseif  go to state 203
-
-
-State 198
-
-   59 stmt: WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt .
-
-    $default  reduce using rule 59 (stmt)
-
-
 State 199
 
-   71 assign_expr: ID OP_ASSIGN relop_expr .
-   74 relop_expr: relop_expr . OP_OR relop_term
+   54 elseif: . ELSE stmt
+   55       | . ELSE IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   56       | . %empty  [ID, IF, ELSE, WHILE, FOR, MK_LBRACE, MK_RBRACE, MK_SEMICOLON, RETURN]
+   61 stmt: IF MK_LPAREN relop_expr_list MK_RPAREN stmt . elseif
 
-    OP_OR  shift, and go to state 85
+    ELSE  shift, and go to state 204
 
-    $default  reduce using rule 71 (assign_expr)
+    ELSE      [reduce using rule 56 (elseif)]
+    $default  reduce using rule 56 (elseif)
+
+    elseif  go to state 205
 
 
 State 200
 
-   60 stmt: FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list . MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   58 stmt: WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt .
 
-    MK_SEMICOLON  shift, and go to state 204
+    $default  reduce using rule 58 (stmt)
 
 
 State 201
 
-   69 nonempty_assign_expr_list: nonempty_assign_expr_list MK_COMMA assign_expr .
+   70 assign_expr: ID OP_ASSIGN relop_expr .  [MK_RPAREN, MK_COMMA, MK_SEMICOLON]
+   73 relop_expr: relop_expr . OP_OR relop_term
 
-    $default  reduce using rule 69 (nonempty_assign_expr_list)
+    OP_OR  shift, and go to state 92
+
+    $default  reduce using rule 70 (assign_expr)
 
 
 State 202
 
-   55 elseif: ELSE . stmt
-   56       | ELSE . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   59 stmt: FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list . MK_SEMICOLON assign_expr_list MK_RPAREN stmt
 
-    ID            shift, and go to state 155
-    IF            shift, and go to state 205
-    WHILE         shift, and go to state 110
-    FOR           shift, and go to state 111
-    MK_LBRACE     shift, and go to state 112
-    MK_SEMICOLON  shift, and go to state 113
-    RETURN        shift, and go to state 114
-
-    stmt     go to state 206
-    var_ref  go to state 120
+    MK_SEMICOLON  shift, and go to state 206
 
 
 State 203
 
-   62 stmt: IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif .
+   68 nonempty_assign_expr_list: nonempty_assign_expr_list MK_COMMA assign_expr .
 
-    $default  reduce using rule 62 (stmt)
+    $default  reduce using rule 68 (nonempty_assign_expr_list)
 
 
 State 204
 
-   60 stmt: FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON . assign_expr_list MK_RPAREN stmt
+   54 elseif: ELSE . stmt
+   55       | ELSE . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   57 stmt: . MK_LBRACE block MK_RBRACE
+   58     | . WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   59     | . FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   60     | . var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   62     | . ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | . MK_SEMICOLON
+   64     | . RETURN MK_SEMICOLON
+   65     | . RETURN relop_expr MK_SEMICOLON
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID         shift, and go to state 174
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
+    ID            shift, and go to state 157
+    IF            shift, and go to state 207
+    WHILE         shift, and go to state 117
+    FOR           shift, and go to state 118
+    MK_LBRACE     shift, and go to state 119
+    MK_SEMICOLON  shift, and go to state 120
+    RETURN        shift, and go to state 121
 
-    $default  reduce using rule 68 (assign_expr_list)
-
-    assign_expr_list           go to state 207
-    nonempty_assign_expr_list  go to state 176
-    assign_expr                go to state 177
-    relop_expr                 go to state 178
-    relop_term                 go to state 53
-    relop_factor               go to state 54
-    expr                       go to state 55
-    term                       go to state 56
-    factor                     go to state 57
-    var_ref                    go to state 58
+    stmt     go to state 208
+    var_ref  go to state 127
 
 
 State 205
 
-   56 elseif: ELSE IF . MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
-   62 stmt: IF . MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   61 stmt: IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif .
 
-    MK_LPAREN  shift, and go to state 208
+    $default  reduce using rule 61 (stmt)
 
 
 State 206
 
-   55 elseif: ELSE stmt .
+   59 stmt: FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON . assign_expr_list MK_RPAREN stmt
+   66 assign_expr_list: . nonempty_assign_expr_list
+   67                 | . %empty  [MK_RPAREN]
+   68 nonempty_assign_expr_list: . nonempty_assign_expr_list MK_COMMA assign_expr
+   69                          | . assign_expr
+   70 assign_expr: . ID OP_ASSIGN relop_expr
+   71            | . relop_expr
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    $default  reduce using rule 55 (elseif)
+    ID         shift, and go to state 176
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    $default  reduce using rule 67 (assign_expr_list)
+
+    assign_expr_list           go to state 209
+    nonempty_assign_expr_list  go to state 178
+    assign_expr                go to state 179
+    relop_expr                 go to state 180
+    relop_term                 go to state 58
+    relop_factor               go to state 59
+    expr                       go to state 60
+    term                       go to state 61
+    factor                     go to state 62
+    var_ref                    go to state 63
 
 
 State 207
 
-   60 stmt: FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list . MK_RPAREN stmt
+   55 elseif: ELSE IF . MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   61 stmt: IF . MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
 
-    MK_RPAREN  shift, and go to state 209
+    MK_LPAREN  shift, and go to state 210
 
 
 State 208
 
-   56 elseif: ELSE IF MK_LPAREN . relop_expr_list MK_RPAREN stmt elseif
-   62 stmt: IF MK_LPAREN . relop_expr_list MK_RPAREN stmt elseif
+   54 elseif: ELSE stmt .
 
-    ID         shift, and go to state 47
-    CONST      shift, and go to state 48
-    OP_NOT     shift, and go to state 49
-    OP_MINUS   shift, and go to state 50
-    MK_LPAREN  shift, and go to state 51
-
-    $default  reduce using rule 86 (relop_expr_list)
-
-    relop_expr                go to state 126
-    relop_term                go to state 53
-    relop_factor              go to state 54
-    relop_expr_list           go to state 210
-    nonempty_relop_expr_list  go to state 128
-    expr                      go to state 55
-    term                      go to state 56
-    factor                    go to state 57
-    var_ref                   go to state 58
+    $default  reduce using rule 54 (elseif)
 
 
 State 209
 
-   60 stmt: FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN . stmt
+   59 stmt: FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list . MK_RPAREN stmt
 
-    ID            shift, and go to state 155
-    IF            shift, and go to state 109
-    WHILE         shift, and go to state 110
-    FOR           shift, and go to state 111
-    MK_LBRACE     shift, and go to state 112
-    MK_SEMICOLON  shift, and go to state 113
-    RETURN        shift, and go to state 114
-
-    stmt     go to state 211
-    var_ref  go to state 120
+    MK_RPAREN  shift, and go to state 211
 
 
 State 210
 
-   56 elseif: ELSE IF MK_LPAREN relop_expr_list . MK_RPAREN stmt elseif
-   62 stmt: IF MK_LPAREN relop_expr_list . MK_RPAREN stmt elseif
+   55 elseif: ELSE IF MK_LPAREN . relop_expr_list MK_RPAREN stmt elseif
+   61 stmt: IF MK_LPAREN . relop_expr_list MK_RPAREN stmt elseif
+   72 relop_expr: . relop_term
+   73           | . relop_expr OP_OR relop_term
+   74 relop_term: . relop_factor
+   75           | . relop_term OP_AND relop_factor
+   76 relop_factor: . expr
+   77             | . expr rel_op expr
+   84 relop_expr_list: . nonempty_relop_expr_list
+   85                | . %empty  [MK_RPAREN]
+   86 nonempty_relop_expr_list: . nonempty_relop_expr_list MK_COMMA relop_expr
+   87                         | . relop_expr
+   88 expr: . expr add_op term
+   89     | . term
+   92 term: . term mul_op factor
+   93     | . factor
+   96 factor: . MK_LPAREN relop_expr MK_RPAREN
+   97       | . OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+   98       | . OP_NOT MK_LPAREN relop_expr MK_RPAREN
+   99       | . CONST
+  100       | . OP_MINUS CONST
+  101       | . OP_NOT CONST
+  102       | . ID MK_LPAREN relop_expr_list MK_RPAREN
+  103       | . OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
+  104       | . var_ref
+  105       | . OP_MINUS var_ref
+  106       | . OP_NOT var_ref
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    MK_RPAREN  shift, and go to state 212
+    ID         shift, and go to state 52
+    CONST      shift, and go to state 53
+    OP_NOT     shift, and go to state 54
+    OP_MINUS   shift, and go to state 55
+    MK_LPAREN  shift, and go to state 56
+
+    $default  reduce using rule 85 (relop_expr_list)
+
+    relop_expr                go to state 133
+    relop_term                go to state 58
+    relop_factor              go to state 59
+    relop_expr_list           go to state 212
+    nonempty_relop_expr_list  go to state 135
+    expr                      go to state 60
+    term                      go to state 61
+    factor                    go to state 62
+    var_ref                   go to state 63
 
 
 State 211
 
-   60 stmt: FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt .
+   57 stmt: . MK_LBRACE block MK_RBRACE
+   58     | . WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   59     | . FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   59     | FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN . stmt
+   60     | . var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   62     | . ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | . MK_SEMICOLON
+   64     | . RETURN MK_SEMICOLON
+   65     | . RETURN relop_expr MK_SEMICOLON
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    $default  reduce using rule 60 (stmt)
+    ID            shift, and go to state 157
+    IF            shift, and go to state 116
+    WHILE         shift, and go to state 117
+    FOR           shift, and go to state 118
+    MK_LBRACE     shift, and go to state 119
+    MK_SEMICOLON  shift, and go to state 120
+    RETURN        shift, and go to state 121
+
+    stmt     go to state 213
+    var_ref  go to state 127
 
 
 State 212
 
-   56 elseif: ELSE IF MK_LPAREN relop_expr_list MK_RPAREN . stmt elseif
-   62 stmt: IF MK_LPAREN relop_expr_list MK_RPAREN . stmt elseif
+   55 elseif: ELSE IF MK_LPAREN relop_expr_list . MK_RPAREN stmt elseif
+   61 stmt: IF MK_LPAREN relop_expr_list . MK_RPAREN stmt elseif
 
-    ID            shift, and go to state 155
-    IF            shift, and go to state 109
-    WHILE         shift, and go to state 110
-    FOR           shift, and go to state 111
-    MK_LBRACE     shift, and go to state 112
-    MK_SEMICOLON  shift, and go to state 113
-    RETURN        shift, and go to state 114
-
-    stmt     go to state 213
-    var_ref  go to state 120
+    MK_RPAREN  shift, and go to state 214
 
 
 State 213
 
-   56 elseif: ELSE IF MK_LPAREN relop_expr_list MK_RPAREN stmt . elseif
-   62 stmt: IF MK_LPAREN relop_expr_list MK_RPAREN stmt . elseif
+   59 stmt: FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt .
 
-    ELSE  shift, and go to state 202
-
-    ELSE      [reduce using rule 57 (elseif)]
-    $default  reduce using rule 57 (elseif)
-
-    elseif  go to state 214
+    $default  reduce using rule 59 (stmt)
 
 
 State 214
 
-   56 elseif: ELSE IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif .
-   62 stmt: IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif .
+   55 elseif: ELSE IF MK_LPAREN relop_expr_list MK_RPAREN . stmt elseif
+   57 stmt: . MK_LBRACE block MK_RBRACE
+   58     | . WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+   59     | . FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
+   60     | . var_ref OP_ASSIGN relop_expr MK_SEMICOLON
+   61     | . IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   61     | IF MK_LPAREN relop_expr_list MK_RPAREN . stmt elseif
+   62     | . ID MK_LPAREN relop_expr_list MK_RPAREN
+   63     | . MK_SEMICOLON
+   64     | . RETURN MK_SEMICOLON
+   65     | . RETURN relop_expr MK_SEMICOLON
+  107 var_ref: . ID
+  108        | . ID dim_list
 
-    ID            reduce using rule 56 (elseif)
-    ID            [reduce using rule 62 (stmt)]
-    IF            reduce using rule 56 (elseif)
-    IF            [reduce using rule 62 (stmt)]
-    ELSE          reduce using rule 56 (elseif)
-    ELSE          [reduce using rule 62 (stmt)]
-    WHILE         reduce using rule 56 (elseif)
-    WHILE         [reduce using rule 62 (stmt)]
-    FOR           reduce using rule 56 (elseif)
-    FOR           [reduce using rule 62 (stmt)]
-    MK_LBRACE     reduce using rule 56 (elseif)
-    MK_LBRACE     [reduce using rule 62 (stmt)]
-    MK_RBRACE     reduce using rule 56 (elseif)
-    MK_RBRACE     [reduce using rule 62 (stmt)]
-    MK_SEMICOLON  reduce using rule 56 (elseif)
-    MK_SEMICOLON  [reduce using rule 62 (stmt)]
-    RETURN        reduce using rule 56 (elseif)
-    RETURN        [reduce using rule 62 (stmt)]
-    $default      reduce using rule 56 (elseif)
+    ID            shift, and go to state 157
+    IF            shift, and go to state 116
+    WHILE         shift, and go to state 117
+    FOR           shift, and go to state 118
+    MK_LBRACE     shift, and go to state 119
+    MK_SEMICOLON  shift, and go to state 120
+    RETURN        shift, and go to state 121
+
+    stmt     go to state 215
+    var_ref  go to state 127
+
+
+State 215
+
+   54 elseif: . ELSE stmt
+   55       | . ELSE IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+   55       | ELSE IF MK_LPAREN relop_expr_list MK_RPAREN stmt . elseif
+   56       | . %empty  [ID, IF, ELSE, WHILE, FOR, MK_LBRACE, MK_RBRACE, MK_SEMICOLON, RETURN]
+   61 stmt: IF MK_LPAREN relop_expr_list MK_RPAREN stmt . elseif
+
+    ELSE  shift, and go to state 204
+
+    ELSE      [reduce using rule 56 (elseif)]
+    $default  reduce using rule 56 (elseif)
+
+    elseif  go to state 216
+
+
+State 216
+
+   55 elseif: ELSE IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif .  [ID, IF, ELSE, WHILE, FOR, MK_LBRACE, MK_RBRACE, MK_SEMICOLON, RETURN]
+   61 stmt: IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif .  [ID, IF, ELSE, WHILE, FOR, MK_LBRACE, MK_RBRACE, MK_SEMICOLON, RETURN]
+
+    ID            reduce using rule 55 (elseif)
+    ID            [reduce using rule 61 (stmt)]
+    IF            reduce using rule 55 (elseif)
+    IF            [reduce using rule 61 (stmt)]
+    ELSE          reduce using rule 55 (elseif)
+    ELSE          [reduce using rule 61 (stmt)]
+    WHILE         reduce using rule 55 (elseif)
+    WHILE         [reduce using rule 61 (stmt)]
+    FOR           reduce using rule 55 (elseif)
+    FOR           [reduce using rule 61 (stmt)]
+    MK_LBRACE     reduce using rule 55 (elseif)
+    MK_LBRACE     [reduce using rule 61 (stmt)]
+    MK_RBRACE     reduce using rule 55 (elseif)
+    MK_RBRACE     [reduce using rule 61 (stmt)]
+    MK_SEMICOLON  reduce using rule 55 (elseif)
+    MK_SEMICOLON  [reduce using rule 61 (stmt)]
+    RETURN        reduce using rule 55 (elseif)
+    RETURN        [reduce using rule 61 (stmt)]
+    $default      reduce using rule 55 (elseif)

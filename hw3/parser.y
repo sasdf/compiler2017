@@ -152,7 +152,7 @@ static inline AST_NODE* makeExprNode(EXPR_KIND exprKind, int operationEnumValue)
 %token RETURN
 
 %type <node> program global_decl_list global_decl function_decl block stmt_list decl_list decl var_decl type init_id_list init_id  elseif stmt relop_expr relop_term relop_factor expr term factor var_ref
-%type <node> param_list param dim_fn expr_null id_list dim_decl dim_decl_t cexpr mcexpr cfactor assign_expr_list /*test*/ assign_expr rel_op relop_expr_list nonempty_relop_expr_list
+%type <node> param_list param dim_fn expr_null id_list dim_decl cexpr mcexpr cfactor assign_expr_list /*test*/ assign_expr rel_op relop_expr_list nonempty_relop_expr_list
 %type <node> add_op mul_op dim_list type_decl nonempty_assign_expr_list
 
 
@@ -237,7 +237,9 @@ param		: type ID
                 {
                     /*TODO jizz*/
                     $$ = makeDeclNode(FUNCTION_PARAMETER_DECL);
-                    makeFamily($$, 3, $1, makeIDNode($2, NORMAL_ID), $3);
+                    AST_NODE *id = makeIDNode($2, NORMAL_ID);
+                    makeFamily($$, 2, $1, id);
+                    makeChild(id, $3);
                 }
             ;
 dim_fn		: MK_LB expr_null MK_RB 
@@ -279,7 +281,7 @@ block           : decl_list stmt_list
                     }
                 |   {
                         /*TODO*/
-                        $$ = Allocate(NUL_NODE); 
+                        $$ = Allocate(BLOCK_NODE); 
                     }
                 ;
  
@@ -367,26 +369,29 @@ id_list		: ID
                 }
 		;
             /* jizz */
-dim_decl	: dim_decl_t MK_LB cexpr MK_RB 
+dim_decl	: dim_decl MK_LB cexpr MK_RB 
                 {
                     /*TODO*/
                     $$ = makeSibling($1, $3);
                 } 
+            | MK_LB cexpr MK_RB
+                {
+                    $$ = $2;
+                }
             /*TODO: Try if you can define a recursive production rule
             | .......
             */
         ;
+/*
 dim_decl_t	: dim_decl_t MK_LB cexpr MK_RB 
                 {
-                    /*TODO*/
                     $$ = makeSibling($1, $3);
                 }
             |   {
-                    /*TODO*/
-                    $$ = Allocate(NUL_NODE); 
+                    //$$ = Allocate(NUL_NODE); 
                 }
         ;
-
+*/
 
 cexpr		: cexpr OP_PLUS mcexpr 
                 {
@@ -532,7 +537,7 @@ stmt		: MK_LBRACE block MK_RBRACE
                     makeFamily($$, 3, $3, $5, $6);
                 }
             /*TODO: | function call */
-            | ID MK_LPAREN relop_expr_list MK_RPAREN MK_SEMICOLON  
+            | ID MK_LPAREN relop_expr_list MK_RPAREN 
                 {
                     /*TODO*/
                     $$ = makeStmtNode(FUNCTION_CALL_STMT);

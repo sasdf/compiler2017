@@ -16,7 +16,7 @@ lex.yy.c: lexer3.l
 	$(LEX) lexer3.l
 
 parser.tab.c: parser.y 
-	$(YACC) $(YACCFLAG) parser.y
+	$(YACC) -r all $(YACCFLAG) parser.y
 
 alloc.o: alloc.c
 	$(CC) -c alloc.c
