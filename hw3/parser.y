@@ -491,12 +491,6 @@ elseif  : ELSE stmt
                     /*TODO*/
                     $$ = $2;
                 }
-        | ELSE IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
-                {
-                    /*TODO*/
-                    $$ = makeStmtNode(IF_STMT);
-                    makeFamily($$, 3, $4, $6, $7);
-                }
         | 
                 {
                     /*TODO*/
