@@ -7,7 +7,7 @@ YACCFLAG = -d
 LIBS = -lfl 
 
 parser: parser.tab.o alloc.o functions.o
-	$(CC) -o $(TARGET) parser.tab.o alloc.o functions.o $(LIBS)
+	$(CC) -g -o $(TARGET) parser.tab.o alloc.o functions.o $(LIBS)
 
 parser.tab.o: parser.tab.c lex.yy.c alloc.o functions.c
 	$(CC) -c parser.tab.c

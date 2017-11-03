@@ -152,7 +152,7 @@ static inline AST_NODE* makeExprNode(EXPR_KIND exprKind, int operationEnumValue)
 %token RETURN
 
 %type <node> program global_decl_list global_decl function_decl block stmt_list decl_list decl var_decl type init_id_list init_id  elseif stmt relop_expr relop_term relop_factor expr term factor var_ref
-%type <node> param_list param dim_fn expr_null id_list dim_decl cexpr mcexpr cfactor assign_expr_list test assign_expr rel_op relop_expr_list nonempty_relop_expr_list
+%type <node> param_list param dim_fn expr_null id_list dim_decl dim_decl_t cexpr mcexpr cfactor assign_expr_list /*test*/ assign_expr rel_op relop_expr_list nonempty_relop_expr_list
 %type <node> add_op mul_op dim_list type_decl nonempty_assign_expr_list
 
 
@@ -367,7 +367,7 @@ id_list		: ID
                 }
 		;
             /* jizz */
-dim_decl	: dim_decl MK_LB cexpr MK_RB 
+dim_decl	: dim_decl_t MK_LB cexpr MK_RB 
                 {
                     /*TODO*/
                     $$ = makeSibling($1, $3);
@@ -375,11 +375,19 @@ dim_decl	: dim_decl MK_LB cexpr MK_RB
             /*TODO: Try if you can define a recursive production rule
             | .......
             */
+        ;
+dim_decl_t	: dim_decl_t MK_LB cexpr MK_RB 
+                {
+                    /*TODO*/
+                    $$ = makeSibling($1, $3);
+                }
             |   {
                     /*TODO*/
                     $$ = Allocate(NUL_NODE); 
                 }
         ;
+
+
 cexpr		: cexpr OP_PLUS mcexpr 
                 {
                     $$ = makeExprNode(BINARY_OPERATION, BINARY_OP_ADD);
@@ -572,12 +580,12 @@ nonempty_assign_expr_list        : nonempty_assign_expr_list MK_COMMA assign_exp
                                     }
                                  ;
 
-test		: assign_expr
+/*test		: assign_expr
                 {
                     $$ = $1;
                 }
             ;
-
+*/
 assign_expr     : ID OP_ASSIGN relop_expr 
                     {
                         /*TODO*/
