@@ -489,6 +489,7 @@ stmt		: MK_LBRACE block MK_RBRACE
 assign_expr_list : nonempty_assign_expr_list 
                      {
                         /*TODO*/
+                        $$ = $1;
                      }
                  |  
                      {
@@ -499,10 +500,14 @@ assign_expr_list : nonempty_assign_expr_list
 nonempty_assign_expr_list        : nonempty_assign_expr_list MK_COMMA assign_expr 
                                     {
                                         /*TODO*/
+                                        $$ = $1;
+                                        makeSibling($1->child, $3);
                                     }
                                  | assign_expr
                                     {
                                         /*TODO*/
+                                        $$ = Allocate(NONEMPTY_ASSIGN_EXPR_LIST_NODE);
+                                        makeFamily($$, 1, $1);
                                     }
                                  ;
 
@@ -515,10 +520,14 @@ test		: assign_expr
 assign_expr     : ID OP_ASSIGN relop_expr 
                     {
                         /*TODO*/
+                        $$ = makeStmtNode(ASSIGN_STMT);
+                        AST_NODE* id = makeIDNode($1, NORMAL_ID);
+                        makeFamily($$, 2, id, $3);
                     }
                 | relop_expr
                     {
                         /*TODO*/
+                        $$ = $1;
                     }
 		;
 
@@ -536,46 +545,58 @@ relop_expr	: relop_term
 relop_term	: relop_factor 
                 {
                     /*TODO*/
+                    $$ = $1;
                 }
             | relop_term OP_AND relop_factor
                 {
                     /*TODO*/
+                    $$ = makeExprNode(BINARY_OPERATION, BINARY_OP_AND);
+                    makeFamily($$, 2, $1, $3);
                 }
             ;
 
 relop_factor	: expr
                     {
                         /*TODO*/
+                        $$ = $1;
                     }
                 | expr rel_op expr 
                     {
                         /*TODO*/
+                        makeFamily($2, 2, $1, $3);
+                        $$ = $2;
                     }
                 ;
 
 rel_op		: OP_EQ
                 {
                     /*TODO*/
+                    $$ = makeExprNode(BINARY_OPERATION, BINARY_OP_EQ);
                 }
             | OP_GE 
                 {
                     /*TODO*/
+                    $$ = makeExprNode(BINARY_OPERATION, BINARY_OP_GE);
                 }
             | OP_LE 
                 {
                     /*TODO*/
+                    $$ = makeExprNode(BINARY_OPERATION, BINARY_OP_LE);
                 }
             | OP_NE 
                 {
                     /*TODO*/
+                    $$ = makeExprNode(BINARY_OPERATION, BINARY_OP_NE);
                 }
             | OP_GT 
                 {
                     /*TODO*/
+                    $$ = makeExprNode(BINARY_OPERATION, BINARY_OP_GT);
                 }
             | OP_LT 
                 {
                     /*TODO*/
+                    $$ = makeExprNode(BINARY_OPERATION, BINARY_OP_LT);
                 }
             ;
 
@@ -583,6 +604,7 @@ rel_op		: OP_EQ
 relop_expr_list	: nonempty_relop_expr_list 
                     {
                         /*TODO*/
+                        $$ = $1;
                     }
                 | 
                     {
@@ -593,20 +615,27 @@ relop_expr_list	: nonempty_relop_expr_list
 nonempty_relop_expr_list	: nonempty_relop_expr_list MK_COMMA relop_expr
                                 {
                                     /*TODO*/
+                                    $$ = $1;
+                                    makeSibling($1->child, $3);
                                 }
                             | relop_expr 
                                 {
                                     /*TODO*/
+                                    $$ = Allocate(NONEMPTY_RELOP_EXPR_LIST_NODE);
+                                    makeFamily($$, 1, $1);
                                 }
                             ;
 
 expr		: expr add_op term 
                 {
                     /*TODO*/
+                    makeFamily($2, 2, $1, $3);
+                    $$ = $2;
                 }
             | term 
                 {
                     /*TODO*/
+                    $$ = $1;
                 }
             ;
 
@@ -623,31 +652,45 @@ add_op		: OP_PLUS
 term		: term mul_op factor
                 {
                     /*TODO*/
+                    makeFamily($2, 2, $1, $3);
+                    $$ = $2;
                 }
             | factor
                 {
                     /*TODO*/
+                    $$ = $1;
                 }
             ;
 
 mul_op		: OP_TIMES
                 {
                     /*TODO*/
+                    $$ = makeExprNode(BINARY_OPERATION, BINARY_OP_MUL);
                 }
             | OP_DIVIDE 
                 {
                     /*TODO*/
+                    $$ = makeExprNode(BINARY_OPERATION, BINARY_OP_DIV);
                 }
             ;
 
 factor		: MK_LPAREN relop_expr MK_RPAREN
                 {
                     /*TODO*/
+                    $$ = $2;
                 }
             /*TODO: | -(<relop_expr>) e.g. -(4) */
+            | OP_MINUS MK_LPAREN relop_expr MK_RPAREN
+                {   
+                    /*TODO*/
+                    $$ = makeExprNode(UNARY_OPERATION, UNARY_OP_NEGATIVE);
+                    makeFamily($$, 1, $3);
+                }
             | OP_NOT MK_LPAREN relop_expr MK_RPAREN
                 {   
                     /*TODO*/
+                    $$ = makeExprNode(UNARY_OPERATION, UNARY_OP_LOGICAL_NEGATION);
+                    makeFamily($$, 1, $3);
                 }
             | CONST 
                 {
@@ -655,37 +698,69 @@ factor		: MK_LPAREN relop_expr MK_RPAREN
                     $$->semantic_value.const1=$1;
                 }
             /*TODO: | -<constant> e.g. -4 */
+            | OP_MINUS CONST
+                {
+                    /*TODO*/
+                    AST_NODE* c = Allocate(CONST_VALUE_NODE);
+                    c->semantic_value.const1=$2;
+                    $$ = makeExprNode(UNARY_OPERATION, UNARY_OP_NEGATIVE);
+                    makeFamily($$, 1, c);
+                }
             | OP_NOT CONST
                 {
                     /*TODO*/
+                    AST_NODE* c = Allocate(CONST_VALUE_NODE);
+                    c->semantic_value.const1=$2;
+                    $$ = makeExprNode(UNARY_OPERATION, UNARY_OP_LOGICAL_NEGATION);
+                    makeFamily($$, 1, c);
                 }
             | ID MK_LPAREN relop_expr_list MK_RPAREN 
                 {
                     /*TODO*/
+                    $$ = makeStmtNode(FUNCTION_CALL_STMT);
+                    AST_NODE* func = makeIDNode($1, NORMAL_ID);
+                    makeFamily($$, 2, func, $3);
                 }
             /*TODO: | -<function call> e.g. -f(4) */
             | OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
                 {
                     /*TODO*/
+                    $$ = makeExprNode(UNARY_OPERATION, UNARY_OP_LOGICAL_NEGATION);
+                    AST_NODE* stmt = makeStmtNode(FUNCTION_CALL_STMT);
+                    AST_NODE* func = makeIDNode($2, NORMAL_ID);
+                    makeFamily($$, 1, stmt);
+                    makeFamily(stmt, 2, func, $4);
                 }
             | var_ref 
                 {
                     /*TODO*/
+                    $$ = $1;
                 }
             /*TODO: | -<var_ref> e.g. -var */
+            | OP_MINUS var_ref 
+                {
+                    /*TODO*/
+                    $$ = makeExprNode(UNARY_OPERATION, UNARY_OP_NEGATIVE);
+                    makeFamily($$, 1, $2);
+                }
             | OP_NOT var_ref 
                 {
                     /*TODO*/
+                    $$ = makeExprNode(UNARY_OPERATION, UNARY_OP_LOGICAL_NEGATION);
+                    makeFamily($$, 1, $2);
                 }
             ;
 
 var_ref		: ID 
                 {
                     /*TODO*/
+                    $$ = makeIDNode($1, NORMAL_ID);
                 }
             | ID dim_list 
                 {
                     /*TODO*/
+                    $$ = makeIDNode($1, ARRAY_ID);
+                    makeChild($$, $2);
                 }
             ;
 
@@ -693,10 +768,12 @@ var_ref		: ID
 dim_list	: dim_list MK_LB expr MK_RB 
                 {
                     /*TODO*/
+                    $$ = makeSibling($1, $3);
                 }
             | MK_LB expr MK_RB
                 {
                     /*TODO*/
+                    $$ = $2;
                 }
 		;
 
