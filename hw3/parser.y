@@ -479,7 +479,7 @@ elseif  : ELSE stmt
                 {
                     /*TODO*/
                     $$ = makeStmtNode(IF_STMT);
-                    makeFamily($$, $4, $6, $7);
+                    makeFamily($$, 3, $4, $6, $7);
                 }
         | 
                 {
@@ -498,13 +498,13 @@ stmt		: MK_LBRACE block MK_RBRACE
                 {
                     /*TODO*/
                     $$ = makeStmtNode(WHILE_STMT);
-                    makeFamily($$, $3, $5);
+                    makeFamily($$, 2, $3, $5);
                 }
             | FOR MK_LPAREN assign_expr_list MK_SEMICOLON relop_expr_list MK_SEMICOLON assign_expr_list MK_RPAREN stmt
                 {
                     /*TODO*/
                     $$ = makeStmtNode(FOR_STMT);
-                    makeFamily($$, $3, $5, $7, $9);
+                    makeFamily($$, 4, $3, $5, $7, $9);
                 }
             | var_ref OP_ASSIGN relop_expr MK_SEMICOLON
                 {
@@ -518,7 +518,7 @@ stmt		: MK_LBRACE block MK_RBRACE
                 {
                     /*TODO*/
                     $$ = makeStmtNode(IF_STMT);
-                    makeFamily($$, $3, $5, $6);
+                    makeFamily($$, 3, $3, $5, $6);
                 }
             /*TODO: | function call */
             | ID MK_LPAREN relop_expr_list MK_RPAREN 

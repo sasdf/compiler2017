@@ -1996,7 +1996,7 @@ yyreduce:
     {
                     /*TODO*/
                     (yyval.node) = makeStmtNode(IF_STMT);
-                    makeFamily((yyval.node), (yyvsp[-3].node), (yyvsp[-1].node), (yyvsp[0].node));
+                    makeFamily((yyval.node), 3, (yyvsp[-3].node), (yyvsp[-1].node), (yyvsp[0].node));
                 }
 #line 2002 "parser.tab.c" /* yacc.c:1646  */
     break;
@@ -2024,7 +2024,7 @@ yyreduce:
     {
                     /*TODO*/
                     (yyval.node) = makeStmtNode(WHILE_STMT);
-                    makeFamily((yyval.node), (yyvsp[-2].node), (yyvsp[0].node));
+                    makeFamily((yyval.node), 2, (yyvsp[-2].node), (yyvsp[0].node));
                 }
 #line 2030 "parser.tab.c" /* yacc.c:1646  */
     break;
@@ -2034,7 +2034,7 @@ yyreduce:
     {
                     /*TODO*/
                     (yyval.node) = makeStmtNode(FOR_STMT);
-                    makeFamily((yyval.node), (yyvsp[-6].node), (yyvsp[-4].node), (yyvsp[-2].node), (yyvsp[0].node));
+                    makeFamily((yyval.node), 4, (yyvsp[-6].node), (yyvsp[-4].node), (yyvsp[-2].node), (yyvsp[0].node));
                 }
 #line 2040 "parser.tab.c" /* yacc.c:1646  */
     break;
@@ -2054,7 +2054,7 @@ yyreduce:
     {
                     /*TODO*/
                     (yyval.node) = makeStmtNode(IF_STMT);
-                    makeFamily((yyval.node), (yyvsp[-3].node), (yyvsp[-1].node), (yyvsp[0].node));
+                    makeFamily((yyval.node), 3, (yyvsp[-3].node), (yyvsp[-1].node), (yyvsp[0].node));
                 }
 #line 2060 "parser.tab.c" /* yacc.c:1646  */
     break;
