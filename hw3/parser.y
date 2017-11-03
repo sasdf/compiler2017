@@ -151,7 +151,7 @@ static inline AST_NODE* makeExprNode(EXPR_KIND exprKind, int operationEnumValue)
 %token ERROR
 %token RETURN
 
-%type <node> program global_decl_list global_decl function_decl block stmt_list decl_list decl var_decl type init_id_list init_id  stmt relop_expr relop_term relop_factor expr term factor var_ref
+%type <node> program global_decl_list global_decl function_decl block stmt_list decl_list decl var_decl type init_id_list init_id  elseif stmt relop_expr relop_term relop_factor expr term factor var_ref
 %type <node> param_list param dim_fn expr_null id_list dim_decl cexpr mcexpr cfactor assign_expr_list test assign_expr rel_op relop_expr_list nonempty_relop_expr_list
 %type <node> add_op mul_op dim_list type_decl nonempty_assign_expr_list
 
@@ -470,6 +470,23 @@ stmt_list	: stmt_list stmt
             ;
 
 
+elseif  : ELSE stmt
+                {
+                    /*TODO*/
+                    $$ = $2;
+                }
+        | ELSE IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+                {
+                    /*TODO*/
+                    $$ = makeStmtNode(IF_STMT);
+                    makeFamily($$, $4, $6, $7);
+                }
+        | 
+                {
+                    /*TODO*/
+                    $$ = Allocate(NUL_NODE); 
+                }
+        ;
 
 stmt		: MK_LBRACE block MK_RBRACE 
                 {
@@ -496,18 +513,12 @@ stmt		: MK_LBRACE block MK_RBRACE
                     makeFamily($$, 2, $1, $3);
                 }
             /*TODO: | If Statement */
-            | IF MK_LPAREN relop_expr_list MK_RPAREN stmt
+            /*TODO: | If then else */
+            | IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
                 {
                     /*TODO*/
                     $$ = makeStmtNode(IF_STMT);
-                    makeFamily($$, $3, $5);
-                }
-            /*TODO: | If then else */
-            | ELSE MK_LPAREN relop_expr_list MK_RPAREN stmt
-                {
-                    /*TODO*/
-                    $$ = makeStmtNode(ELSE_STMT);
-                    makeFamily($$, $3, $5);
+                    makeFamily($$, $3, $5, $6);
                 }
             /*TODO: | function call */
             | ID MK_LPAREN relop_expr_list MK_RPAREN 
