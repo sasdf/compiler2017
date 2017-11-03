@@ -200,7 +200,7 @@ function_decl	: type ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block MK_RBRACE
                         $$ = makeDeclNode(FUNCTION_DECL);
                         AST_NODE* parameterList = Allocate(PARAM_LIST_NODE);
                         makeChild(parameterList, $4);
-                        makeFamily($$, 4, $1, makeIDNode($2, NORMAL_ID), parameterList, $7);
+                        makeFamily($$, 4, makeIDNode("void", NORMAL_ID), makeIDNode($2, NORMAL_ID), parameterList, $7);
                     }
                 | type ID MK_LPAREN  MK_RPAREN MK_LBRACE block MK_RBRACE 
                     {
@@ -213,7 +213,7 @@ function_decl	: type ID MK_LPAREN param_list MK_RPAREN MK_LBRACE block MK_RBRACE
                         /*TODO*/
                         $$ = makeDeclNode(FUNCTION_DECL);
                         AST_NODE* emptyParameterList = Allocate(PARAM_LIST_NODE);
-                        makeFamily($$, 4, $1, makeIDNode($2, NORMAL_ID), emptyParameterList, $6);
+                        makeFamily($$, 4, makeIDNode("void", NORMAL_ID), makeIDNode($2, NORMAL_ID), emptyParameterList, $6);
                     } 
                 ;
 
@@ -309,13 +309,13 @@ type_decl 	: TYPEDEF type id_list MK_SEMICOLON
                 {
                     /*TODO jizz*/
                     $$ = makeDeclNode(TYPE_DECL);
-                    makeFamily($$, 3, $1, $2, $3);
+                    makeFamily($$, 2, $2, $3);
                 }
             | TYPEDEF VOID id_list MK_SEMICOLON 
                 {
                     /*TODO jizz*/
                     $$ = makeDeclNode(TYPE_DECL);
-                    makeFamily($$, 3, $1, $2, $3);
+                    makeFamily($$, 2, makeIDNode("void", NORMAL_ID), $3);
                 }
             ;
 
@@ -355,8 +355,8 @@ id_list		: ID
             | id_list MK_COMMA ID dim_decl
                 {
                     /*TODO jizz*/
-                    AST_NODE* id = makeIDNode($1, ARRAY_ID);
-                    makeChild(id, $2);
+                    AST_NODE* id = makeIDNode($3, ARRAY_ID);
+                    makeChild(id, $4);
                     $$ = makeSibling($1, id);
                 }
             | ID dim_decl
@@ -394,7 +394,7 @@ cexpr		: cexpr OP_PLUS mcexpr
             | mcexpr 
                 {
                     /*TODO*/
-                    $$ = $1
+                    $$ = $1;
                 }
             ;  
 mcexpr		: mcexpr OP_TIMES cfactor 
@@ -412,7 +412,7 @@ mcexpr		: mcexpr OP_TIMES cfactor
             | cfactor 
                 {
                     /*TODO*/
-                    $$ = $1
+                    $$ = $1;
                 }
             ;
         
@@ -425,14 +425,14 @@ cfactor:	CONST
             | MK_LPAREN cexpr MK_RPAREN 
                 {
                     /*TODO*/
-                    $$ = $2
+                    $$ = $2;
                 }
             ;
 
 init_id_list	: init_id 
                     {
                         /*TODO*/
-                        $$ = $1
+                        $$ = $1;
                     }
                 | init_id_list MK_COMMA init_id 
                     {
