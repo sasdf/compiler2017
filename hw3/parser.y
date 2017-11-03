@@ -331,7 +331,7 @@ var_decl	: type init_id_list MK_SEMICOLON
                 {
                     /*TODO*/
                     $$ = makeDeclNode(VARIABLE_DECL);
-                    makeFamily($$, 2, $1, $2);
+                    makeFamily($$, 2, makeIDNode($1, NORMAL_ID), $2);
                 }
             ;
 
@@ -504,7 +504,7 @@ stmt		: MK_LBRACE block MK_RBRACE
                     $$ = $2;
                 }
             /*TODO: | While Statement */
-            | WHILE MK_LPAREN relop_expr_list MK_RPAREN stmt
+            | WHILE MK_LPAREN relop_expr MK_RPAREN stmt
                 {
                     /*TODO*/
                     $$ = makeStmtNode(WHILE_STMT);
@@ -524,7 +524,7 @@ stmt		: MK_LBRACE block MK_RBRACE
                 }
             /*TODO: | If Statement */
             /*TODO: | If then else */
-            | IF MK_LPAREN relop_expr_list MK_RPAREN stmt elseif
+            | IF MK_LPAREN relop_expr MK_RPAREN stmt elseif
                 {
                     /*TODO*/
                     $$ = makeStmtNode(IF_STMT);
@@ -793,6 +793,15 @@ factor		: MK_LPAREN relop_expr MK_RPAREN
                     makeFamily($$, 2, func, $3);
                 }
             /*TODO: | -<function call> e.g. -f(4) */
+            | OP_MINUS ID MK_LPAREN relop_expr_list MK_RPAREN
+                {
+                    /*TODO*/
+                    $$ = makeExprNode(UNARY_OPERATION, UNARY_OP_NEGATIVE);
+                    AST_NODE* stmt = makeStmtNode(FUNCTION_CALL_STMT);
+                    AST_NODE* func = makeIDNode($2, NORMAL_ID);
+                    makeFamily($$, 1, stmt);
+                    makeFamily(stmt, 2, func, $4);
+                }
             | OP_NOT ID MK_LPAREN relop_expr_list MK_RPAREN
                 {
                     /*TODO*/
