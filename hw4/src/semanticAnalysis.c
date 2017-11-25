@@ -13,9 +13,9 @@ DATA_TYPE getBiggerType(DATA_TYPE dataType1, DATA_TYPE dataType2);
 void processProgramNode(AST_NODE *programNode);
 void processDeclarationNode(AST_NODE* declarationNode);
 void declareIdList(AST_NODE* typeNode, SymbolAttributeKind isVariableOrTypeAttribute, int ignoreArrayFirstDimSize);
-void declareFunction(AST_NODE* returnTypeNode);
+int declareFunction(AST_NODE* returnTypeNode);
 void processDeclDimList(AST_NODE* variableDeclDimList, TypeDescriptor* typeDescriptor, int ignoreFirstDimSize);
-void processTypeNode(AST_NODE* typeNode);
+int processTypeNode(AST_NODE* typeNode);
 void processBlockNode(AST_NODE* blockNode);
 void processStmtNode(AST_NODE* stmtNode);
 void processGeneralNode(AST_NODE *node);
@@ -125,24 +125,19 @@ void processDeclarationNode(AST_NODE* declarationNode)
 }
 
 
-void processTypeNode(AST_NODE* idNodeAsType)
+int processTypeNode(AST_NODE* typeNode)
 {
-    SymbolTableEntry* typeEntry = getTypeEntry(typeNode);
+    SymbolTableEntry* typeEntry = retrieveSymbol(getIDName(typeNode));
+    setTypeEntry(typeNode, typeEntry);
     if (!typeEntry) {
         // TODO: error - undeclare
     } else {
         SymbolAttribute* typeAttribute = typeEntry->attribute;
         if (typeAttribute->attributeKind != TYPE_ATTRIBUTE) {
             // TODO: error - not a type
-        } else {
-            TypeDescriptor* typeDescriptor = typeAttribute->attr.typeDescriptor;
-            if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
-                // TODO: error - return array
-            } else {
-                signature->returnType = typeDescriptor->properties.dataType;
-            }
         }
     }
+    return true;
 }
 
 
@@ -262,12 +257,17 @@ int declareFunction(AST_NODE* declarationNode)
     if (!processTypeNode(typeNode)) {
         // TODO: error - invalid return type
     } else {
-        TypeDescriptor* typeDescriptor = typeAttribute->attr.typeDescriptor;
+        TypeDescriptor* typeDescriptor = getTypeDescriptor(typeNode);
         if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
             // TODO: error - return array
         } else {
             signature->returnType = typeDescriptor->properties.dataType;
         }
+    }
+    /* int parametersCount; */
+    /* Parameter* parameterList; */
+    if (!processDeclarationNode(param)) {
+    
     }
 
     if (declaredLocally(getIDName(idNode))) {

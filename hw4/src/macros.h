@@ -48,7 +48,11 @@
 #define setIDEntry(idNode, val) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry = val)
 
 #define getTypeEntry(idNode) getIDEntry(idNode)
+#define setTypeEntry(idNode, val) setIDEntry(idNode, val)
 #define getTypeDescriptor(idNode) (getTypeEntry(idNode)->attribute->attr.typeDescriptor)
+
+#define true 1
+#define false 0
 
 /* unpack example
 AST_NODE* it = parentNode->child;
