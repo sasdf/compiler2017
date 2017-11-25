@@ -14,6 +14,7 @@ void processProgramNode(AST_NODE *programNode);
 void processDeclarationNode(AST_NODE* declarationNode);
 void declareIdList(AST_NODE* typeNode, SymbolAttributeKind isVariableOrTypeAttribute, int ignoreArrayFirstDimSize);
 int declareFunction(AST_NODE* returnTypeNode);
+int declareParameter(AST_NODE* returnTypeNode);
 void processDeclDimList(AST_NODE* variableDeclDimList, TypeDescriptor* typeDescriptor, int ignoreFirstDimSize);
 int processTypeNode(AST_NODE* typeNode);
 void processBlockNode(AST_NODE* blockNode);
@@ -115,7 +116,7 @@ DATA_TYPE getBiggerType(DATA_TYPE dataType1, DATA_TYPE dataType2)
 }
 
 
-// program -> [global_decl]
+// program -> [global_decl ...]
 int processProgramNode(AST_NODE *programNode)
 {
     AST_NODE *global_decl = programNode->child;
@@ -131,15 +132,17 @@ int processDeclarationNode(AST_NODE* declarationNode)
     switch (getDeclKind(declarationNode)){
         case VARIABLE_DECL:
             setDeclKind(declarationNode, VARIABLE_DECL);
-            declareIdList(declarationNode->child, VARIABLE_ATTRIBUTE, 0);
+            declareIdList(declarationNode->child, VARIABLE_ATTRIBUTE, false);
             break;
         case TYPE_DECL:
             setDeclKind(declarationNode, TYPE_DECL);
-            declareIdList(declarationNode->child, TYPE_ATTRIBUTE, 0);
+            declareIdList(declarationNode->child, TYPE_ATTRIBUTE, false);
             break;
         case FUNCTION_DECL:
+            declareFunction(declarationNode->child);
             break;
         case FUNCTION_PARAMETER_DECL:
+            declareParameter(declarationNode->child);
             break;
     }
 }
@@ -160,19 +163,34 @@ int processTypeNode(AST_NODE* typeNode)
 }
 
 
-void declareIdList(AST_NODE* declarationNode, SymbolAttributeKind isVariableOrTypeAttribute, int ignoreArrayFirstDimSize)
+int declareIdList(AST_NODE* declarationNode, SymbolAttributeKind isVariableOrTypeAttribute, int ignoreArrayFirstDimSize)
 {
-    AST_NODE *it = declarationNode;
-    unpack(it, type);
-    if (!processTypeNode(type)){
-        // TODO
+    AST_NODE *iterator = declarationNode;
+    unpack(iterator, type);
+    int retval = true;
+    if (!processTypeNode(typeNode)){
+        // TODO: error - invalid type
     } else {
-        forEach (it){
-            SymbolAttribute *tmp = new(SymbolAttribute);
-            tmp->attributeKind = isVariableOrTypeAttribute;
-            setTypeDescriptor(tmp, getTypeDesciptor(type));
-            // TODO
+        forEach (iterator){
+            if (!declaredLocally(getIDName(iterator))) {
+                retval = false;
+                // TODO: error - redeclare
+            } else {
+                SymbolAttribute *attribute = new(SymbolAttribute);
+                attribute->attributeKind = isVariableOrTypeAttribute;
+                setTypeDescriptor(attribute, getTypeDesciptor(typeNode));
+                switch (getIDKind(iterator)) {
+                    case NORMAL_ID:
+                        break;
+                    case ARRAY_ID:
+                        break;
+                    case WITH_INIT_ID:
+                        break;
+                }
+            }
+        }
     }
+    return retval;
 }
 
 void checkAssignOrExpr(AST_NODE* assignOrExprRelatedNode)
@@ -266,11 +284,11 @@ void processDeclDimList(AST_NODE* idNode, TypeDescriptor* typeDescriptor, int ig
 {
 }
 
-// func -> [type id param block]
-int declareFunction(AST_NODE* declarationNode)
+// param -> [type (id | array)]
+int declareParameter(AST_NODE* iterator)
 {
-    AST_NODE* iterator = declarationNode->child;
-    unpack(iterator, typeNode, idNode, paramNode, blockNode);
+    unpack(iterator, typeNode, idNode);
+    openScope();
 
     SymbolAttribute* attribute = new(SymbolAttribute);
     FunctionSignature* signature = new(FunctionSignature);
@@ -303,5 +321,50 @@ int declareFunction(AST_NODE* declarationNode)
         SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
         getIDEntry(idNode) = entry;
     }
+
+    closeScope();
+    return true;
+}
+
+int declareFunction(AST_NODE* iterator)
+{
+    unpack(iterator, typeNode, idNode, paramIterator, blockNode);
+    openScope();
+
+    SymbolAttribute* attribute = new(SymbolAttribute);
+    FunctionSignature* signature = new(FunctionSignature);
+
+    // attribute
+    attribute->attributeKind = FUNCTION_SIGNATURE;
+    attribute->attr.functionSignature = signature;
+
+    // signature
+    // returnType
+    if (!processTypeNode(typeNode)) {
+        // TODO: error - invalid return type
+    } else {
+        TypeDescriptor* typeDescriptor = getTypeDescriptor(typeNode);
+        if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
+            // TODO: error - return array
+        } else {
+            signature->returnType = typeDescriptor->properties.dataType;
+        }
+    }
+    /* int parametersCount; */
+    /* Parameter* parameterList; */
+    forEach (paramIterator) {
+        if (!processDeclarationNode(param)) {
+        } else {
+        }
+    }
+
+    if (declaredLocally(getIDName(idNode))) {
+        // TODO: error - redeclare
+    } else {
+        SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
+        getIDEntry(idNode) = entry;
+    }
+
+    closeScope();
     return true;
 }
