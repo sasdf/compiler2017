@@ -46,6 +46,7 @@
 #define getIDName(idNode) (idNode->semantic_value.identifierSemanticValue.identifierName)
 #define getIDEntry(idNode) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry)
 #define setIDEntry(idNode, val) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry = val)
+
 #define getTypeEntry(idNode) getIDEntry(idNode)
 #define getTypeDescriptor(idNode) (getTypeEntry(idNode)->attribute->attr.typeDescriptor)
 
