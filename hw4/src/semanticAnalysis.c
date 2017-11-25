@@ -113,15 +113,18 @@ DATA_TYPE getBiggerType(DATA_TYPE dataType1, DATA_TYPE dataType2)
 // program -> [global_decl]
 void processProgramNode(AST_NODE *programNode)
 {
-    AST_NODE *child = programNode->child;
-    while (child){
-        processDeclarationNode(child);
-        child = child->rightSibling;
+    AST_NODE *global_decl = programNode->child;
+    while (global_decl){
+        processDeclarationNode(global_decl->child);
+        global_decl = global_decl->rightSibling;
     }
 }
 
 void processDeclarationNode(AST_NODE* declarationNode)
 {
+    switch (declarationNode->semantic_value.decl){
+        
+    }
 }
 
 
