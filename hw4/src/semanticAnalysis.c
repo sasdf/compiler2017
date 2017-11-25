@@ -242,11 +242,29 @@ void declareFunction(AST_NODE* declarationNode)
     attribute->attr.functionSignature = signature;
 
     // signature
+    // returnType
     processTypeNode(typeNode);
-    signature->returnType = 
+    SymbolTableEntry* typeEntry = getTypeEntry(typeNode);
+    if (!typeEntry) {
+        // TODO: error - undeclare
+    } else {
+        SymbolAttribute* typeAttribute = typeEntry->attribute;
+        if (typeAttribute->attributeKind != TYPE_ATTRIBUTE) {
+            // TODO: error - not a type
+        } else {
+            TypeDescriptor* typeDescriptor = typeAttribute->attr.typeDescriptor;
+            if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
+                // TODO: error - return array
+            } else {
+                signature->returnType = typeDescriptor->properties.dataType;
+            }
+        }
+    }
+
+    signature->returnType = getTypeData(typeEntry)
 
     if (declaredLocally(getIDName(idNode))) {
-        // TODO: print redeclare error
+        // TODO: error - redeclare
     } else {
         SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
         getIDEntry(idNode) = entry;
