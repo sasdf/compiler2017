@@ -115,15 +115,23 @@ DATA_TYPE getBiggerType(DATA_TYPE dataType1, DATA_TYPE dataType2)
     }
 }
 
+int processDeclarationList(AST_NODE* declarationList){
+    int flag = true;
+    AST_NODE *decl = declarationList->child;
+    forEach (decl){
+        flag &= processDeclarationNode(decl->child);
+    }
+    return flag;
+}
 
 // program -> [global_decl ...]
 int processProgramNode(AST_NODE *programNode)
 {
-    AST_NODE *global_decl = programNode->child;
-    while (global_decl){
-        processDeclarationNode(global_decl->child);
-        global_decl = global_decl->rightSibling;
-    }
+    processDeclarationList(programNode);
+    //AST_NODE *global_decl = programNode->child;
+    //forEach (global_decl){
+    //    processDeclarationNode(global_decl->child);
+    //}
 }
 
 // global_decl -> var_decl | type_decl | func_decl | func_param_decl
@@ -265,14 +273,37 @@ void checkReturnStmt(AST_NODE* returnNode)
 {
 }
 
+int  processStatementList(AST_NODE *stmtList){
+    int flag = true;
+    AST_NODE *stmt = stmtList->child;
+    forEach (stmt){
+        flag &= processStmtNode(stmt->child);
+    }
+    return flag;
+}
 
-void processBlockNode(AST_NODE* blockNode)
+// block -> decl_list stmt_list | stmt_list | decl_list
+int processBlockNode(AST_NODE* blockNode)
 {
+    int flag = true;
+    AST_NODE *child = blockNode->child;
+    if (child->rightSibling){       // decl_list stmt_list
+        flag &= processDeclarationList(child);
+        flag &= processStatementList(child->rightSibling);
+    } else{
+        if (child->nodeType == VARIABLE_DECL_LIST_NODE)     // decl_list
+            flag &= processDeclarationList(child);
+        else if (child->nodeType == STMT_LIST_NODE)         // stmt_list
+            flag &= processStatementList(child);
+        else assert(0);
+    }
+    return flag;
 }
 
 
 void processStmtNode(AST_NODE* stmtNode)
 {
+    
 }
 
 
