@@ -19,8 +19,6 @@ SymbolTable symbolTable;
 
 SymbolTableEntry* freeSymbolTableEntry(SymbolTableEntry* entry)
 {
-    assert(entry->name);
-    free(entry->name);
     free(entry);
 }
 
@@ -30,7 +28,6 @@ SymbolTableEntry* newSymbolTableEntry(int nestingLevel)
     symbolTableEntry->nextInHashChain = NULL;
     symbolTableEntry->prevInHashChain = NULL;
     symbolTableEntry->nextInSameLevel = NULL;
-    symbolTableEntry->sameNameInOuterLevel = NULL;
     symbolTableEntry->attribute = NULL;
     symbolTableEntry->name = NULL;
     symbolTableEntry->nestingLevel = nestingLevel;
@@ -41,13 +38,12 @@ void removeFromHashChain(int hashIndex, SymbolTableEntry* entry)
 {
     // hash table
     assert(entry->prevInHashChain == NULL);
-    
+    assert(symbolTable.hashTable[hashIndex] == entry);
     symbolTable.hashTable[hashIndex] = entry->nextInHashChain;
     entry->nextInHashChain->prevInHashChain = NULL;
 
     // scope display
     assert(symbolTable.scopeDisplay->nextInSameLevel == entry);
-    
     symbolTable.scopeDisplay->nextInSameLevel = entry->nextInSameLevel;
 }
 
@@ -83,6 +79,7 @@ SymbolTableEntry* retrieveSymbol(char* symbolName)
     while (entry)
         if (strcmp(entry->name, symbolName) == 0)
             break;
+        entry = entry->nextInHashChain;
     return entry;
 }
 
@@ -101,6 +98,11 @@ SymbolTableEntry* enterSymbol(char* symbolName, SymbolAttribute* attribute)
 //remove the symbol from the current scope
 void removeSymbol(SymbolTableEntry* entry)
 {
+    int hash = HASH(entry->name);
+    removeFromHashChain(hash, entry);
+    assert(entry->name);
+    free(entry->name);
+    freeSymbolTableEntry(entry);
 }
 
 int declaredLocally(char* symbolName)
@@ -119,12 +121,8 @@ void closeScope()
 {
     ScopeEntry* scope = symbolTable.scopeDisplay;
     assert (scope);
-    SymbolTableEntry* entry = scope->nextInSameLevel;
-    while (scope) {
-        SymbolTableEntry* next = entry->nextInSameLevel;
-        removeSymbol(entry);
-        entry = next;
-    }
+    while (scope->nextInSameLevel)
+        removeSymbol(scope->nextInSameLevel);
     symbolTable.scopeDisplay = scope->outerScope;
     --symbolTable.currentLevel;
     free(scope);
