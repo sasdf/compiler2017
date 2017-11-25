@@ -17,6 +17,13 @@ int HASH(char * str) {
 
 SymbolTable symbolTable;
 
+SymbolTableEntry* freeSymbolTableEntry(SymbolTableEntry* entry)
+{
+    assert(entry->name);
+    free(entry->name);
+    free(entry);
+}
+
 SymbolTableEntry* newSymbolTableEntry(int nestingLevel)
 {
     SymbolTableEntry* symbolTableEntry = (SymbolTableEntry*)malloc(sizeof(SymbolTableEntry));
@@ -24,7 +31,6 @@ SymbolTableEntry* newSymbolTableEntry(int nestingLevel)
     symbolTableEntry->prevInHashChain = NULL;
     symbolTableEntry->nextInSameLevel = NULL;
     symbolTableEntry->sameNameInOuterLevel = NULL;
-    symbolTableEntry->outerScope = NULL;
     symbolTableEntry->attribute = NULL;
     symbolTableEntry->name = NULL;
     symbolTableEntry->nestingLevel = nestingLevel;
@@ -67,12 +73,17 @@ void initializeSymbolTable()
 
 void symbolTableEnd()
 {
+    while (symbolTable.scopeDisplay) closeScope();
 }
 
 SymbolTableEntry* retrieveSymbol(char* symbolName)
 {
     int hash = HASH(symbolName);
     SymbolTableEntry* entry = symbolTable.hashTable[hash];
+    while (entry)
+        if (strcmp(entry->name, symbolName) == 0)
+            break;
+    return entry;
 }
 
 SymbolTableEntry* enterSymbol(char* symbolName, SymbolAttribute* attribute)
@@ -100,21 +111,22 @@ int declaredLocally(char* symbolName)
 
 void openScope()
 {
-    ScopeEntry* scope = (ScopeEntry*)malloc(sizeof(SymbolTableEntry));
+    ScopeEntry* scope = (ScopeEntry*)malloc(sizeof(ScopeEntry));
     scope->outerScope = symbolTable.scopeDisplay;
     symbolTable.scopeDisplay = scope;
 }
 
 void closeScope()
 {
-    SymbolTableEntry* scope = symbolTable.scopeDisplay;
+    ScopeEntry* scope = symbolTable.scopeDisplay;
     assert (scope);
-    SymbolTableEntry* outerScope = scope->outerScope;
+    SymbolTableEntry* entry = scope->nextInSameLevel;
     while (scope) {
-        SymbolTableEntry* next = scope->nextInSameLevel;
-        removeSymbol(scope);
-        scope = next;
+        SymbolTableEntry* next = entry->nextInSameLevel;
+        removeSymbol(entry);
+        entry = next;
     }
-    symbolTable.scopeDisplay = outerScope;
+    symbolTable.scopeDisplay = scope->outerScope;
     --symbolTable.currentLevel;
+    free(scope);
 }
