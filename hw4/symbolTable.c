@@ -5,13 +5,13 @@
 // This file is for reference only, you are not required to follow the implementation. //
 
 int HASH(char * str) {
-	int idx=0;
-	while (*str){
-		idx = idx << 1;
-		idx+=*str;
-		str++;
-	}
-	return (idx & (HASH_TABLE_SIZE-1));
+    int idx=0;
+    while (*str){
+        idx = idx << 1;
+        idx+=*str;
+        str++;
+    }
+    return (idx & (HASH_TABLE_SIZE-1));
 }
 
 SymbolTable symbolTable;

@@ -68,13 +68,13 @@ void printErrorMsgSpecial(AST_NODE* node1, char* name2, ErrorMsgKind errorMsgKin
     g_anyErrorOccur = 1;
     printf("Error found in line %d\n", node1->linenumber);
     /*
-    switch(errorMsgKind)
-    {
-    default:
-        printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
-        break;
-    }
-    */
+       switch(errorMsgKind)
+       {
+       default:
+       printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
+       break;
+       }
+       */
 }
 
 
@@ -83,12 +83,12 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
     g_anyErrorOccur = 1;
     printf("Error found in line %d\n", node->linenumber);
     /*
-    switch(errorMsgKind)
-    {
-        printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
-        break;
-    }
-    */
+       switch(errorMsgKind)
+       {
+       printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
+       break;
+       }
+       */
 }
 
 
