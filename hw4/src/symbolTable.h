@@ -76,7 +76,6 @@ typedef struct SymbolTableEntry
     struct SymbolTableEntry* nextInHashChain;
     struct SymbolTableEntry* prevInHashChain;
     struct SymbolTableEntry* nextInSameLevel;
-    struct SymbolTableEntry* sameNameInOuterLevel;
 
     char* name;
     SymbolAttribute* attribute;
