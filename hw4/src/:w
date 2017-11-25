@@ -97,7 +97,7 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
 void semanticAnalysis(AST_NODE *root)
 {
     initializeSymbolTable();
-    // TODO: declare INT, FLOAT...
+    // TODO:
     openScope();
     processProgramNode(root);
     closeScope();
@@ -130,17 +130,28 @@ int processDeclarationNode(AST_NODE* declarationNode)
 {
     switch (getDeclKind(declarationNode)){
         case VARIABLE_DECL:
-            setDeclKind(declarationNode, VARIABLE_DECL);
-            declareIdList(declarationNode->child, VARIABLE_ATTRIBUTE, 0);
+            declareVariable(declarationNode->child);
             break;
         case TYPE_DECL:
-            setDeclKind(declarationNode, TYPE_DECL);
-            declareIdList(declarationNode->child, TYPE_ATTRIBUTE, 0);
+            declareType(declaration_Node->child);
             break;
         case FUNCTION_DECL:
             break;
         case FUNCTION_PARAMETER_DECL:
             break;
+    }
+}
+
+int declareVariable(AST_NODE *variableDecl){
+    AST_NODE *it = variableDecl;
+    unpack(it, type);
+    if (!processTypeNode(type)){
+        // TODO
+    } else {
+        forEach (it){
+            SymbolAttribute *tmp = new(SymbolAttribute);
+            tmp->attributeKind = VARIABLE_ATTRIBUTE;
+            setTypeDescriptor(tmp, getTypeDesciptor(type));
     }
 }
 
@@ -167,17 +178,9 @@ void processTypeNode(AST_NODE* idNodeAsType)
 
 void declareIdList(AST_NODE* declarationNode, SymbolAttributeKind isVariableOrTypeAttribute, int ignoreArrayFirstDimSize)
 {
-    AST_NODE *it = declarationNode;
-    unpack(it, type);
-    if (!processTypeNode(type)){
-        // TODO
-    } else {
-        forEach (it){
-            SymbolAttribute *tmp = new(SymbolAttribute);
-            tmp->attributeKind = isVariableOrTypeAttribute;
-            setTypeDescriptor(tmp, getTypeDesciptor(type));
-            // TODO
-    }
+    SymbolAttribute *tmp = new(SymbolAttribute);
+    tmp->attributeKind = isVariableOrTypeAttribute;
+    // TODO
 }
 
 void checkAssignOrExpr(AST_NODE* assignOrExprRelatedNode)

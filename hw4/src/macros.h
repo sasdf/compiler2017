@@ -45,11 +45,13 @@
 
 #define getIDName(idNode) (idNode->semantic_value.identifierSemanticValue.identifierName)
 #define getIDEntry(idNode) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry)
-#define getDeclKind(declNode) (declNode->semantic_value.declSemanticValue.kind)
 #define setIDEntry(idNode, val) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry = val)
+#define getDeclKind(declNode) (declNode->semantic_value.declSemanticValue.kind)
+#define setDeclKind(declNode, val) (declNode->semantic_value.declSemanticValue.kind = val)
 
 #define getTypeEntry(idNode) getIDEntry(idNode)
 #define getTypeDescriptor(idNode) (getTypeEntry(idNode)->attribute->attr.typeDescriptor)
+#define setTypeDescriptor(idNode, val) (getTypeEntry(idNode)->attribute->attr.typeDescriptor = val)
 
 /* unpack example
 AST_NODE* it = parentNode->child;
