@@ -19,8 +19,6 @@ SymbolTable symbolTable;
 
 SymbolTableEntry* freeSymbolTableEntry(SymbolTableEntry* entry)
 {
-    assert(entry->name);
-    free(entry->name);
     free(entry);
 }
 
@@ -42,6 +40,7 @@ void removeFromHashChain(int hashIndex, SymbolTableEntry* entry)
     // hash table
     assert(entry->prevInHashChain == NULL);
     
+    assert(symbolTable.hashTable[hashIndex] == entry);
     symbolTable.hashTable[hashIndex] = entry->nextInHashChain;
     entry->nextInHashChain->prevInHashChain = NULL;
 
@@ -83,6 +82,7 @@ SymbolTableEntry* retrieveSymbol(char* symbolName)
     while (entry)
         if (strcmp(entry->name, symbolName) == 0)
             break;
+        entry = entry->nextInHashChain;
     return entry;
 }
 
@@ -101,6 +101,12 @@ SymbolTableEntry* enterSymbol(char* symbolName, SymbolAttribute* attribute)
 //remove the symbol from the current scope
 void removeSymbol(SymbolTableEntry* entry)
 {
+    int hash = HASH(entry->name);
+    assert (symbolTable.hashTable[hash] == entry);
+    removeFromHashChain(hash, entry);
+    assert(entry->name);
+    free(entry->name);
+    freeSymbolTableEntry(entry);
 }
 
 int declaredLocally(char* symbolName)
