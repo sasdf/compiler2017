@@ -41,6 +41,10 @@
 
 #define unpack(iter, ...) FOR_EACH(UNPACK_INTERNAL, iter, __VA_ARGS__)
 #define new(type) ((type*) malloc(sizeof(type)))
+#define forEach(iter, block) while(iter){ block; iter = iter->rightSibling; }
+
+#define getIDName(idNode) (idNode->semantic_value->identifierSemanticValue->identifierName)
+#define getIDEntry(idNode) (idNode->semantic_value->identifierSemanticValue->symbolTableEntry)
 
 /* unpack example
 AST_NODE* it = parentNode->child;
@@ -54,4 +58,11 @@ a = it; it = it->rightSibling;
 
 /* new example
 TYPE* x = new(TYPE);
+*/
+
+/* forEach example
+AST_NODE* it = parentNode->child;
+forEach(it, {
+    it->...
+})
 */

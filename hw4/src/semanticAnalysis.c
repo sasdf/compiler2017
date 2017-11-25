@@ -233,15 +233,15 @@ void processDeclDimList(AST_NODE* idNode, TypeDescriptor* typeDescriptor, int ig
 // func -> [type id param block]
 void declareFunction(AST_NODE* declarationNode)
 {
-    AST_NODE* typeNode = declarationNode->child;
-    AST_NODE* idNode = typeNode->rightSibling;
-    AST_NODE* paramNode = idNode->rightSibling;
-    AST_NODE* blockNode = paramNode->rightSibling;
+    AST_NODE* iterator = declarationNode->child;
+    unpack(iterator, typeNode, idNode, paramNode, blockNode);
 
     SymbolAttribute* attribute = new(SymbolAttribute);
     FunctionSignature* signature = new(FunctionSignature);
     attribute->attributeKind = FUNCTION_SIGNATURE;
     attribute->attr.functionSignature = signature;
-    if (declaredLocally(
+    if (declaredLocally(getIDName(idNode))) {
+        // TODO: print redeclare error
+    }
 
 }
