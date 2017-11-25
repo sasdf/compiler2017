@@ -127,6 +127,22 @@ void processDeclarationNode(AST_NODE* declarationNode)
 
 void processTypeNode(AST_NODE* idNodeAsType)
 {
+    SymbolTableEntry* typeEntry = getTypeEntry(typeNode);
+    if (!typeEntry) {
+        // TODO: error - undeclare
+    } else {
+        SymbolAttribute* typeAttribute = typeEntry->attribute;
+        if (typeAttribute->attributeKind != TYPE_ATTRIBUTE) {
+            // TODO: error - not a type
+        } else {
+            TypeDescriptor* typeDescriptor = typeAttribute->attr.typeDescriptor;
+            if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
+                // TODO: error - return array
+            } else {
+                signature->returnType = typeDescriptor->properties.dataType;
+            }
+        }
+    }
 }
 
 
@@ -229,7 +245,7 @@ void processDeclDimList(AST_NODE* idNode, TypeDescriptor* typeDescriptor, int ig
 }
 
 // func -> [type id param block]
-void declareFunction(AST_NODE* declarationNode)
+int declareFunction(AST_NODE* declarationNode)
 {
     AST_NODE* iterator = declarationNode->child;
     unpack(iterator, typeNode, idNode, paramNode, blockNode);
@@ -243,25 +259,16 @@ void declareFunction(AST_NODE* declarationNode)
 
     // signature
     // returnType
-    processTypeNode(typeNode);
-    SymbolTableEntry* typeEntry = getTypeEntry(typeNode);
-    if (!typeEntry) {
-        // TODO: error - undeclare
+    if (!processTypeNode(typeNode)) {
+        // TODO: error - invalid return type
     } else {
-        SymbolAttribute* typeAttribute = typeEntry->attribute;
-        if (typeAttribute->attributeKind != TYPE_ATTRIBUTE) {
-            // TODO: error - not a type
+        TypeDescriptor* typeDescriptor = typeAttribute->attr.typeDescriptor;
+        if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
+            // TODO: error - return array
         } else {
-            TypeDescriptor* typeDescriptor = typeAttribute->attr.typeDescriptor;
-            if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
-                // TODO: error - return array
-            } else {
-                signature->returnType = typeDescriptor->properties.dataType;
-            }
+            signature->returnType = typeDescriptor->properties.dataType;
         }
     }
-
-    signature->returnType = getTypeData(typeEntry)
 
     if (declaredLocally(getIDName(idNode))) {
         // TODO: error - redeclare
@@ -269,4 +276,5 @@ void declareFunction(AST_NODE* declarationNode)
         SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
         getIDEntry(idNode) = entry;
     }
+    return true;
 }
