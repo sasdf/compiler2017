@@ -89,10 +89,9 @@ SymbolTableEntry* retrieveSymbol(char* symbolName)
 SymbolTableEntry* enterSymbol(char* symbolName, SymbolAttribute* attribute)
 {
     int hash = HASH(symbolName);
-    SymbolTableEntry *tmp = (SymbolTableEntry *)malloc(sizof(SymbolTableEntry));
+    SymbolTableEntry *tmp = newSymbolTableEntry(symbolTable.currentLevel);
     tmp->name = strdup(symbolName);
     tmp->attribute = attribute;
-    tmp->nestingLevel = symbolTable.currentLevel;
 
     enterIntoHashChain(hash, tmp);
     
