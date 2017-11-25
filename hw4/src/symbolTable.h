@@ -87,7 +87,7 @@ typedef struct SymbolTableEntry
 typedef struct SymbolTable
 {
     SymbolTableEntry* hashTable[HASH_TABLE_SIZE];
-    SymbolTableEntry** scopeDisplay;
+    ScopeEntry* scopeDisplay;
     int currentLevel;
     int scopeDisplayElementCount;
 } SymbolTable;
