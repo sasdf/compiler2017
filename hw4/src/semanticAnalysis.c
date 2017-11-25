@@ -96,7 +96,11 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
 
 void semanticAnalysis(AST_NODE *root)
 {
+    initializeSymbolTable();
+    openScope();
     processProgramNode(root);
+    closeScope();
+    symbolTableEnd();
 }
 
 
@@ -111,7 +115,7 @@ DATA_TYPE getBiggerType(DATA_TYPE dataType1, DATA_TYPE dataType2)
 
 
 // program -> [global_decl]
-void processProgramNode(AST_NODE *programNode)
+int processProgramNode(AST_NODE *programNode)
 {
     AST_NODE *global_decl = programNode->child;
     while (global_decl){
@@ -120,13 +124,29 @@ void processProgramNode(AST_NODE *programNode)
     }
 }
 
-void processDeclarationNode(AST_NODE* declarationNode)
+// global_decl -> var_decl | type_decl | func_decl | func_param_decl
+int processDeclarationNode(AST_NODE* declarationNode)
 {
-    switch (declarationNode->semantic_value.decl){
-        
+    switch (getDeclKind(declarationNode)){
+        case VARIABLE_DECL:
+            declareVariable(declarationNode->child);
+            break;
+        case TYPE_DECL:
+            break;
+        case FUNCTION_DECL:
+            break;
+        case FUNCTION_PARAMETER_DECL:
+            break;
     }
 }
 
+int declareVariable(AST_NODE *variableDecl){
+    AST_NODE *it = variableDecl;
+    unpack(it, type);
+    forEach (it){
+        new(Symbol)
+    }
+}
 
 void processTypeNode(AST_NODE* idNodeAsType)
 {

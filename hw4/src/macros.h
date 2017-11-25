@@ -45,6 +45,7 @@
 
 #define getIDName(idNode) (idNode->semantic_value.identifierSemanticValue.identifierName)
 #define getIDEntry(idNode) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry)
+#define getDeclKind(declNode) (declNode->semantic_value.declSemanticValue.kind)
 
 /* unpack example
 AST_NODE* it = parentNode->child;
