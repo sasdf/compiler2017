@@ -110,8 +110,14 @@ DATA_TYPE getBiggerType(DATA_TYPE dataType1, DATA_TYPE dataType2)
 }
 
 
+// program -> [global_decl]
 void processProgramNode(AST_NODE *programNode)
 {
+    AST_NODE *child = programNode->child;
+    while (child){
+        processDeclarationNode(child);
+        child = child->rightSibling;
+    }
 }
 
 void processDeclarationNode(AST_NODE* declarationNode)
@@ -126,6 +132,9 @@ void processTypeNode(AST_NODE* idNodeAsType)
 
 void declareIdList(AST_NODE* declarationNode, SymbolAttributeKind isVariableOrTypeAttribute, int ignoreArrayFirstDimSize)
 {
+    SymbolAttribute *tmp = new(SymbolAttribute);
+    tmp->attributeKind = isVariableOrTypeAttribute;
+    // TODO
 }
 
 void checkAssignOrExpr(AST_NODE* assignOrExprRelatedNode)
