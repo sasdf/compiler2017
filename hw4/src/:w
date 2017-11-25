@@ -13,9 +13,9 @@ DATA_TYPE getBiggerType(DATA_TYPE dataType1, DATA_TYPE dataType2);
 void processProgramNode(AST_NODE *programNode);
 void processDeclarationNode(AST_NODE* declarationNode);
 void declareIdList(AST_NODE* typeNode, SymbolAttributeKind isVariableOrTypeAttribute, int ignoreArrayFirstDimSize);
-int declareFunction(AST_NODE* returnTypeNode);
+void declareFunction(AST_NODE* returnTypeNode);
 void processDeclDimList(AST_NODE* variableDeclDimList, TypeDescriptor* typeDescriptor, int ignoreFirstDimSize);
-int processTypeNode(AST_NODE* typeNode);
+void processTypeNode(AST_NODE* typeNode);
 void processBlockNode(AST_NODE* blockNode);
 void processStmtNode(AST_NODE* stmtNode);
 void processGeneralNode(AST_NODE *node);
@@ -97,7 +97,7 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
 void semanticAnalysis(AST_NODE *root)
 {
     initializeSymbolTable();
-    // TODO: declare INT, FLOAT...
+    // TODO:
     openScope();
     processProgramNode(root);
     closeScope();
@@ -130,12 +130,10 @@ int processDeclarationNode(AST_NODE* declarationNode)
 {
     switch (getDeclKind(declarationNode)){
         case VARIABLE_DECL:
-            setDeclKind(declarationNode, VARIABLE_DECL);
-            declareIdList(declarationNode->child, VARIABLE_ATTRIBUTE, 0);
+            declareVariable(declarationNode->child);
             break;
         case TYPE_DECL:
-            setDeclKind(declarationNode, TYPE_DECL);
-            declareIdList(declarationNode->child, TYPE_ATTRIBUTE, 0);
+            declareType(declaration_Node->child);
             break;
         case FUNCTION_DECL:
             break;
@@ -144,35 +142,45 @@ int processDeclarationNode(AST_NODE* declarationNode)
     }
 }
 
-int processTypeNode(AST_NODE* typeNode)
-{
-    SymbolTableEntry* typeEntry = retrieveSymbol(getIDName(typeNode));
-    setTypeEntry(typeNode, typeEntry);
-    if (!typeEntry) {
-        // TODO: error - undeclare
-    } else {
-        SymbolAttribute* typeAttribute = typeEntry->attribute;
-        if (typeAttribute->attributeKind != TYPE_ATTRIBUTE) {
-            // TODO: error - not a type
-        }
-    }
-    return true;
-}
-
-
-void declareIdList(AST_NODE* declarationNode, SymbolAttributeKind isVariableOrTypeAttribute, int ignoreArrayFirstDimSize)
-{
-    AST_NODE *it = declarationNode;
+int declareVariable(AST_NODE *variableDecl){
+    AST_NODE *it = variableDecl;
     unpack(it, type);
     if (!processTypeNode(type)){
         // TODO
     } else {
         forEach (it){
             SymbolAttribute *tmp = new(SymbolAttribute);
-            tmp->attributeKind = isVariableOrTypeAttribute;
+            tmp->attributeKind = VARIABLE_ATTRIBUTE;
             setTypeDescriptor(tmp, getTypeDesciptor(type));
-            // TODO
     }
+}
+
+void processTypeNode(AST_NODE* idNodeAsType)
+{
+    SymbolTableEntry* typeEntry = getTypeEntry(typeNode);
+    if (!typeEntry) {
+        // TODO: error - undeclare
+    } else {
+        SymbolAttribute* typeAttribute = typeEntry->attribute;
+        if (typeAttribute->attributeKind != TYPE_ATTRIBUTE) {
+            // TODO: error - not a type
+        } else {
+            TypeDescriptor* typeDescriptor = typeAttribute->attr.typeDescriptor;
+            if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
+                // TODO: error - return array
+            } else {
+                signature->returnType = typeDescriptor->properties.dataType;
+            }
+        }
+    }
+}
+
+
+void declareIdList(AST_NODE* declarationNode, SymbolAttributeKind isVariableOrTypeAttribute, int ignoreArrayFirstDimSize)
+{
+    SymbolAttribute *tmp = new(SymbolAttribute);
+    tmp->attributeKind = isVariableOrTypeAttribute;
+    // TODO
 }
 
 void checkAssignOrExpr(AST_NODE* assignOrExprRelatedNode)
@@ -284,17 +292,12 @@ int declareFunction(AST_NODE* declarationNode)
     if (!processTypeNode(typeNode)) {
         // TODO: error - invalid return type
     } else {
-        TypeDescriptor* typeDescriptor = getTypeDescriptor(typeNode);
+        TypeDescriptor* typeDescriptor = typeAttribute->attr.typeDescriptor;
         if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
             // TODO: error - return array
         } else {
             signature->returnType = typeDescriptor->properties.dataType;
         }
-    }
-    /* int parametersCount; */
-    /* Parameter* parameterList; */
-    if (!processDeclarationNode(param)) {
-    
     }
 
     if (declaredLocally(getIDName(idNode))) {
