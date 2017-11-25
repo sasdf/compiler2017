@@ -150,6 +150,22 @@ int declareVariable(AST_NODE *variableDecl){
 
 void processTypeNode(AST_NODE* idNodeAsType)
 {
+    SymbolTableEntry* typeEntry = getTypeEntry(typeNode);
+    if (!typeEntry) {
+        // TODO: error - undeclare
+    } else {
+        SymbolAttribute* typeAttribute = typeEntry->attribute;
+        if (typeAttribute->attributeKind != TYPE_ATTRIBUTE) {
+            // TODO: error - not a type
+        } else {
+            TypeDescriptor* typeDescriptor = typeAttribute->attr.typeDescriptor;
+            if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
+                // TODO: error - return array
+            } else {
+                signature->returnType = typeDescriptor->properties.dataType;
+            }
+        }
+    }
 }
 
 
@@ -252,7 +268,7 @@ void processDeclDimList(AST_NODE* idNode, TypeDescriptor* typeDescriptor, int ig
 }
 
 // func -> [type id param block]
-void declareFunction(AST_NODE* declarationNode)
+int declareFunction(AST_NODE* declarationNode)
 {
     AST_NODE* iterator = declarationNode->child;
     unpack(iterator, typeNode, idNode, paramNode, blockNode);
@@ -265,13 +281,23 @@ void declareFunction(AST_NODE* declarationNode)
     attribute->attr.functionSignature = signature;
 
     // signature
-    processTypeNode(typeNode);
-    signature->returnType = 
+    // returnType
+    if (!processTypeNode(typeNode)) {
+        // TODO: error - invalid return type
+    } else {
+        TypeDescriptor* typeDescriptor = typeAttribute->attr.typeDescriptor;
+        if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
+            // TODO: error - return array
+        } else {
+            signature->returnType = typeDescriptor->properties.dataType;
+        }
+    }
 
     if (declaredLocally(getIDName(idNode))) {
-        // TODO: print redeclare error
+        // TODO: error - redeclare
     } else {
         SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
         getIDEntry(idNode) = entry;
     }
+    return true;
 }
