@@ -231,20 +231,27 @@ void processDeclDimList(AST_NODE* idNode, TypeDescriptor* typeDescriptor, int ig
 {
 }
 
-#define unpack(
-
 // func -> [type id param block]
 void declareFunction(AST_NODE* declarationNode)
 {
-    AST_NODE* typeNode = declarationNode->child;
-    AST_NODE* idNode = typeNode->rightSibling;
-    AST_NODE* paramNode = idNode->rightSibling;
-    AST_NODE* blockNode = paramNode->rightSibling;
+    AST_NODE* iterator = declarationNode->child;
+    unpack(iterator, typeNode, idNode, paramNode, blockNode);
 
     SymbolAttribute* attribute = new(SymbolAttribute);
     FunctionSignature* signature = new(FunctionSignature);
+
+    // attribute
     attribute->attributeKind = FUNCTION_SIGNATURE;
     attribute->attr.functionSignature = signature;
-    if (declaredLocally(
 
+    // signature
+    processTypeNode(typeNode);
+    signature->returnType = 
+
+    if (declaredLocally(getIDName(idNode))) {
+        // TODO: print redeclare error
+    } else {
+        SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
+        getIDEntry(idNode) = entry;
+    }
 }
