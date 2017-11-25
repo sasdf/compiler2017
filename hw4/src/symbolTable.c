@@ -24,6 +24,7 @@ SymbolTableEntry* newSymbolTableEntry(int nestingLevel)
     symbolTableEntry->prevInHashChain = NULL;
     symbolTableEntry->nextInSameLevel = NULL;
     symbolTableEntry->sameNameInOuterLevel = NULL;
+    symbolTableEntry->outerScope = NULL;
     symbolTableEntry->attribute = NULL;
     symbolTableEntry->name = NULL;
     symbolTableEntry->nestingLevel = nestingLevel;
@@ -67,6 +68,8 @@ void symbolTableEnd()
 
 SymbolTableEntry* retrieveSymbol(char* symbolName)
 {
+    int hash = HASH(symbolName);
+    SymbolTableEntry* entry = symbolTable.hashTable[hash];
 }
 
 SymbolTableEntry* enterSymbol(char* symbolName, SymbolAttribute* attribute)
@@ -80,12 +83,26 @@ void removeSymbol(SymbolTableEntry* entry)
 
 int declaredLocally(char* symbolName)
 {
+    return retrieveSymbol(symbolName) != NULL;
 }
 
 void openScope()
 {
+    ScopeEntry* scope = (ScopeEntry*)malloc(sizeof(SymbolTableEntry));
+    scope->outerScope = symbolTable.scopeDisplay;
+    symbolTable.scopeDisplay = scope;
 }
 
 void closeScope()
 {
+    SymbolTableEntry* scope = symbolTable.scopeDisplay;
+    assert (scope);
+    SymbolTableEntry* outerScope = scope->outerScope;
+    while (scope) {
+        SymbolTableEntry* next = scope->nextInSameLevel;
+        removeSymbol(scope);
+        scope = next;
+    }
+    symbolTable.scopeDisplay = outerScope;
+    --symbolTable.currentLevel;
 }

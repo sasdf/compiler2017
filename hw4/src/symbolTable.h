@@ -84,6 +84,12 @@ typedef struct SymbolTableEntry
 
 } SymbolTableEntry;
 
+typedef struct ScopeEntry
+{
+    struct SymbolTableEntry* nextInSameLevel;
+    struct ScopeEntry* outerScope;
+} ScopeEntry;
+
 typedef struct SymbolTable
 {
     SymbolTableEntry* hashTable[HASH_TABLE_SIZE];
