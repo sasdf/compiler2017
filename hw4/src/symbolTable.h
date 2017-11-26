@@ -31,7 +31,6 @@ typedef struct ArrayProperties
 {
     int dimension;
     int sizeInEachDimension[MAX_ARRAY_DIMENSION];
-    //point to a TypeDescriptor in the symbol table;
     DATA_TYPE elementType;
 } ArrayProperties;
 
@@ -47,9 +46,11 @@ typedef struct TypeDescriptor
 
 typedef struct Parameter
 {
-    //point to a TypeDescriptor in the symbol table;
     struct Parameter* next;
+
+    //point to a TypeDescriptor in the symbol table;
     TypeDescriptor* type;
+
     char* parameterName;
 } Parameter;
 

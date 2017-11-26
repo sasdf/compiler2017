@@ -107,7 +107,10 @@ void removeSymbol(SymbolTableEntry* entry)
 
 int declaredLocally(char* symbolName)
 {
-    return retrieveSymbol(symbolName) != NULL;
+    SymbolTableEntry* entry = retrieveSymbol(symbolName);
+    if (entry && entry->nestingLevel == symbolTable.currentLevel)
+        return 1;
+    return 0;
 }
 
 void openScope()

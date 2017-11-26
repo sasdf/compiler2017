@@ -4,38 +4,39 @@
 #include "header.h"
 #include "symbolTable.h"
 #include "macros.h"
+#include "assert.h"
 
 // This file is for reference only, you are not required to follow the implementation. //
 // You only need to check for errors stated in the hw4 assignment document. //
 int g_anyErrorOccur = 0;
 
 DATA_TYPE getBiggerType(DATA_TYPE dataType1, DATA_TYPE dataType2);
-void processProgramNode(AST_NODE *programNode);
-void processDeclarationNode(AST_NODE* declarationNode);
-void declareIdList(AST_NODE* typeNode, SymbolAttributeKind isVariableOrTypeAttribute, int ignoreArrayFirstDimSize);
+int processProgramNode(AST_NODE *programNode);
+int processDeclarationNode(AST_NODE* declarationNode);
+int declarePrimitiveType(char* name, DATA_TYPE type);
+int declareIdList(AST_NODE* typeNode, SymbolAttributeKind isVariableOrTypeAttribute, int ignoreArrayFirstDimSize);
 int declareFunction(AST_NODE* returnTypeNode);
-int declareParameter(AST_NODE* returnTypeNode);
-void processDeclDimList(AST_NODE* variableDeclDimList, TypeDescriptor* typeDescriptor, int ignoreFirstDimSize);
+int processDeclDimList(AST_NODE* variableDeclDimList, TypeDescriptor* typeDescriptor, int isParameter);
 int processTypeNode(AST_NODE* typeNode);
-void processBlockNode(AST_NODE* blockNode);
-void processStmtNode(AST_NODE* stmtNode);
-void processGeneralNode(AST_NODE *node);
-void checkAssignOrExpr(AST_NODE* assignOrExprRelatedNode);
-void checkWhileStmt(AST_NODE* whileNode);
-void checkForStmt(AST_NODE* forNode);
-void checkAssignmentStmt(AST_NODE* assignmentNode);
-void checkIfStmt(AST_NODE* ifNode);
-void checkWriteFunction(AST_NODE* functionCallNode);
-void checkFunctionCall(AST_NODE* functionCallNode);
-void processExprRelatedNode(AST_NODE* exprRelatedNode);
-void checkParameterPassing(Parameter* formalParameter, AST_NODE* actualParameter);
-void checkReturnStmt(AST_NODE* returnNode);
-void processExprNode(AST_NODE* exprNode);
-void processVariableLValue(AST_NODE* idNode);
-void processVariableRValue(AST_NODE* idNode);
-void processConstValueNode(AST_NODE* constValueNode);
-void getExprOrConstValue(AST_NODE* exprOrConstNode, int* iValue, float* fValue);
-void evaluateExprValue(AST_NODE* exprNode);
+int processBlockNode(AST_NODE* blockNode);
+int processStmtNode(AST_NODE* stmtNode);
+int processGeneralNode(AST_NODE *node);
+int checkAssignable(DATA_TYPE type, DATA_TYPE val, int isParameter);
+int checkAssignOrExpr(AST_NODE* assignOrExprRelatedNode);
+int checkWhileStmt(AST_NODE* whileNode);
+int checkForStmt(AST_NODE* forNode);
+int checkAssignmentStmt(AST_NODE* assignmentNode);
+int checkIfStmt(AST_NODE* ifNode);
+int checkWriteFunction(AST_NODE* functionCallNode);
+int checkFunctionCall(AST_NODE* functionCallNode);
+int processExprRelatedNode(AST_NODE* exprRelatedNode);
+int checkParameterPassing(Parameter* formalParameter, AST_NODE* actualParameter);
+int checkReturnStmt(AST_NODE* returnNode);
+int processExprNode(AST_NODE* exprNode);
+int processVariableLValue(AST_NODE* idNode);
+int processVariableRValue(AST_NODE* idNode);
+int processConstValueNode(AST_NODE* constValueNode);
+int evaluateExprValue(AST_NODE* exprNode);
 
 
 typedef enum ErrorMsgKind
@@ -98,7 +99,9 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
 void semanticAnalysis(AST_NODE *root)
 {
     initializeSymbolTable();
-    // TODO: declare INT, FLOAT...
+    declarePrimitiveType(SYMBOL_TABLE_INT_NAME, INT_TYPE);
+    declarePrimitiveType(SYMBOL_TABLE_FLOAT_NAME, FLOAT_TYPE);
+    declarePrimitiveType(SYMBOL_TABLE_VOID_NAME, VOID_TYPE);
     openScope();
     processProgramNode(root);
     closeScope();
@@ -115,6 +118,7 @@ DATA_TYPE getBiggerType(DATA_TYPE dataType1, DATA_TYPE dataType2)
     }
 }
 
+// [decl ...]
 int processDeclarationList(AST_NODE* declarationList){
     int flag = true;
     AST_NODE *decl = declarationList->child;
@@ -150,126 +154,384 @@ int processDeclarationNode(AST_NODE* declarationNode)
             declareFunction(declarationNode->child);
             break;
         case FUNCTION_PARAMETER_DECL:
-            declareParameter(declarationNode->child);
+            declareIdList(declarationNode->child, VARIABLE_ATTRIBUTE, true);
             break;
     }
 }
 
+// typeNode -- idNode
 int processTypeNode(AST_NODE* typeNode)
 {
-    SymbolTableEntry* typeEntry = retrieveSymbol(getIDName(typeNode));
-    setTypeEntry(typeNode, typeEntry);
-    if (!typeEntry) {
-        // TODO: error - undeclare
-    } else {
+    int retval = true;
+    loop1 {
+        SymbolTableEntry* typeEntry = retrieveSymbol(getIDName(typeNode));
+        if (!typeEntry) {
+            // TODO: error - SYMBOL_UNDECLARED
+            retval = false;
+            break;
+        }
         SymbolAttribute* typeAttribute = typeEntry->attribute;
         if (typeAttribute->attributeKind != TYPE_ATTRIBUTE) {
             // TODO: error - not a type
+            retval = false;
+            break;
         }
+        setTypeEntry(typeNode, typeEntry);
+    }
+    return retval;
+}
+
+int checkAssignable(DATA_TYPE type, DATA_TYPE val, int isParameter)
+{
+    if (isParameter) {
+        if (type == INT_PTR_TYPE && val == INT_PTR_TYPE)
+            return true;
+        if (type == FLOAT_PTR_TYPE && val == INT_PTR_TYPE)
+            return true;
+        if (type == FLOAT_PTR_TYPE && val == FLOAT_PTR_TYPE)
+            return true;
+    }
+    if (val != INT_TYPE && val != FLOAT_TYPE)
+        return false;
+    if (type != INT_TYPE && type != FLOAT_TYPE)
+        return false;
+    if (getBiggerType(type, val) != type)
+        return false;
+    return true;
+}
+
+int declarePrimitiveType(char* name, DATA_TYPE type)
+{
+    TypeDescriptor* typeDescriptor = new(TypeDescriptor);
+    typeDescriptor->kind = SCALAR_TYPE_DESCRIPTOR;
+    typeDescriptor->properties.dataType = type;
+
+    SymbolAttribute *attribute = new(SymbolAttribute);
+    attribute->attributeKind = TYPE_ATTRIBUTE;
+    attribute->attr.typeDescriptor = typeDescriptor;
+
+    SymbolTableEntry* entry = enterSymbol(name, attribute);
+    return true;
+}
+
+// [type id]
+int declareNormalId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attribute, int isParameter)
+{
+    attribute->attr.typeDescriptor = type;
+    if (type->kind == SCALAR_TYPE_DESCRIPTOR &&
+            type->properties.dataType == VOID_TYPE &&
+            attribute->attributeKind == VARIABLE_ATTRIBUTE) {
+        // TODO: error - VOID_VARIABLE
+        return false;
     }
     return true;
 }
 
-
-int declareIdList(AST_NODE* declarationNode, SymbolAttributeKind isVariableOrTypeAttribute, int ignoreArrayFirstDimSize)
+// [type id -> [expr ...]]
+int declareArrayId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attribute, int isParameter)
 {
-    AST_NODE *iterator = declarationNode;
-    unpack(iterator, type);
     int retval = true;
-    if (!processTypeNode(typeNode)){
-        // TODO: error - invalid type
-    } else {
-        forEach (iterator){
-            if (!declaredLocally(getIDName(iterator))) {
+    loop1 {
+        if (type->kind == ARRAY_TYPE_DESCRIPTOR) {
+            // TODO: error - array of array
+            retval = false;
+            break;
+        }
+
+        assert(type->kind == SCALAR_TYPE_DESCRIPTOR);
+        if (type->properties.dataType == VOID_TYPE) {
+            if (attribute->attributeKind == VARIABLE_ATTRIBUTE) {
+                // TODO: error - VOID_VARIABLE
                 retval = false;
-                // TODO: error - redeclare
-            } else {
-                SymbolAttribute *attribute = new(SymbolAttribute);
-                attribute->attributeKind = isVariableOrTypeAttribute;
-                setTypeDescriptor(attribute, getTypeDesciptor(typeNode));
-                switch (getIDKind(iterator)) {
-                    case NORMAL_ID:
-                        break;
-                    case ARRAY_ID:
-                        break;
-                    case WITH_INIT_ID:
-                        break;
-                }
+            }
+            if (attribute->attributeKind == TYPE_ATTRIBUTE) {
+                // TODO: error - TYPEDEF_VOID_ARRAY
+                retval = false;
+            }
+        } else {
+            assert(type->properties.dataType == INT_TYPE || type->properties.dataType == FLOAT_TYPE);
+        }
+
+        TypeDescriptor* typeDescriptor = new(TypeDescriptor);
+        typeDescriptor->kind = ARRAY_TYPE_DESCRIPTOR;
+        typeDescriptor->properties.arrayProperties.elementType = type->properties.dataType;
+
+        retval &= processDeclDimList(idNode->child, typeDescriptor, isParameter);
+
+        attribute->attr.typeDescriptor = typeDescriptor;
+    }
+    return retval;
+}
+
+// [type id -> expr]
+int declareInitId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attribute, int isParameter)
+{
+    int retval = true;
+    assert(!isParameter); // enforced by grammar
+    if (type->kind == ARRAY_TYPE_DESCRIPTOR) {
+        // TODO: error - TRY_TO_INIT_ARRAY
+    } else {
+        attribute->attr.typeDescriptor = type;
+        retval &= processExprNode(idNode->child);
+        if (retval) {
+            DATA_TYPE dataType = type->properties.dataType;
+            DATA_TYPE exprType = getExprType(idNode->child);
+            if (checkAssignable(dataType, exprType, isParameter)) {
+                // TODO: error - NOT_ASSIGNABLE
             }
         }
     }
     return retval;
 }
 
-void checkAssignOrExpr(AST_NODE* assignOrExprRelatedNode)
+// [type (NORMAL_ID | ARRAY_ID | WITH_INIT_ID)]
+int declareId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttributeKind kind, int isParameter)
+{
+    int retval;
+    SymbolAttribute *attribute = new(SymbolAttribute);
+    attribute->attributeKind = kind;
+    switch (getIDKind(idNode)) {
+        case NORMAL_ID:
+            retval = declareNormalId(idNode, type, attribute, isParameter);
+            break;
+        case ARRAY_ID:
+            retval = declareArrayId(idNode, type, attribute, isParameter);
+            break;
+        case WITH_INIT_ID:
+            retval = declareArrayId(idNode, type, attribute, isParameter);
+            break;
+        default:
+            assert(0/* unknown id kind */);
+    }
+    if (retval) {
+        SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
+        setIDEntry(idNode, entry);
+    }
+    return retval;
+}
+
+// idList -> [type id ...]
+int declareIdList(AST_NODE* declarationNode, SymbolAttributeKind kind, int isParameter)
+{
+    AST_NODE *iterator = declarationNode;
+    unpack(iterator, typeNode);
+    int retval = true;
+    if (!processTypeNode(typeNode)){
+        // TODO: error - invalid type
+    } else {
+        TypeDescriptor* typeDescriptor = getTypeDescriptor(typeNode);
+        forEach (iterator){
+            if (!declaredLocally(getIDName(iterator))) {
+                retval = false;
+                // TODO: error - SYMBOL_REDECLARE
+            } else {
+                retval &= declareId(iterator, typeDescriptor, kind, isParameter);
+            }
+        }
+    }
+    return retval;
+}
+
+int checkAssignOrExpr(AST_NODE* assignOrExprRelatedNode)
 {
 }
 
-void checkWhileStmt(AST_NODE* whileNode)
-{
-}
-
-
-void checkForStmt(AST_NODE* forNode)
-{
-}
-
-
-void checkAssignmentStmt(AST_NODE* assignmentNode)
-{
-}
-
-
-void checkIfStmt(AST_NODE* ifNode)
-{
-}
-
-void checkWriteFunction(AST_NODE* functionCallNode)
-{
-}
-
-void checkFunctionCall(AST_NODE* functionCallNode)
-{
-}
-
-void checkParameterPassing(Parameter* formalParameter, AST_NODE* actualParameter)
-{
-}
-
-
-void processExprRelatedNode(AST_NODE* exprRelatedNode)
-{
-}
-
-void getExprOrConstValue(AST_NODE* exprOrConstNode, int* iValue, float* fValue)
-{
-}
-
-void evaluateExprValue(AST_NODE* exprNode)
-{
-}
-
-
-void processExprNode(AST_NODE* exprNode)
-{
-}
-
-
-void processVariableLValue(AST_NODE* idNode)
-{
-}
-
-void processVariableRValue(AST_NODE* idNode)
+int checkWhileStmt(AST_NODE* whileNode)
 {
 }
 
 
-void processConstValueNode(AST_NODE* constValueNode)
+int checkForStmt(AST_NODE* forNode)
 {
 }
 
 
-void checkReturnStmt(AST_NODE* returnNode)
+int checkAssignmentStmt(AST_NODE* assignmentNode)
+{
+}
+
+
+int checkIfStmt(AST_NODE* ifNode)
+{
+}
+
+int checkWriteFunction(AST_NODE* functionCallNode)
+{
+}
+
+int checkFunctionCall(AST_NODE* functionCallNode)
+{
+}
+
+int checkParameterPassing(Parameter* formalParameter, AST_NODE* actualParameter)
+{
+}
+
+
+// const | (expr -> [op ...])
+int processExprRelatedNode(AST_NODE* exprRelatedNode)
+{
+    int retval = true;
+    switch(exprRelatedNode->nodeType) {
+        case CONST_VALUE_NODE:
+            retval &= processConstValueNode(exprRelatedNode);
+        case EXPR_NODE:
+            retval &= processExprNode(exprRelatedNode);
+        default:
+            assert(0/* invalid type for expr */);
+    }
+    return retval;
+}
+
+// constant folding
+int evaluateExprValue(AST_NODE* exprNode)
+{
+    assert(exprNode->nodeType == EXPR_NODE);
+    int retval = true;
+
+    // Need to be constant expr
+    AST_NODE* operand = exprNode->child;
+    forEach(operand) {
+        if (!isConstExpr(operand)) {
+            exprNode->semantic_value.exprSemanticValue.isConstEval = false;
+            return true;
+        }
+    }
+
+    // Evaluate
+    if (getExprKind(exprNode) == UNARY_OPERATION) {
+        AST_NODE* iterator = exprNode->child;
+        unpack(iterator, x);
+        setExprType(exprNode, getExprType(x));
+        switch(getExprOp(exprNode)) {
+            case UNARY_OP_POSITIVE:
+                setExprValue(exprNode, +getExprValue(x));
+                break;
+            case UNARY_OP_NEGATIVE:
+                setExprValue(exprNode, -getExprValue(x));
+                break;
+            case UNARY_OP_LOGICAL_NEGATION:
+                setExprValue(exprNode, !getExprValue(x));
+                break;
+            default:
+                assert(0/* unknown op */);
+        }
+    } else if (getExprKind(exprNode) == BINARY_OPERATION) {
+        AST_NODE* iterator = exprNode->child;
+        unpack(iterator, x, y);
+        setExprType(exprNode, getBiggerType(getExprType(x), getExprType(y)));
+        switch(getExprOp(exprNode)) {
+            case BINARY_OP_ADD:
+                setExprValue(exprNode, getExprValue(x) + getExprValue(y));
+                break;
+            case BINARY_OP_SUB:
+                setExprValue(exprNode, getExprValue(x) - getExprValue(y));
+                break;
+            case BINARY_OP_MUL:
+                setExprValue(exprNode, getExprValue(x) * getExprValue(y));
+                break;
+            case BINARY_OP_DIV:
+                if (getExprValue(y) == 0) {
+                    retval = false;
+                    // TODO: error - division by zero
+                } else {
+                    setExprValue(exprNode, getExprValue(x) / getExprValue(y));
+                }
+                break;
+            case BINARY_OP_EQ:
+                setExprValue(exprNode, getExprValue(x) == getExprValue(y));
+                break;
+            case BINARY_OP_GE:
+                setExprValue(exprNode, getExprValue(x) >= getExprValue(y));
+                break;
+            case BINARY_OP_LE:
+                setExprValue(exprNode, getExprValue(x) <= getExprValue(y));
+                break;
+            case BINARY_OP_NE:
+                setExprValue(exprNode, getExprValue(x) != getExprValue(y));
+                break;
+            case BINARY_OP_GT:
+                setExprValue(exprNode, getExprValue(x) > getExprValue(y));
+                break;
+            case BINARY_OP_LT:
+                setExprValue(exprNode, getExprValue(x) < getExprValue(y));
+                break;
+            case BINARY_OP_AND:
+                setExprValue(exprNode, getExprValue(x) && getExprValue(y));
+                break;
+            case BINARY_OP_OR:
+                setExprValue(exprNode, getExprValue(x) || getExprValue(y));
+                break;
+            default:
+                assert(0/* unknown op */);
+        }
+    } else {
+        assert(0/* unknown op kind */);
+    }
+
+    return retval;
+}
+
+
+// expr -> [op ...]
+int processExprNode(AST_NODE* exprNode)
+{
+    assert(exprNode->nodeType == EXPR_NODE);
+    int retval = true;
+    int stringOperation = false;
+
+    AST_NODE* operand = exprNode->child;
+    forEach(operand) {
+        retval &= processExprRelatedNode(operand);
+        if (operand->dataType == CONST_STRING_TYPE) {
+            stringOperation = true;
+        }
+    }
+    if (stringOperation) {
+        retval = false;
+        // TODO: error - STRING_OPERATION
+    }
+    if(retval) {
+        if(!evaluateExprValue(exprNode)) {
+            retval = false;
+        }
+    }
+    return retval;
+}
+
+
+int processVariableLValue(AST_NODE* idNode)
+{
+}
+
+int processVariableRValue(AST_NODE* idNode)
+{
+}
+
+
+// const
+int processConstValueNode(AST_NODE* constValueNode)
+{
+    assert(constValueNode->nodeType == CONST_VALUE_NODE);
+    switch(constValueNode->semantic_value.const1->const_type) {
+        case INTEGERC:
+            constValueNode->dataType = INT_TYPE;
+            break;
+        case FLOATC:
+            constValueNode->dataType = FLOAT_TYPE;
+            break;
+        case STRINGC:
+            constValueNode->dataType = CONST_STRING_TYPE;
+            break;
+        default:
+            assert(0/* unknown const type */);
+
+    }
+    return true;
+}
+
+
+int checkReturnStmt(AST_NODE* returnNode)
 {
 }
 
@@ -301,65 +563,101 @@ int processBlockNode(AST_NODE* blockNode)
 }
 
 
-void processStmtNode(AST_NODE* stmtNode)
+int processStmtNode(AST_NODE* stmtNode)
 {
     
 }
 
 
-void processGeneralNode(AST_NODE *node)
+int processGeneralNode(AST_NODE *node)
 {
 }
 
-void processDeclDimList(AST_NODE* idNode, TypeDescriptor* typeDescriptor, int ignoreFirstDimSize)
+// dimlist -> [expr ...]
+int processDeclDimList(AST_NODE* dimList, TypeDescriptor* typeDescriptor, int isParameter)
 {
-}
+    int retval = true;
+    ArrayProperties* arrayProperties = &typeDescriptor->properties.arrayProperties;
+    DATA_TYPE elementType = arrayProperties->elementType;
+    assert(elementType == INT_TYPE || elementType == FLOAT_TYPE || elementType == VOID_TYPE);
 
-// param -> [type (id | array)]
-int declareParameter(AST_NODE* iterator)
-{
-    unpack(iterator, typeNode, idNode);
-    openScope();
+    arrayProperties->dimension = 0;
+    AST_NODE* iterator = dimList;
 
-    SymbolAttribute* attribute = new(SymbolAttribute);
-    FunctionSignature* signature = new(FunctionSignature);
 
-    // attribute
-    attribute->attributeKind = FUNCTION_SIGNATURE;
-    attribute->attr.functionSignature = signature;
-
-    // signature
-    // returnType
-    if (!processTypeNode(typeNode)) {
-        // TODO: error - invalid return type
+    // Check whether first dimension can be null
+    unpack(iterator, firstDim);
+    if (!isParameter && isNullNode(firstDim)) {
+        // TODO: error - empty array dim
+        addArrayDim(arrayProperties, -1);
+    } else if (isParameter && isNullNode(firstDim)) {
+        switch(elementType) {
+            case INT_TYPE:
+                arrayProperties->elementType = INT_PTR_TYPE;
+                break;
+            case FLOAT_TYPE:
+                arrayProperties->elementType = FLOAT_PTR_TYPE;
+                break;
+            case VOID_TYPE:
+                // TODO: error - void array
+                break;
+            default:
+                assert(0/* invalid type for dimension */);
+        }
+        addArrayDim(arrayProperties, -1);
     } else {
-        TypeDescriptor* typeDescriptor = getTypeDescriptor(typeNode);
-        if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
-            // TODO: error - return array
-        } else {
-            signature->returnType = typeDescriptor->properties.dataType;
+        // undo unpack
+        iterator = dimList;
+    }
+
+
+    // Construct dimensions
+    int excessiveDim = false;
+    forEach(iterator) {
+        assert(iterator->nodeType != NUL_NODE); // enforced by grammar
+        loop1 {
+            if(!processExprRelatedNode(iterator)) {
+                retval = false;
+                addArrayDim(arrayProperties, -2);
+                break;
+            }
+            if (!isConstExpr(iterator)) {
+                // TODO: error - array size not constant
+                retval = false;
+                addArrayDim(arrayProperties, -3);
+                break;
+            }
+            if (getExprType(iterator) != INT_TYPE) {
+                // TODO: error - ARRAY_SIZE_NOT_INT
+                retval = false;
+                addArrayDim(arrayProperties, -4);
+                break;
+            }
+            if (getExprValue(iterator) < 0) {
+                // TODO: error - ARRAY_SIZE_NEGATIVE
+                retval = false;
+                addArrayDim(arrayProperties, -5);
+                break;
+            }
+            if (arrayProperties->dimension >= 10) {
+                excessiveDim = true;
+            }
+            addArrayDim(arrayProperties, getExprValue(iterator));
         }
     }
-    /* int parametersCount; */
-    /* Parameter* parameterList; */
-    if (!processDeclarationNode(param)) {
-    
+    if (excessiveDim) {
+        retval = false;
+        // TODO: error - EXCESSIVE_ARRAY_DIM_DECLARATION
     }
 
-    if (declaredLocally(getIDName(idNode))) {
-        // TODO: error - redeclare
-    } else {
-        SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
-        getIDEntry(idNode) = entry;
-    }
-
-    closeScope();
-    return true;
+    return retval;
 }
 
+// func -> [type id param -> [decl ...] block]
 int declareFunction(AST_NODE* iterator)
 {
-    unpack(iterator, typeNode, idNode, paramIterator, blockNode);
+    int retval = true;
+    unpack(iterator, typeNode, idNode, paramList, blockNode);
     openScope();
 
     SymbolAttribute* attribute = new(SymbolAttribute);
@@ -371,31 +669,57 @@ int declareFunction(AST_NODE* iterator)
 
     // signature
     // returnType
-    if (!processTypeNode(typeNode)) {
-        // TODO: error - invalid return type
-    } else {
+    loop1 {
+        if (!processTypeNode(typeNode)) {
+            retval = false;
+            break;
+        }
+
         TypeDescriptor* typeDescriptor = getTypeDescriptor(typeNode);
         if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
-            // TODO: error - return array
-        } else {
-            signature->returnType = typeDescriptor->properties.dataType;
+            // TODO: error - RETURN_ARRAY
+            retval = false;
+            break;
         }
+
+        signature->returnType = typeDescriptor->properties.dataType;
     }
-    /* int parametersCount; */
-    /* Parameter* parameterList; */
+    // parameterList
+    signature->parametersCount = 0;
+    signature->parameterList = NULL;
+    Parameter* parameter = NULL;
+    AST_NODE* paramIterator = paramList->child;
     forEach (paramIterator) {
-        if (!processDeclarationNode(param)) {
+        if (!processDeclarationNode(paramIterator)) {
+            retval = false;
         } else {
+            if (!parameter) {
+                Parameter* parameter = new(Parameter);
+                signature->parameterList = parameter;
+            } else {
+                parameter->next = new(Parameter);
+                parameter = parameter->next;
+            }
+            parameter->next = NULL;
+            parameter->parameterName = getParamDeclName(paramIterator);
+            parameter->type = getParamDeclType(paramIterator);
+            ++signature->parametersCount;
         }
     }
 
+    // block
+    retval &= processBlockNode(blockNode);
+
+    // declare
     if (declaredLocally(getIDName(idNode))) {
-        // TODO: error - redeclare
-    } else {
+        // TODO: error - SYMBOL_REDECLARE
+        retval = false;
+    }
+    if (retval) {
         SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
         getIDEntry(idNode) = entry;
     }
 
     closeScope();
-    return true;
+    return retval;
 }
