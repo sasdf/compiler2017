@@ -123,7 +123,7 @@ int processDeclarationList(AST_NODE* declarationList){
     int flag = true;
     AST_NODE *decl = declarationList->child;
     forEach (decl){
-        flag &= processDeclarationNode(decl->child);
+        flag &= processDeclarationNode(decl);
     }
     return flag;
 }
@@ -539,7 +539,7 @@ int  processStatementList(AST_NODE *stmtList){
     int flag = true;
     AST_NODE *stmt = stmtList->child;
     forEach (stmt){
-        flag &= processStmtNode(stmt->child);
+        flag &= processStmtNode(stmt);
     }
     return flag;
 }
@@ -557,7 +557,7 @@ int processBlockNode(AST_NODE* blockNode)
             flag &= processDeclarationList(child);
         else if (child->nodeType == STMT_LIST_NODE)         // stmt_list
             flag &= processStatementList(child);
-        else assert(0);
+        else assert(0/* unknown block's child type */);
     }
     return flag;
 }
@@ -565,7 +565,33 @@ int processBlockNode(AST_NODE* blockNode)
 
 int processStmtNode(AST_NODE* stmtNode)
 {
-    
+    int flag = true;
+    switch (stmtNode->nodeType){
+        case BLOCK_NODE:
+            flag &= processBlockNode(stmtNode);
+            break;
+        case STMT_NODE:
+            switch (stmtNode->semantic_value.stmtSemanticValue.kind){
+                case WHILE_STMT:
+                    break;
+                case FOR_STMT:
+                    break;
+                case ASSIGN_STMT:
+                    break;
+                case IF_STMT:
+                    break;
+                case FUNCTION_CALL_STMT:
+                    break;
+                case RETURN_STMT:
+                    break;
+            }
+            break;
+        case NUL_NODE:
+            break;
+        default:
+            assert(0/* undefined stmt node */);
+            break;
+    }
 }
 
 
