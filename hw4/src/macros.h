@@ -42,6 +42,7 @@
 #define unpack(iter, ...) FOR_EACH(UNPACK_INTERNAL, iter, __VA_ARGS__)
 #define new(type) ((type*) malloc(sizeof(type)))
 #define forEach(iter) for(;iter;iter=iter->rightSibling)
+       
 #define loop1 for(int __loop1_it=1; __loop1_it; __loop1_it=0)
 
 #define getIDName(idNode) (idNode->semantic_value.identifierSemanticValue.identifierName)
@@ -88,6 +89,12 @@
 #define true 1
 #define false 0
 
+#define findParentDecl(iter, type) \
+        for(;iter;iter=iter->parent){ \
+            if (iter->nodeType == DECLARATION_NODE && getDeclKind(iter) == type) \
+                break; \
+        }
+ 
 /* unpack example
 AST_NODE* it = parentNode->child;
 unpack(it, a, b, d);
