@@ -52,6 +52,8 @@
 #define getDeclKind(declNode) (declNode->semantic_value.declSemanticValue.kind)
 #define setDeclKind(declNode, val) (declNode->semantic_value.declSemanticValue.kind = val)
 
+#define getStmtKind(stmtNode) (stmtNode->semantic_value.stmtSemanticValue.kind)
+
 #define getTypeEntry(idNode) getIDEntry(idNode)
 #define setTypeEntry(idNode, val) setIDEntry(idNode, val)
 #define getTypeDescriptor(idNode) (getTypeEntry(idNode)->attribute->attr.typeDescriptor)

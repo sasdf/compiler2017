@@ -233,32 +233,54 @@ int declareArrayId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attr
     int retval = true;
     loop1 {
         if (type->kind == ARRAY_TYPE_DESCRIPTOR) {
-            // TODO: error - array of array
-            retval = false;
-            break;
-        }
+            assert(type->properties.dataType == INT_TYPE || 
+                    type->properties.dataType == FLOAT_TYPE);
 
-        assert(type->kind == SCALAR_TYPE_DESCRIPTOR);
-        if (type->properties.dataType == VOID_TYPE) {
-            if (attribute->attributeKind == VARIABLE_ATTRIBUTE) {
-                // TODO: error - VOID_VARIABLE
+            TypeDescriptor* typeDescriptor = new(TypeDescriptor);
+            typeDescriptor->kind = ARRAY_TYPE_DESCRIPTOR;
+            typeDescriptor->properties.arrayProperties.elementType = type->properties.dataType;
+
+            if (!processDeclDimList(idNode->child, typeDescriptor, isParameter)) {
                 retval = false;
+                break;
             }
-            if (attribute->attributeKind == TYPE_ATTRIBUTE) {
-                // TODO: error - TYPEDEF_VOID_ARRAY
+            if (typeDescriptor->properties.arrayProperties.dimension + 
+                    type->properties.arrayProperties.dimension > MAX_ARRAY_DIMENSION) {
+                // TODO: error - EXCESSIVE_ARRAY_DIM_DECLARATION
                 retval = false;
+                break;
             }
+            int sdim = type->properties.arrayProperties.dimension;
+            int tdim = typeDescriptor->properties.arrayProperties.dimension;
+            int *s = type->properties.arrayProperties.sizeInEachDimension;
+            int *t = typeDescriptor->properties.arrayProperties.sizeInEachDimension;
+            memcpy(t + tdim, s, sdim);
+            typeDescriptor->properties.arrayProperties.dimension = tdim + sdim;
+            attribute->attr.typeDescriptor = typeDescriptor;
         } else {
-            assert(type->properties.dataType == INT_TYPE || type->properties.dataType == FLOAT_TYPE);
+            assert(type->kind == SCALAR_TYPE_DESCRIPTOR);
+            if (type->properties.dataType == VOID_TYPE) {
+                if (attribute->attributeKind == VARIABLE_ATTRIBUTE) {
+                    // TODO: error - VOID_VARIABLE
+                    retval = false;
+                }
+                if (attribute->attributeKind == TYPE_ATTRIBUTE) {
+                    // TODO: error - TYPEDEF_VOID_ARRAY
+                    retval = false;
+                }
+            } else {
+                assert(type->properties.dataType == INT_TYPE || 
+                        type->properties.dataType == FLOAT_TYPE);
+            }
+
+            TypeDescriptor* typeDescriptor = new(TypeDescriptor);
+            typeDescriptor->kind = ARRAY_TYPE_DESCRIPTOR;
+            typeDescriptor->properties.arrayProperties.elementType = type->properties.dataType;
+
+            retval &= processDeclDimList(idNode->child, typeDescriptor, isParameter);
+
+            attribute->attr.typeDescriptor = typeDescriptor;
         }
-
-        TypeDescriptor* typeDescriptor = new(TypeDescriptor);
-        typeDescriptor->kind = ARRAY_TYPE_DESCRIPTOR;
-        typeDescriptor->properties.arrayProperties.elementType = type->properties.dataType;
-
-        retval &= processDeclDimList(idNode->child, typeDescriptor, isParameter);
-
-        attribute->attr.typeDescriptor = typeDescriptor;
     }
     return retval;
 }
@@ -348,6 +370,7 @@ int checkForStmt(AST_NODE* forNode)
 
 int checkAssignmentStmt(AST_NODE* assignmentNode)
 {
+    //TODO: error - NOT_ASSIGNABLE
 }
 
 
@@ -359,12 +382,35 @@ int checkWriteFunction(AST_NODE* functionCallNode)
 {
 }
 
-int checkFunctionCall(AST_NODE* functionCallNode)
+int checkFunctionCall(AST_NODE* funcNode)
 {
+    assert(funcNode->nodeType == STMT_NODE);
+    assert(getStmtKind(funcNode) == FUNCTION_CALL_STMT);
+    int retval = true;
+    loop1{
+        SymbolTableEntry* funcEntry = retrieveSymbol(getIDName(funcNode));
+        if (!funcEntry) {
+            // TODO: error - SYMBOL_UNDECLARED
+            retval = false;
+            break;
+        }
+        SymbolAttribute* typeAttribute = funcEntry->attribute;
+        if (typeAttribute->attributeKind != FUNCTION_SIGNATURE) {
+            // TODO: error - not a func
+            retval = false;
+            break;
+        }
+        setTypeEntry(funcNode, funcEntry);
+    }
 }
 
 int checkParameterPassing(Parameter* formalParameter, AST_NODE* actualParameter)
 {
+    //TODO: error - TOO_FEW_ARGUMENTS,
+    //TODO: error - TOO_MANY_ARGUMENTS,
+    //TODO: error - PASS_ARRAY_TO_SCALAR
+    //TODO: error - PASS_SCALAR_TO_ARRAY
+    //TODO: error - PARAMETER_TYPE_UNMATCH,
 }
 
 
@@ -375,8 +421,16 @@ int processExprRelatedNode(AST_NODE* exprRelatedNode)
     switch(exprRelatedNode->nodeType) {
         case CONST_VALUE_NODE:
             retval &= processConstValueNode(exprRelatedNode);
+            break;
+        case IDENTIFIER_NODE:
+            retval &= processVariableRValue(exprRelatedNode);
+            break;
+        case STMT_NODE:
+            retval &= processStmtNode(exprRelatedNode);
+            break;
         case EXPR_NODE:
             retval &= processExprNode(exprRelatedNode);
+            break;
         default:
             assert(0/* invalid type for expr */);
     }
@@ -388,15 +442,39 @@ int evaluateExprValue(AST_NODE* exprNode)
 {
     assert(exprNode->nodeType == EXPR_NODE);
     int retval = true;
+    exprNode->semantic_value.exprSemanticValue.isConstEval = true;
+    setExprType(exprNode, INT_TYPE);
 
     // Need to be constant expr
     AST_NODE* operand = exprNode->child;
     forEach(operand) {
+        switch (getExprType(operand)) {
+            case INT_TYPE:
+            case FLOAT_TYPE:
+                break;
+            case INT_PTR_TYPE:
+            case FLOAT_PTR_TYPE:
+                retval = false;
+                // TODO: error - array operation
+                exprNode->semantic_value.exprSemanticValue.isConstEval = false;
+                return false;
+            case CONST_STRING_TYPE:
+                retval = false;
+                // TODO: error - string operation
+                exprNode->semantic_value.exprSemanticValue.isConstEval = false;
+                return false;
+            case VOID_TYPE:
+            case NONE_TYPE:
+            case ERROR_TYPE:
+                assert(0/* Operation on strange type */);
+                break;
+        }
+        setExprType(exprNode, getBiggerType(getExprType(exprNode), getExprType(operand)));
         if (!isConstExpr(operand)) {
             exprNode->semantic_value.exprSemanticValue.isConstEval = false;
-            return true;
         }
     }
+    if (!isConstExpr(exprNode)) return true;
 
     // Evaluate
     if (getExprKind(exprNode) == UNARY_OPERATION) {
@@ -665,7 +743,7 @@ int processDeclDimList(AST_NODE* dimList, TypeDescriptor* typeDescriptor, int is
                 addArrayDim(arrayProperties, -5);
                 break;
             }
-            if (arrayProperties->dimension >= 10) {
+            if (arrayProperties->dimension >= MAX_ARRAY_DIMENSION) {
                 excessiveDim = true;
             }
             addArrayDim(arrayProperties, getExprValue(iterator));
