@@ -608,11 +608,6 @@ int processConstValueNode(AST_NODE* constValueNode)
     return true;
 }
 
-
-int checkReturnStmt(AST_NODE* returnNode)
-{
-}
-
 int  processStatementList(AST_NODE *stmtList){
     int flag = true;
     AST_NODE *stmt = stmtList->child;
@@ -635,11 +630,91 @@ int processBlockNode(AST_NODE* blockNode)
             flag &= processDeclarationList(child);
         else if (child->nodeType == STMT_LIST_NODE)         // stmt_list
             flag &= processStatementList(child);
-        else assert(0/* unknown block's child type */);
+        else assert(0 == "unknown block's child type");
     }
     return flag;
 }
 
+int processWhileStmt(AST_NODE *whileNode)
+{
+
+}
+
+int processForStmt(AST_NODE *forNode)
+{
+}
+
+int processAssignStmt(AST_NODE *assignNode)
+{
+
+}
+
+int processIfStmt(AST_NODE *ifNode)
+{
+
+}
+
+int processFunctionCallStmt(AST_NODE *functionCallNode)
+{
+
+}
+
+int checkReturnStmt(AST_NODE* returnNode)
+{
+    int flag = true;
+    AST_NODE *parent = returnNode;
+    findParentDecl(parent, FUNCTION_DECL);
+    TypeDescriptor type = getTypeDescriptor(parent->child);
+
+    assert(type->kind == SCALAR_TYPE_DESCRIPTOR);
+    assert(type->properties.dataType == INT_TYPE || 
+           type->properties.dataType == FLOAT_TYPE ||
+           type->properties.dataType == VOID_TYPE
+    );
+
+    // return array not done yet
+    switch (returnNode->nodeType){
+        case NUL_NODE:
+            if (!type->properties.dataType == VOID_TYPE){
+                printErrorMsg(returnNode, RETURN_TYPE_UNMATCH);
+                return 0;
+            }
+            break;  
+        case IDENTIFIER_NODE:
+        case CONST_VALUE_NODE:
+        case EXPR_NODE:
+            flag &= processExprRelatedNode(returnNode);
+            DATA_TYPE childType = getExprType(returnNode);
+
+            if (childType == INT_PTR_TYPE || childType == FLOAT_PTR_TYPE){
+                printErrorMsg(returnNode, RETURN_ARRAY);
+                return 0;
+            }
+
+            assert(childType == INT_TYPE || childType == FLOAT_TYPE);
+
+            if (type->properties.dataType == INT_TYPE){
+                if (childType == FLOAT_TYPE){
+                    printErrorMsg(returnNode, RETURN_TYPE_UNMATCH);
+                    return 0;
+                }
+            } else if (type->properties.dataType == FLOAT_TYPE){
+                /*
+                TODO: not sure
+                if (childType == INT_TYPE){
+                    printErrorMsg(returnNode, RETURN_TYPE_UNMATCH);
+                    return 0;
+                }
+                */
+            } else if (type->properties.dataType == VOID_TYPE){
+                printErrorMsg(returnNode, RETURN_TYPE_UNMATCH);
+                return 0;
+            }
+            break;
+        default:
+            assert(0 == "unknown return node");
+    }
+}
 
 int processStmtNode(AST_NODE* stmtNode)
 {
@@ -651,23 +726,31 @@ int processStmtNode(AST_NODE* stmtNode)
         case STMT_NODE:
             switch (stmtNode->semantic_value.stmtSemanticValue.kind){
                 case WHILE_STMT:
+                    flag &= processWhileStmt(stmtNode);
                     break;
                 case FOR_STMT:
+                    flag &= processForStmt(stmtNode);
                     break;
                 case ASSIGN_STMT:
+                    flag &= processAssignStmt(stmtNode);
                     break;
                 case IF_STMT:
+                    flag &= processIfStmt(stmtNode);
                     break;
                 case FUNCTION_CALL_STMT:
+                    flag &= processFunctionCallStmt(stmtNode);
                     break;
                 case RETURN_STMT:
+                    flag &= checkReturnStmt(stmtNode->child);
                     break;
+                default:
+                    assert(0 == "unknown statement");
             }
             break;
         case NUL_NODE:
             break;
         default:
-            assert(0/* undefined stmt node */);
+            assert(0 == "unknown stmt node");
             break;
     }
 }
