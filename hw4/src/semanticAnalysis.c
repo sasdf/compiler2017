@@ -358,24 +358,10 @@ int checkAssignOrExpr(AST_NODE* assignOrExprRelatedNode)
 {
 }
 
-int checkWhileStmt(AST_NODE* whileNode)
-{
-}
-
-
-int checkForStmt(AST_NODE* forNode)
-{
-}
-
 
 int checkAssignmentStmt(AST_NODE* assignmentNode)
 {
     //TODO: error - NOT_ASSIGNABLE
-}
-
-
-int checkIfStmt(AST_NODE* ifNode)
-{
 }
 
 int checkWriteFunction(AST_NODE* functionCallNode)
@@ -602,7 +588,7 @@ int processConstValueNode(AST_NODE* constValueNode)
             constValueNode->dataType = CONST_STRING_TYPE;
             break;
         default:
-            assert(0/* unknown const type */);
+            assert(0 == "unknown const type");
 
     }
     return true;
@@ -666,14 +652,60 @@ int processAssignExprList(AST_NODE *assignExprList)
     return processNonEmptyAssignExprList(assignExprList->child);
 }
 
+int processRelopFactor(AST_NODE *relopFactor)
+{
+    return processExprRelatedNode(relopFactor);
+}
+
+int processRelopTerm(AST_NODE *relopTerm)
+{
+    assert(relopTerm->nodeType == EXPR_NODE);
+    int flag = true;
+
+    if (getExprKind(relopTerm) == BINARY_OPERATION && getExprOp(relopTerm) == BINARY_OP_AND){
+        AST_NODE *it = relopTerm->child;
+        unpack(it, relopTerm2, relopFactor);
+        flag &= processRelopTerm(relopTerm2);
+        flag &= processRelopFactor(relopFactor);
+    } else {
+        flag &= processRelopFactor(relopTerm);
+    }
+
+    return flag;
+}
+
 int processRelopExpr(AST_NODE *relopExpr)
 {
+    assert(relopExpr->nodeType == EXPR_NODE);
+    int flag = true;
 
+    if (getExprKind(relopExpr) == BINARY_OPERATION && getExprOp(relopExpr) == BINARY_OP_OR){
+        AST_NODE *it = relopExpr->child;
+        unpack(it, relopExpr2, relopTerm);
+        flag &= processRelopExpr(relopExpr2);
+        flag &= processRelopTerm(relopTerm);
+    } else {
+        flag &= processRelopTerm(relopExpr);
+    }
+
+    return flag;
+}
+
+int processNonEmptyRelopExprList(AST_NODE *relopExprList)
+{
+    int flag = true;
+    AST_NODE *it = relopExprList;
+    forEach (it){
+        flag &= processRelopExpr(it);
+    }
+    return flag;
 }
 
 int processRelopExprList(AST_NODE *relopExprList)
 {
-
+    if (relopExprList->nodeType == NUL_NODE)
+        return 1;
+    return processNonEmptyRelopExprList(relopExprList);
 }
 
 int processWhileStmt(AST_NODE *whileNode)
@@ -718,11 +750,6 @@ int processIfStmt(AST_NODE *ifNode)
     if (elseStmt->nodeType != NUL_NODE)
         flag &= processStmtNode(elseStmt);
     return flag;
-}
-
-int processFunctionCallStmt(AST_NODE *functionCallNode)
-{
-    // TODO
 }
 
 int checkReturnStmt(AST_NODE* returnNode)
@@ -804,7 +831,7 @@ int processStmtNode(AST_NODE* stmtNode)
                     flag &= processIfStmt(stmtNode->child);
                     break;
                 case FUNCTION_CALL_STMT:
-                    flag &= processFunctionCallStmt(stmtNode->child);
+                    flag &= checkFunctionCall(stmtNode);
                     break;
                 case RETURN_STMT:
                     flag &= checkReturnStmt(stmtNode->child);
