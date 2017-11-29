@@ -635,28 +635,94 @@ int processBlockNode(AST_NODE* blockNode)
     return flag;
 }
 
-int processWhileStmt(AST_NODE *whileNode)
+int processAssignExpr(AST_NODE *assignExpr)
+{
+    int flag = true;
+    if (assignExpr->nodeType == STMT_NODE){                 // ID = relopExpr
+        AST_NODE *it = assignExpr->child;
+        unpack(it, id, relopExpr);
+        flag &= processRelopExpr(relopExpr);
+        // TODO: check id == relopExpr        
+    } else {                                                // relopExpr
+        flag &= processRelopExpr(assignExpr);
+    }
+    return flag;
+}
+
+int processNonEmptyAssignExprList(AST_NODE *assignExprList)
+{
+    int flag = true;
+    AST_NODE *it = assignExprList;
+    forEach (it){
+        flag &= processAssignExpr(it);
+    }
+    return flag;
+}
+
+int processAssignExprList(AST_NODE *assignExprList)
+{
+    if (assignExprList->nodeType == NUL_NODE)
+        return 1;
+    return processNonEmptyAssignExprList(assignExprList->child);
+}
+
+int processRelopExpr(AST_NODE *relopExpr)
 {
 
+}
+
+int processRelopExprList(AST_NODE *relopExprList)
+{
+
+}
+
+int processWhileStmt(AST_NODE *whileNode)
+{
+    int flag = true;
+    AST_NODE *it = whileNode;
+    unpack(it, test, stmt);
+    flag &= processAssignExpr(test);
+    flag &= processStmtNode(stmt);
+    return flag;
 }
 
 int processForStmt(AST_NODE *forNode)
 {
+    int flag = true;
+    AST_NODE *it = forNode;
+    unpack(it, assignExprList, relopExprList, assignExprList2, stmt);
+    flag &= processAssignExprList(assignExprList);
+    flag &= processRelopExprList(relopExprList);
+    flag &= processAssignExprList(assignExprList2);
+    flag &= processStmtNode(stmt);
+    return flag;
 }
 
 int processAssignStmt(AST_NODE *assignNode)
 {
-
+    int flag = true;
+    AST_NODE *it = assignNode;
+    unpack(it, id, relopExpr);
+    flag &= processRelopExpr(relopExpr);
+    // TODO: check type(id) == type(expr)
+    return flag;
 }
 
 int processIfStmt(AST_NODE *ifNode)
 {
-
+    int flag = true;
+    AST_NODE *it = ifNode;
+    unpack(it, test, stmt, elseStmt);
+    flag &= processAssignExpr(test);
+    flag &= processStmtNode(stmt);
+    if (elseStmt->nodeType != NUL_NODE)
+        flag &= processStmtNode(elseStmt);
+    return flag;
 }
 
 int processFunctionCallStmt(AST_NODE *functionCallNode)
 {
-
+    // TODO
 }
 
 int checkReturnStmt(AST_NODE* returnNode)
@@ -726,19 +792,19 @@ int processStmtNode(AST_NODE* stmtNode)
         case STMT_NODE:
             switch (stmtNode->semantic_value.stmtSemanticValue.kind){
                 case WHILE_STMT:
-                    flag &= processWhileStmt(stmtNode);
+                    flag &= processWhileStmt(stmtNode->child);
                     break;
                 case FOR_STMT:
-                    flag &= processForStmt(stmtNode);
+                    flag &= processForStmt(stmtNode->child);
                     break;
                 case ASSIGN_STMT:
-                    flag &= processAssignStmt(stmtNode);
+                    flag &= processAssignStmt(stmtNode->child);
                     break;
                 case IF_STMT:
-                    flag &= processIfStmt(stmtNode);
+                    flag &= processIfStmt(stmtNode->child);
                     break;
                 case FUNCTION_CALL_STMT:
-                    flag &= processFunctionCallStmt(stmtNode);
+                    flag &= processFunctionCallStmt(stmtNode->child);
                     break;
                 case RETURN_STMT:
                     flag &= checkReturnStmt(stmtNode->child);
