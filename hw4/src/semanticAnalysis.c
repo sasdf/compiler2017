@@ -106,7 +106,8 @@ void semanticAnalysis(AST_NODE *root)
     declarePrimitiveType(SYMBOL_TABLE_INT_NAME, INT_TYPE);
     declarePrimitiveType(SYMBOL_TABLE_FLOAT_NAME, FLOAT_TYPE);
     declarePrimitiveType(SYMBOL_TABLE_VOID_NAME, VOID_TYPE);
-    processProgramNode(root);
+    if(!processProgramNode(root))
+        g_anyErrorOccur = 1;
     closeScope();
     //symbolTableEnd();
 }
@@ -134,32 +135,30 @@ int processDeclarationList(AST_NODE* declarationList){
 // program -> [global_decl ...]
 int processProgramNode(AST_NODE *programNode)
 {
-    processDeclarationList(programNode);
-    //AST_NODE *global_decl = programNode->child;
-    //forEach (global_decl){
-    //    processDeclarationNode(global_decl->child);
-    //}
+    return processDeclarationList(programNode);
 }
 
 // global_decl -> var_decl | type_decl | func_decl | func_param_decl
 int processDeclarationNode(AST_NODE* declarationNode)
 {
+    int retval = true;
     switch (getDeclKind(declarationNode)){
         case VARIABLE_DECL:
             setDeclKind(declarationNode, VARIABLE_DECL);
-            declareIdList(declarationNode->child, VARIABLE_ATTRIBUTE, false);
+            retval &= declareIdList(declarationNode->child, VARIABLE_ATTRIBUTE, false);
             break;
         case TYPE_DECL:
             setDeclKind(declarationNode, TYPE_DECL);
-            declareIdList(declarationNode->child, TYPE_ATTRIBUTE, false);
+            retval &= declareIdList(declarationNode->child, TYPE_ATTRIBUTE, false);
             break;
         case FUNCTION_DECL:
-            declareFunction(declarationNode->child);
+            retval &= declareFunction(declarationNode->child);
             break;
         case FUNCTION_PARAMETER_DECL:
-            declareIdList(declarationNode->child, VARIABLE_ATTRIBUTE, true);
+            retval &= declareIdList(declarationNode->child, VARIABLE_ATTRIBUTE, true);
             break;
     }
+    return retval;
 }
 
 // typeNode -- idNode
@@ -357,6 +356,7 @@ int declareIdList(AST_NODE* declarationNode, SymbolAttributeKind kind, int isPar
     return retval;
 }
 
+/*
 int checkAssignOrExpr(AST_NODE* assignOrExprRelatedNode)
 {
 }
@@ -370,6 +370,7 @@ int checkAssignmentStmt(AST_NODE* assignmentNode)
 int checkWriteFunction(AST_NODE* functionCallNode)
 {
 }
+*/
 
 int checkFunctionCall(AST_NODE* funcNode)
 {
@@ -391,15 +392,18 @@ int checkFunctionCall(AST_NODE* funcNode)
         }
         setTypeEntry(funcNode, funcEntry);
     }
+    return retval;
 }
 
 int checkParameterPassing(Parameter* formalParameter, AST_NODE* actualParameter)
 {
+    int retval = true;
     //TODO: error - TOO_FEW_ARGUMENTS,
     //TODO: error - TOO_MANY_ARGUMENTS,
     //TODO: error - PASS_ARRAY_TO_SCALAR
     //TODO: error - PASS_SCALAR_TO_ARRAY
     //TODO: error - PARAMETER_TYPE_UNMATCH,
+    return retval;
 }
 
 
@@ -569,10 +573,12 @@ int processExprNode(AST_NODE* exprNode)
 
 int processVariableLValue(AST_NODE* idNode)
 {
+    // TODO
 }
 
 int processVariableRValue(AST_NODE* idNode)
 {
+    // TODO
 }
 
 
@@ -771,7 +777,7 @@ int checkReturnStmt(AST_NODE* returnNode)
     // return array not done yet
     switch (returnNode->nodeType){
         case NUL_NODE:
-            if (!type->properties.dataType == VOID_TYPE){
+            if (type->properties.dataType != VOID_TYPE){
                 printErrorMsg(returnNode, RETURN_TYPE_UNMATCH);
                 return 0;
             }
@@ -810,6 +816,7 @@ int checkReturnStmt(AST_NODE* returnNode)
         default:
             assert(0 == "unknown return node");
     }
+    return flag;
 }
 
 int processStmtNode(AST_NODE* stmtNode)
@@ -849,12 +856,15 @@ int processStmtNode(AST_NODE* stmtNode)
             assert(0 == "unknown stmt node");
             break;
     }
+    return flag;
 }
 
 
+/*
 int processGeneralNode(AST_NODE *node)
 {
 }
+*/
 
 // dimlist -> [expr ...]
 int processDeclDimList(AST_NODE* dimList, TypeDescriptor* typeDescriptor, int isParameter)
