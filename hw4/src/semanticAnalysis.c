@@ -37,6 +37,8 @@ int processVariableLValue(AST_NODE* idNode);
 int processVariableRValue(AST_NODE* idNode);
 int processConstValueNode(AST_NODE* constValueNode);
 int evaluateExprValue(AST_NODE* exprNode);
+/*added function*/
+int processRelopExpr(AST_NODE *relopExpr);
 
 
 typedef enum ErrorMsgKind
@@ -86,26 +88,27 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
 {
     g_anyErrorOccur = 1;
     printf("Error found in line %d\n", node->linenumber);
-    /*
-       switch(errorMsgKind)
-       {
-       printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
-       break;
-       }
-       */
+    switch(errorMsgKind) {
+        case RETURN_TYPE_UNMATCH:
+            printf("Incompatible return type.\n");
+            break;
+        default:
+            printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
+            break;
+    }
 }
 
 
 void semanticAnalysis(AST_NODE *root)
 {
-    initializeSymbolTable();
+    //initializeSymbolTable();
+    openScope();
     declarePrimitiveType(SYMBOL_TABLE_INT_NAME, INT_TYPE);
     declarePrimitiveType(SYMBOL_TABLE_FLOAT_NAME, FLOAT_TYPE);
     declarePrimitiveType(SYMBOL_TABLE_VOID_NAME, VOID_TYPE);
-    openScope();
     processProgramNode(root);
     closeScope();
-    symbolTableEnd();
+    //symbolTableEnd();
 }
 
 
@@ -757,7 +760,7 @@ int checkReturnStmt(AST_NODE* returnNode)
     int flag = true;
     AST_NODE *parent = returnNode;
     findParentDecl(parent, FUNCTION_DECL);
-    TypeDescriptor type = getTypeDescriptor(parent->child);
+    TypeDescriptor *type = getTypeDescriptor(parent->child);
 
     assert(type->kind == SCALAR_TYPE_DESCRIPTOR);
     assert(type->properties.dataType == INT_TYPE || 

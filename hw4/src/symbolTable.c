@@ -40,7 +40,8 @@ void removeFromHashChain(int hashIndex, SymbolTableEntry* entry)
     assert(entry->prevInHashChain == NULL);
     assert(symbolTable.hashTable[hashIndex] == entry);
     symbolTable.hashTable[hashIndex] = entry->nextInHashChain;
-    entry->nextInHashChain->prevInHashChain = NULL;
+    if (entry->nextInHashChain)
+        entry->nextInHashChain->prevInHashChain = NULL;
 
     // scope display
     assert(symbolTable.scopeDisplay->nextInSameLevel == entry);
@@ -54,7 +55,7 @@ void enterIntoHashChain(int hashIndex, SymbolTableEntry* entry)
     symbolTable.hashTable[hashIndex] = entry;
     entry->nextInHashChain = tmp;
     entry->prevInHashChain = NULL;
-    tmp->prevInHashChain = entry;
+    if (tmp) tmp->prevInHashChain = entry;
 
     // scope display
     entry->nextInSameLevel = symbolTable.scopeDisplay->nextInSameLevel;
@@ -76,10 +77,11 @@ SymbolTableEntry* retrieveSymbol(char* symbolName)
 {
     int hash = HASH(symbolName);
     SymbolTableEntry* entry = symbolTable.hashTable[hash];
-    while (entry)
+    while (entry){
         if (strcmp(entry->name, symbolName) == 0)
             break;
         entry = entry->nextInHashChain;
+    }
     return entry;
 }
 
