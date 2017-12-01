@@ -120,6 +120,7 @@ void openScope()
     ScopeEntry* scope = (ScopeEntry*)malloc(sizeof(ScopeEntry));
     scope->outerScope = symbolTable.scopeDisplay;
     symbolTable.scopeDisplay = scope;
+    ++symbolTable.currentLevel;
 }
 
 void closeScope()

@@ -5,6 +5,10 @@ int main(){
     int b = a;
     a = c;
     */
-    b = 10;
+    int a;
+    {
+        int a;
+        int a;
+    }
     return 0;
 }
