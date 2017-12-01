@@ -33,6 +33,7 @@ int processExprRelatedNode(AST_NODE* exprRelatedNode);
 int checkParameterPassing(Parameter* formalParameter, AST_NODE* actualParameter);
 int checkReturnStmt(AST_NODE* returnNode);
 int processExprNode(AST_NODE* exprNode);
+int processVariableValue(AST_NODE* idNode, int isParameter);
 int processVariableLValue(AST_NODE* idNode);
 int processVariableRValue(AST_NODE* idNode);
 int processConstValueNode(AST_NODE* constValueNode);
@@ -417,24 +418,27 @@ int checkFunctionCall(AST_NODE* funcNode)
     assert(funcNode->nodeType == STMT_NODE);
     assert(getStmtKind(funcNode) == FUNCTION_CALL_STMT);
     int retval = true;
+    funcNode->dataType = ERROR_TYPE;
     loop1{
         SymbolTableEntry* funcEntry = retrieveSymbol(getIDName(funcNode));
         if (!funcEntry) {
             // TODO: error - SYMBOL_UNDECLARED
             retval = false;
-            funcNode->dataType = ERROR_TYPE;
             break;
         }
         SymbolAttribute* typeAttribute = funcEntry->attribute;
         if (typeAttribute->attributeKind != FUNCTION_SIGNATURE) {
             // TODO: error - not a func
             retval = false;
-            funcNode->dataType = ERROR_TYPE;
             break;
         }
         setIDEntry(funcNode, funcEntry);
-        Parameter *param = getFunctionSignature(funcNode)->parameterList;
-        retval = checkParameterPassing(param, funcNode->child);
+        FunctionSignature* sig = getFunctionSignature(funcNode);
+        Parameter *param = sig->parameterList;
+        retval = checkParameterPassing(param, funcNode);
+        if (retval) {
+            funcNode->dataType = sig->returnType;
+        }
     }
     return retval;
 }
@@ -442,11 +446,73 @@ int checkFunctionCall(AST_NODE* funcNode)
 int checkParameterPassing(Parameter* formalParameter, AST_NODE* actualParameter)
 {
     int retval = true;
-    //TODO: error - TOO_FEW_ARGUMENTS,
-    //TODO: error - TOO_MANY_ARGUMENTS,
-    //TODO: error - PASS_ARRAY_TO_SCALAR
-    //TODO: error - PASS_SCALAR_TO_ARRAY
-    //TODO: error - PARAMETER_TYPE_UNMATCH,
+    assert(actualParameter->nodeType == NUL_NODE ||
+            actualParameter->nodeType == NONEMPTY_RELOP_EXPR_LIST_NODE);
+
+    loop1 {
+        if (actualParameter->nodeType == NUL_NODE) {
+            if (formalParameter != NULL) {
+                //TODO: error - TOO_FEW_ARGUMENTS,
+                retval = false;
+                break;
+            }
+        } else {
+            AST_NODE* ap = actualParameter->child;
+            Parameter* fp = formalParameter;
+            int ret;
+            for(;ap&&fp;ap=ap->rightSibling,fp=fp->next) {
+                if (ap->nodeType == IDENTIFIER_NODE) {
+                    retval &= ( ret = processVariableValue(ap, true) );
+                } else {
+                    retval &= ( ret = processExprRelatedNode(ap) );
+                }
+                if (!ret) continue;
+                switch (ap->dataType) {
+                    case INT_TYPE:
+                    case INT_PTR_TYPE:
+                        if (getParamType(fp) != INT_TYPE) {
+                            retval = false;
+                            // TODO: error - PARAMETER_TYPE_UNMATCH
+                        }
+                        break;
+                    case FLOAT_TYPE:
+                    case FLOAT_PTR_TYPE:
+                        if (getParamType(fp) != FLOAT_TYPE) {
+                            retval = false;
+                            // TODO: error - PARAMETER_TYPE_UNMATCH
+                        }
+                        break;
+                    case ERROR_TYPE:
+                        retval = false;
+                        break;
+
+                }
+                switch (ap->dataType) {
+                    case INT_TYPE:
+                    case FLOAT_TYPE:
+                        if (fp->type->kind == ARRAY_TYPE_DESCRIPTOR) {
+                            retval = false;
+                            // TODO: error - PASS_SCALAR_TO_ARRAY
+                        }
+                        break;
+                    case INT_PTR_TYPE:
+                    case FLOAT_PTR_TYPE:
+                        if (fp->type->kind == SCALAR_TYPE_DESCRIPTOR) {
+                            retval = false;
+                            // TODO: error - PASS_ARRAY_TO_SCALAR
+                        }
+                        break;
+                }
+            }
+            if (ap != NULL && fp == NULL) {
+                retval = false;
+                //TODO: error - TOO_MANY_ARGUMENTS,
+            } else if (ap == NULL && fp != NULL) {
+                retval = false;
+                //TODO: error - TOO_FEW_ARGUMENTS,
+            }
+        }
+    }
     return retval;
 }
 
@@ -616,58 +682,89 @@ int processExprNode(AST_NODE* exprNode)
 }
 
 
-int processVariableLValue(AST_NODE* idNode)
+int processVariableValue(AST_NODE* idNode, int isParameter)
 {
     int retval = true;
+    idNode->dataType = ERROR_TYPE;
     assert(idNode->nodeType == IDENTIFIER_NODE);
     loop1 {
         SymbolTableEntry* idEntry = retrieveSymbol(getIDName(idNode));
         if (!idEntry) {
             // TODO: error - SYMBOL_UNDECLARED
             retval = false;
-            idNode->dataType = ERROR_TYPE;
             break;
         }
         SymbolAttribute* typeAttribute = idEntry->attribute;
         if (typeAttribute->attributeKind != VARIABLE_ATTRIBUTE) {
             // TODO: error - not a variable
             retval = false;
-            idNode->dataType = ERROR_TYPE;
             break;
         }
         setIDEntry(idNode, idEntry);
         TypeDescriptor* typeDescriptor = getTypeDescriptor(idNode);
         
         if (getIDKind(idNode) == NORMAL_ID) {
-            if (typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR) {
+            if (typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR && !isParameter) {
                 // TODO: error - INCOMPATIBLE_ARRAY_DIMENSION
                 retval = false;
-                idNode->dataType = ERROR_TYPE;
+                break;
+            }
+            if (typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR && isParameter) {
+                DATA_TYPE elementType = typeDescriptor->properties.arrayProperties.elementType;
+                switch(elementType) {
+                    case INT_TYPE:
+                        idNode->dataType = INT_PTR_TYPE;
+                        break;
+                    case FLOAT_TYPE:
+                        idNode->dataType = FLOAT_PTR_TYPE;
+                        break;
+                }
                 break;
             }
             idNode->dataType = typeDescriptor->properties.dataType;
         } else if (getIDKind(idNode) == ARRAY_ID) {
             assert(typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR);
-            idNode->dataType = typeDescriptor->properties.arrayProperties.elementType;
             AST_NODE *dimNodes = idNode->child;
             int dimensions = 0;
             forEach(dimNodes){
                 dimensions++;
+                retval &= processExprRelatedNode(dimNodes);
+                if (dimNodes->dataType != INT_TYPE && dimNodes->dataType != ERROR_TYPE) {
+                    // TODO: error - ARRAY_SUBSCRIPT_NOT_INT
+                }
             }
-            if (dimensions != typeDescriptor->properties.arrayProperties.dimension) {
-                // TODO: error - INCOMPATIBLE_ARRAY_DIMENSION
-                retval = false;
-                idNode->dataType = ERROR_TYPE;
+            int trueDim = typeDescriptor->properties.arrayProperties.dimension;
+            if (dimensions < trueDim && isParameter) {
+                DATA_TYPE elementType = typeDescriptor->properties.arrayProperties.elementType;
+                switch(elementType) {
+                    case INT_TYPE:
+                        idNode->dataType = INT_PTR_TYPE;
+                        break;
+                    case FLOAT_TYPE:
+                        idNode->dataType = FLOAT_PTR_TYPE;
+                        break;
+                }
                 break;
             }
+            if (dimensions != trueDim) {
+                // TODO: error - INCOMPATIBLE_ARRAY_DIMENSION
+                retval = false;
+                break;
+            }
+            idNode->dataType = typeDescriptor->properties.arrayProperties.elementType;
         }
     }
+    if (!retval) idNode->dataType = ERROR_TYPE;
     return retval;
 }
 
+int processVariableLValue(AST_NODE* idNode)
+{
+    return processVariableValue(idNode, false);
+}
 int processVariableRValue(AST_NODE* idNode)
 {
-    return processVariableLValue(idNode);
+    return processVariableValue(idNode, false);
 }
 
 
