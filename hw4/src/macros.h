@@ -61,6 +61,10 @@
 #define getTypeDescriptor(idNode) (getTypeEntry(idNode)->attribute->attr.typeDescriptor)
 #define setTypeDescriptor(idNode, val) (getTypeEntry(idNode)->attribute->attr.typeDescriptor = val)
 
+#define getParamType(param) (param->type->kind == SCALAR_TYPE_DESCRIPTOR ? \
+        param->type->properties.dataType : \
+        param->type->properties.arrayProperties.elementType)
+
 #define isConstExpr(exprNode) (exprNode->nodeType == CONST_VALUE_NODE || (exprNode->nodeType == EXPR_NODE && exprNode->semantic_value.exprSemanticValue.isConstEval))
 #define getExprType(exprNode) (exprNode->dataType)
 #define getExprKind(exprNode) (exprNode->semantic_value.exprSemanticValue.kind)
