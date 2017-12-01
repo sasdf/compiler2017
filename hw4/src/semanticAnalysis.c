@@ -423,6 +423,7 @@ int checkFunctionCall(AST_NODE* funcNode)
         SymbolTableEntry* funcEntry = retrieveSymbol(getIDName(funcNode));
         if (!funcEntry) {
             // TODO: error - SYMBOL_UNDECLARED
+            printErrorMsgSpecial(funcNode, getIDName(funcNode), SYMBOL_UNDECLARED);
             retval = false;
             break;
         }
@@ -691,6 +692,7 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
         SymbolTableEntry* idEntry = retrieveSymbol(getIDName(idNode));
         if (!idEntry) {
             // TODO: error - SYMBOL_UNDECLARED
+            printErrorMsgSpecial(idNode, getIDName(idNode), SYMBOL_UNDECLARED);
             retval = false;
             break;
         }
@@ -802,6 +804,7 @@ int  processStatementList(AST_NODE *stmtList){
 int processBlockNode(AST_NODE* blockNode)
 {
     int flag = true;
+    openScope();
     AST_NODE *child = blockNode->child;
     if (!child) return true;
     if (child->rightSibling){       // decl_list stmt_list
@@ -814,6 +817,7 @@ int processBlockNode(AST_NODE* blockNode)
             flag &= processStatementList(child);
         else assert(0 == "unknown block's child type");
     }
+    closeScope();
     return flag;
 }
 
