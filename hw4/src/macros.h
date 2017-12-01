@@ -57,6 +57,7 @@
 
 #define getTypeEntry(idNode) getIDEntry(idNode)
 #define setTypeEntry(idNode, val) setIDEntry(idNode, val)
+#define getFunctionSignature(idNode) (getTypeEntry(idNode)->attribute->attr.functionSignature)
 #define getTypeDescriptor(idNode) (getTypeEntry(idNode)->attribute->attr.typeDescriptor)
 #define setTypeDescriptor(idNode, val) (getTypeEntry(idNode)->attribute->attr.typeDescriptor = val)
 

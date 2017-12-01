@@ -69,6 +69,12 @@ typedef enum ErrorMsgKind
     PASS_SCALAR_TO_ARRAY
 } ErrorMsgKind;
 
+typedef enum WarningMsgKind
+{
+    FLOAT_TO_INT;
+    INT_TO_FLOAT;
+} WarningMsgKind;
+
 void printErrorMsgSpecial(AST_NODE* node1, char* name2, ErrorMsgKind errorMsgKind)
 {
     g_anyErrorOccur = 1;
@@ -98,6 +104,21 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
     }
 }
 
+void printWarningMsg(AST_NODE* node, WarningMsgKind warningMsgKind)
+{
+    printf("Warning found in line %d\n", node->linenumber);
+    switch(warningMsgKind) {
+        case FLOAT_TO_INT:
+            printf("Truncating float to int.\n");
+            break;
+        case INT_TO_FLOAT:
+            printf("Implicit conversion from int to float\n");
+            break;
+        default:
+            printf("Unhandled case in void printWarningMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
+            break;
+    }
+}
 
 void semanticAnalysis(AST_NODE *root)
 {
@@ -687,7 +708,8 @@ int processAssignExpr(AST_NODE *assignExpr)
     if (assignExpr->nodeType == STMT_NODE){                 // ID = relopExpr
         AST_NODE *it = assignExpr->child;
         unpack(it, id, relopExpr);
-        flag &= processRelopExpr(relopExpr);
+        //flag &= processRelopExpr(relopExpr);
+        flag &= processExprRelatedNode(relopExpr);
         // TODO: check id == relopExpr        
     } else {                                                // relopExpr
         flag &= processRelopExpr(assignExpr);
@@ -795,8 +817,22 @@ int processAssignStmt(AST_NODE *assignNode)
     int flag = true;
     AST_NODE *it = assignNode;
     unpack(it, id, relopExpr);
+    // Relop jizz?
     flag &= processRelopExpr(relopExpr);
-    // TODO: check type(id) == type(expr)
+    flag &= processVariableLValue(id);
+    TypeDescriptor *idType = getTypeDescriptor(id->child);
+    //flag &= processExprRelatedNode(returnNode);
+    TypeDescriptor *exprType = getTypeDescriptor(relopExpr->child);
+    
+    if (idType->properties.dataType == INT_PTR_TYPE || idType->properties.dataType == FLOAT_PTR_TYPE){
+        printErrorMsg(assignNode, NOT_ASSIGNABLE);
+        return 0;
+    }
+    if (idType->properties.dataType == INT_TYPE && idType->properties.dataType == FLOAT_TYPE)
+        printWarningMsg(assignNode, FLOAT_TO_INT);
+    if (idType->properties.dataType == FLOAT_TYPE && idType->properties.dataType == INT_TYPE)
+        printWarningMsg(assignNode, INT_TO_FLOAT);
+
     return flag;
 }
 
@@ -817,13 +853,18 @@ int checkReturnStmt(AST_NODE* returnNode)
     int flag = true;
     AST_NODE *parent = returnNode;
     findParentDecl(parent, FUNCTION_DECL);
-    TypeDescriptor *type = getTypeDescriptor(parent->child);
 
+    FunctionSignature *sig = getFunctionSignature(parent)
+    if (sig->returnType == ERROR_TYPE)
+        return 0;
+
+    TypeDescriptor *type = getTypeDescriptor(parent->child);
     assert(type->kind == SCALAR_TYPE_DESCRIPTOR);
+    /*
     assert(type->properties.dataType == INT_TYPE || 
            type->properties.dataType == FLOAT_TYPE ||
            type->properties.dataType == VOID_TYPE
-    );
+    );*/
 
     // return array not done yet
     switch (returnNode->nodeType){
@@ -848,17 +889,14 @@ int checkReturnStmt(AST_NODE* returnNode)
 
             if (type->properties.dataType == INT_TYPE){
                 if (childType == FLOAT_TYPE){
-                    printErrorMsg(returnNode, RETURN_TYPE_UNMATCH);
-                    return 0;
+                    printWarningMsg(returnNode, FLOAT_TO_INT);
+                    return flag;
                 }
             } else if (type->properties.dataType == FLOAT_TYPE){
-                /*
-                TODO: not sure
                 if (childType == INT_TYPE){
-                    printErrorMsg(returnNode, RETURN_TYPE_UNMATCH);
-                    return 0;
+                    printWarningMsg(returnNode, INT_TO_FLOAT);
+                    return flag;
                 }
-                */
             } else if (type->properties.dataType == VOID_TYPE){
                 printErrorMsg(returnNode, RETURN_TYPE_UNMATCH);
                 return 0;
