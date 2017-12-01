@@ -115,7 +115,9 @@ void semanticAnalysis(AST_NODE *root)
 
 DATA_TYPE getBiggerType(DATA_TYPE dataType1, DATA_TYPE dataType2)
 {
-    if(dataType1 == FLOAT_TYPE || dataType2 == FLOAT_TYPE) {
+    if(dataType1 == ERROR_TYPE || dataType2 == ERROR_TYPE) {
+        return ERROR_TYPE;
+    } else if(dataType1 == FLOAT_TYPE || dataType2 == FLOAT_TYPE) {
         return FLOAT_TYPE;
     } else {
         return INT_TYPE;
@@ -382,15 +384,19 @@ int checkFunctionCall(AST_NODE* funcNode)
         if (!funcEntry) {
             // TODO: error - SYMBOL_UNDECLARED
             retval = false;
+            funcNode->dataType = ERROR_TYPE;
             break;
         }
         SymbolAttribute* typeAttribute = funcEntry->attribute;
         if (typeAttribute->attributeKind != FUNCTION_SIGNATURE) {
             // TODO: error - not a func
             retval = false;
+            funcNode->dataType = ERROR_TYPE;
             break;
         }
-        setTypeEntry(funcNode, funcEntry);
+        setIDEntry(funcNode, funcEntry);
+        Parameter *param = getFunctionSignature(funcNode)->parameterList;
+        retval = checkParameterPassing(param, funcNode->child);
     }
     return retval;
 }
@@ -445,6 +451,10 @@ int evaluateExprValue(AST_NODE* exprNode)
             case INT_TYPE:
             case FLOAT_TYPE:
                 break;
+            case ERROR_TYPE:
+                retval = false;
+                exprNode->semantic_value.exprSemanticValue.isConstEval = false;
+                break;
             case INT_PTR_TYPE:
             case FLOAT_PTR_TYPE:
                 retval = false;
@@ -458,7 +468,6 @@ int evaluateExprValue(AST_NODE* exprNode)
                 return false;
             case VOID_TYPE:
             case NONE_TYPE:
-            case ERROR_TYPE:
                 assert(0/* Operation on strange type */);
                 break;
         }
@@ -467,7 +476,7 @@ int evaluateExprValue(AST_NODE* exprNode)
             exprNode->semantic_value.exprSemanticValue.isConstEval = false;
         }
     }
-    if (!isConstExpr(exprNode)) return true;
+    if (!isConstExpr(exprNode)) return retval;
 
     // Evaluate
     if (getExprKind(exprNode) == UNARY_OPERATION) {
@@ -562,10 +571,8 @@ int processExprNode(AST_NODE* exprNode)
         retval = false;
         // TODO: error - STRING_OPERATION
     }
-    if(retval) {
-        if(!evaluateExprValue(exprNode)) {
-            retval = false;
-        }
+    if(!evaluateExprValue(exprNode)) {
+        retval = false;
     }
     return retval;
 }
@@ -573,12 +580,56 @@ int processExprNode(AST_NODE* exprNode)
 
 int processVariableLValue(AST_NODE* idNode)
 {
-    // TODO
+    int retval = true;
+    assert(idNode->nodeType == IDENTIFIER_NODE);
+    loop1 {
+        SymbolTableEntry* idEntry = retrieveSymbol(getIDName(idNode));
+        if (!idEntry) {
+            // TODO: error - SYMBOL_UNDECLARED
+            retval = false;
+            idNode->dataType = ERROR_TYPE;
+            break;
+        }
+        SymbolAttribute* typeAttribute = idEntry->attribute;
+        if (typeAttribute->attributeKind != VARIABLE_ATTRIBUTE) {
+            // TODO: error - not a variable
+            retval = false;
+            idNode->dataType = ERROR_TYPE;
+            break;
+        }
+        setIDEntry(idNode, idEntry);
+        TypeDescriptor* typeDescriptor = getTypeDescriptor(idNode);
+        
+        if (getIDKind(idNode) == NORMAL_ID) {
+            if (typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR) {
+                // TODO: error - INCOMPATIBLE_ARRAY_DIMENSION
+                retval = false;
+                idNode->dataType = ERROR_TYPE;
+                break;
+            }
+            idNode->dataType = typeDescriptor->properties.dataType;
+        } else if (getIDKind(idNode) == ARRAY_ID) {
+            assert(typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR);
+            idNode->dataType = typeDescriptor->properties.arrayProperties.elementType;
+            AST_NODE *dimNodes = idNode->child;
+            int dimensions = 0;
+            forEach(dimNodes){
+                dimensions++;
+            }
+            if (dimensions != typeDescriptor->properties.arrayProperties.dimension) {
+                // TODO: error - INCOMPATIBLE_ARRAY_DIMENSION
+                retval = false;
+                idNode->dataType = ERROR_TYPE;
+                break;
+            }
+        }
+    }
+    return retval;
 }
 
 int processVariableRValue(AST_NODE* idNode)
 {
-    // TODO
+    return processVariableLValue(idNode);
 }
 
 
@@ -972,6 +1023,7 @@ int declareFunction(AST_NODE* iterator)
         if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
             // TODO: error - RETURN_ARRAY
             retval = false;
+            signature->returnType = ERROR_TYPE;
             break;
         }
 
