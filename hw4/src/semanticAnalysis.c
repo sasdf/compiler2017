@@ -378,7 +378,7 @@ int declareId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttributeKind kind, 
 // idList -> [type id ...]
 int declareIdList(AST_NODE* declarationNode, SymbolAttributeKind kind, int isParameter)
 {
-    AST_NODE *iterator = declarationNode->child;
+    AST_NODE *iterator = declarationNode;
     unpack(iterator, typeNode);
     int retval = true;
     if (!processTypeNode(typeNode)){
