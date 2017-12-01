@@ -378,7 +378,7 @@ int declareId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttributeKind kind, 
 // idList -> [type id ...]
 int declareIdList(AST_NODE* declarationNode, SymbolAttributeKind kind, int isParameter)
 {
-    AST_NODE *iterator = declarationNode;
+    AST_NODE *iterator = declarationNode->child;
     unpack(iterator, typeNode);
     int retval = true;
     if (!processTypeNode(typeNode)){
@@ -803,6 +803,7 @@ int processBlockNode(AST_NODE* blockNode)
 {
     int flag = true;
     AST_NODE *child = blockNode->child;
+    if (!child) return true;
     if (child->rightSibling){       // decl_list stmt_list
         flag &= processDeclarationList(child);
         flag &= processStatementList(child->rightSibling);
@@ -1136,7 +1137,7 @@ int declareFunction(AST_NODE* iterator)
             retval = false;
         } else {
             if (!parameter) {
-                Parameter* parameter = new(Parameter);
+                parameter = new(Parameter);
                 signature->parameterList = parameter;
             } else {
                 parameter->next = new(Parameter);
