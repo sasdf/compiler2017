@@ -1,3 +1,10 @@
-float main(){
-    return 1.2*10+1-3*5;
+int main(){
+    /*
+    int a[10], c;
+    a = 0;
+    int b = a;
+    a = c;
+    */
+    b = 10;
+    return 0;
 }

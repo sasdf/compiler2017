@@ -37,9 +37,7 @@ int processVariableLValue(AST_NODE* idNode);
 int processVariableRValue(AST_NODE* idNode);
 int processConstValueNode(AST_NODE* constValueNode);
 int evaluateExprValue(AST_NODE* exprNode);
-/*added function*/
-int processRelopExpr(AST_NODE *relopExpr);
-
+int processAssignStmt(AST_NODE *assignNode);
 
 typedef enum ErrorMsgKind
 {
@@ -71,22 +69,25 @@ typedef enum ErrorMsgKind
 
 typedef enum WarningMsgKind
 {
-    FLOAT_TO_INT;
-    INT_TO_FLOAT;
+    FLOAT_TO_INT,
+    INT_TO_FLOAT
 } WarningMsgKind;
 
 void printErrorMsgSpecial(AST_NODE* node1, char* name2, ErrorMsgKind errorMsgKind)
 {
     g_anyErrorOccur = 1;
     printf("Error found in line %d\n", node1->linenumber);
-    /*
-       switch(errorMsgKind)
-       {
-       default:
-       printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
-       break;
-       }
-       */
+    switch(errorMsgKind) {
+        case SYMBOL_UNDECLARED:
+            printf("ID %s undeclared.\n", name2);
+            break;
+        case SYMBOL_REDECLARE:
+            printf("ID %s redeclared.\n", name2);
+            break;
+        default:
+            printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
+            break;
+    }
 }
 
 
@@ -95,6 +96,9 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
     g_anyErrorOccur = 1;
     printf("Error found in line %d\n", node->linenumber);
     switch(errorMsgKind) {
+        case NOT_ASSIGNABLE:
+            printf("Not assignable.\n");
+            break;
         case RETURN_TYPE_UNMATCH:
             printf("Incompatible return type.\n");
             break;
@@ -192,6 +196,7 @@ int processTypeNode(AST_NODE* typeNode)
         SymbolTableEntry* typeEntry = retrieveSymbol(getIDName(typeNode));
         if (!typeEntry) {
             // TODO: error - SYMBOL_UNDECLARED
+            printErrorMsgSpecial(typeNode, getIDName(typeNode), SYMBOL_UNDECLARED);
             retval = false;
             break;
         }
@@ -317,14 +322,26 @@ int declareInitId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attri
     assert(!isParameter); // enforced by grammar
     if (type->kind == ARRAY_TYPE_DESCRIPTOR) {
         // TODO: error - TRY_TO_INIT_ARRAY
+        // not tested yet
+        printErrorMsgSpecial(idNode,  getIDName(idNode), TRY_TO_INIT_ARRAY);
+        return false;
     } else {
         attribute->attr.typeDescriptor = type;
-        retval &= processExprNode(idNode->child);
+        retval &= processExprRelatedNode(idNode->child);
         if (retval) {
             DATA_TYPE dataType = type->properties.dataType;
             DATA_TYPE exprType = getExprType(idNode->child);
             if (checkAssignable(dataType, exprType, isParameter)) {
                 // TODO: error - NOT_ASSIGNABLE
+                if (dataType == INT_TYPE && exprType == FLOAT_TYPE){
+                    printWarningMsg(idNode, FLOAT_TO_INT);
+                    return retval;
+                }
+                if (dataType == FLOAT_TYPE && exprType == INT_TYPE){
+                    printWarningMsg(idNode, INT_TO_FLOAT);
+                    return retval;
+                }
+                printErrorMsg(idNode, NOT_ASSIGNABLE);
             }
         }
     }
@@ -345,7 +362,7 @@ int declareId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttributeKind kind, 
             retval = declareArrayId(idNode, type, attribute, isParameter);
             break;
         case WITH_INIT_ID:
-            retval = declareArrayId(idNode, type, attribute, isParameter);
+            retval = declareInitId(idNode, type, attribute, isParameter);
             break;
         default:
             assert(0/* unknown id kind */);
@@ -368,9 +385,9 @@ int declareIdList(AST_NODE* declarationNode, SymbolAttributeKind kind, int isPar
     } else {
         TypeDescriptor* typeDescriptor = getTypeDescriptor(typeNode);
         forEach (iterator){
-            if (!declaredLocally(getIDName(iterator))) {
+            if (declaredLocally(getIDName(iterator))) {
                 retval = false;
-                // TODO: error - SYMBOL_REDECLARE
+                printErrorMsgSpecial(declarationNode, getIDName(iterator), SYMBOL_REDECLARE);
             } else {
                 retval &= declareId(iterator, typeDescriptor, kind, isParameter);
             }
@@ -702,27 +719,12 @@ int processBlockNode(AST_NODE* blockNode)
     return flag;
 }
 
-int processAssignExpr(AST_NODE *assignExpr)
-{
-    int flag = true;
-    if (assignExpr->nodeType == STMT_NODE){                 // ID = relopExpr
-        AST_NODE *it = assignExpr->child;
-        unpack(it, id, relopExpr);
-        //flag &= processRelopExpr(relopExpr);
-        flag &= processExprRelatedNode(relopExpr);
-        // TODO: check id == relopExpr        
-    } else {                                                // relopExpr
-        flag &= processRelopExpr(assignExpr);
-    }
-    return flag;
-}
-
 int processNonEmptyAssignExprList(AST_NODE *assignExprList)
 {
     int flag = true;
     AST_NODE *it = assignExprList;
     forEach (it){
-        flag &= processAssignExpr(it);
+        flag &= processAssignStmt(it);
     }
     return flag;
 }
@@ -734,57 +736,19 @@ int processAssignExprList(AST_NODE *assignExprList)
     return processNonEmptyAssignExprList(assignExprList->child);
 }
 
-int processRelopFactor(AST_NODE *relopFactor)
-{
-    return processExprRelatedNode(relopFactor);
-}
-
-int processRelopTerm(AST_NODE *relopTerm)
-{
-    assert(relopTerm->nodeType == EXPR_NODE);
-    int flag = true;
-
-    if (getExprKind(relopTerm) == BINARY_OPERATION && getExprOp(relopTerm) == BINARY_OP_AND){
-        AST_NODE *it = relopTerm->child;
-        unpack(it, relopTerm2, relopFactor);
-        flag &= processRelopTerm(relopTerm2);
-        flag &= processRelopFactor(relopFactor);
-    } else {
-        flag &= processRelopFactor(relopTerm);
-    }
-
-    return flag;
-}
-
-int processRelopExpr(AST_NODE *relopExpr)
-{
-    assert(relopExpr->nodeType == EXPR_NODE);
-    int flag = true;
-
-    if (getExprKind(relopExpr) == BINARY_OPERATION && getExprOp(relopExpr) == BINARY_OP_OR){
-        AST_NODE *it = relopExpr->child;
-        unpack(it, relopExpr2, relopTerm);
-        flag &= processRelopExpr(relopExpr2);
-        flag &= processRelopTerm(relopTerm);
-    } else {
-        flag &= processRelopTerm(relopExpr);
-    }
-
-    return flag;
-}
-
 int processNonEmptyRelopExprList(AST_NODE *relopExprList)
 {
     int flag = true;
     AST_NODE *it = relopExprList;
     forEach (it){
-        flag &= processRelopExpr(it);
+        flag &= processExprRelatedNode(it);
     }
     return flag;
 }
 
 int processRelopExprList(AST_NODE *relopExprList)
 {
+    // TODO: fill symboltable??
     if (relopExprList->nodeType == NUL_NODE)
         return 1;
     return processNonEmptyRelopExprList(relopExprList);
@@ -795,7 +759,7 @@ int processWhileStmt(AST_NODE *whileNode)
     int flag = true;
     AST_NODE *it = whileNode;
     unpack(it, test, stmt);
-    flag &= processAssignExpr(test);
+    flag &= processAssignStmt(test);
     flag &= processStmtNode(stmt);
     return flag;
 }
@@ -817,20 +781,18 @@ int processAssignStmt(AST_NODE *assignNode)
     int flag = true;
     AST_NODE *it = assignNode;
     unpack(it, id, relopExpr);
-    // Relop jizz?
-    flag &= processRelopExpr(relopExpr);
+    flag &= processExprRelatedNode(relopExpr);
     flag &= processVariableLValue(id);
-    TypeDescriptor *idType = getTypeDescriptor(id->child);
-    //flag &= processExprRelatedNode(returnNode);
-    TypeDescriptor *exprType = getTypeDescriptor(relopExpr->child);
+    DATA_TYPE idType = id->dataType;
+    DATA_TYPE exprType = relopExpr->dataType;
     
-    if (idType->properties.dataType == INT_PTR_TYPE || idType->properties.dataType == FLOAT_PTR_TYPE){
+    if (idType == INT_PTR_TYPE || idType == FLOAT_PTR_TYPE){
         printErrorMsg(assignNode, NOT_ASSIGNABLE);
         return 0;
     }
-    if (idType->properties.dataType == INT_TYPE && idType->properties.dataType == FLOAT_TYPE)
+    if (idType == INT_TYPE && exprType == FLOAT_TYPE)
         printWarningMsg(assignNode, FLOAT_TO_INT);
-    if (idType->properties.dataType == FLOAT_TYPE && idType->properties.dataType == INT_TYPE)
+    if (idType == FLOAT_TYPE && exprType == INT_TYPE)
         printWarningMsg(assignNode, INT_TO_FLOAT);
 
     return flag;
@@ -841,7 +803,7 @@ int processIfStmt(AST_NODE *ifNode)
     int flag = true;
     AST_NODE *it = ifNode;
     unpack(it, test, stmt, elseStmt);
-    flag &= processAssignExpr(test);
+    flag &= processAssignStmt(test);
     flag &= processStmtNode(stmt);
     if (elseStmt->nodeType != NUL_NODE)
         flag &= processStmtNode(elseStmt);
@@ -854,7 +816,7 @@ int checkReturnStmt(AST_NODE* returnNode)
     AST_NODE *parent = returnNode;
     findParentDecl(parent, FUNCTION_DECL);
 
-    FunctionSignature *sig = getFunctionSignature(parent)
+    FunctionSignature *sig = getFunctionSignature(parent);
     if (sig->returnType == ERROR_TYPE)
         return 0;
 
@@ -1090,8 +1052,6 @@ int declareFunction(AST_NODE* iterator)
         }
     }
 
-    // block
-    retval &= processBlockNode(blockNode);
 
     // declare
     if (declaredLocally(getIDName(idNode))) {
@@ -1100,7 +1060,9 @@ int declareFunction(AST_NODE* iterator)
     }
     if (retval) {
         SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
-        getIDEntry(idNode) = entry;
+        setIDEntry(idNode, entry);
+        // block
+        retval &= processBlockNode(blockNode);
     }
 
     closeScope();
