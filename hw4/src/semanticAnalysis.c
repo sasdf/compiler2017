@@ -1053,6 +1053,12 @@ int checkReturnStmt(AST_NODE* returnNode)
                 return 0;
             }
 
+            if (childType == CONST_STRING_TYPE){
+                // TODO: error - return string
+                printErrorMsg(returnNode, RETURN_TYPE_UNMATCH);
+                return 0;
+            }
+
             assert(childType == INT_TYPE || childType == FLOAT_TYPE || childType == VOID_TYPE);
 
             if (type->properties.dataType == INT_TYPE){
