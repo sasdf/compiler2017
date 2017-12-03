@@ -8,6 +8,8 @@ int a() {
 }
 typedef void v;
 typedef int v;
+/* typedef void int; */
+typedef void write;
 v f() {
 }
 v f() {
@@ -42,7 +44,7 @@ typedef int t[10];
 int main() {
     t b[10][10];
     t f;
-    float a;
+    write a;
     {
         int a;
         float b;
@@ -58,6 +60,7 @@ int main() {
     b = f() * 2;
     return a(b[100][100][100], f, d);
     return f() * 2;
+    return a * 2;
     return write(b[10], c, d);
 }
 
