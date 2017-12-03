@@ -129,10 +129,10 @@ void printWarningMsg(AST_NODE* node, WarningMsgKind warningMsgKind)
     printf("Warning found in line %d\n", node->linenumber);
     switch(warningMsgKind) {
         case FLOAT_TO_INT:
-            printf("Truncating float to int.\n");
+            printf("Incompatible return type. (Truncating float to int).\n");
             break;
         case INT_TO_FLOAT:
-            printf("Implicit conversion from int to float\n");
+            printf("Incompatible return type. (Implicit conversion from int to float)\n");
             break;
         default:
             printf("Unhandled case in void printWarningMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
@@ -1045,7 +1045,7 @@ int processStmtNode(AST_NODE* stmtNode)
                     flag &= processForStmt(stmtNode->child);
                     break;
                 case ASSIGN_STMT:
-                    flag &= processAssignStmt(stmtNode->child);
+                    flag &= processAssignStmt(stmtNode);
                     break;
                 case IF_STMT:
                     flag &= processIfStmt(stmtNode->child);
