@@ -17,6 +17,7 @@ int main(){
     {
         int a;
     }
+    int a;
     /*
     f(a, b);
     */

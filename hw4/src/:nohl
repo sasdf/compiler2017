@@ -115,9 +115,6 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
         case ARRAY_SUBSCRIPT_NOT_INT:
             printf("Array subscript is not an integer.\n");
             break;
-        case ARRAY_SIZE_NOT_INT:
-            printf("Array subscript is not an integer\n");
-            break;
         default:
             printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
             break;
@@ -366,12 +363,9 @@ int declareInitId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attri
                     return retval;
                 }
                 if ((dataType == FLOAT_TYPE && exprType == FLOAT_TYPE) ||
-                    (dataType == INT_TYPE && exprType == INT_TYPE)){
-                    // nothing
-                } else {
-                    retval = 0;
-                    printErrorMsg(idNode, NOT_ASSIGNABLE);
-                }
+                    (dataType == FLOAT_TYPE && exprType == FLOAT_TYPE))
+                puts("B");
+                printErrorMsg(idNode, NOT_ASSIGNABLE);
             }
         }
     }
@@ -770,7 +764,6 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
                 if (dimNodes->dataType != INT_TYPE && dimNodes->dataType != ERROR_TYPE) {
                     // TODO: error - ARRAY_SUBSCRIPT_NOT_INT
                     printErrorMsg(idNode, ARRAY_SUBSCRIPT_NOT_INT);
-                    retval = false;
                 }
             }
             int trueDim = typeDescriptor->properties.arrayProperties.dimension;
@@ -844,21 +837,17 @@ int processBlockNode(AST_NODE* blockNode)
 {
     int flag = true;
     openScope();
-    loop1 {
-        AST_NODE *child = blockNode->child;
-        if (!child) {
-            break;
-        }
-        if (child->rightSibling){       // decl_list stmt_list
+    AST_NODE *child = blockNode->child;
+    if (!child) return true;
+    if (child->rightSibling){       // decl_list stmt_list
+        flag &= processDeclarationList(child);
+        flag &= processStatementList(child->rightSibling);
+    } else{
+        if (child->nodeType == VARIABLE_DECL_LIST_NODE)     // decl_list
             flag &= processDeclarationList(child);
-            flag &= processStatementList(child->rightSibling);
-        } else{
-            if (child->nodeType == VARIABLE_DECL_LIST_NODE)     // decl_list
-                flag &= processDeclarationList(child);
-            else if (child->nodeType == STMT_LIST_NODE)         // stmt_list
-                flag &= processStatementList(child);
-            else assert(0 == "unknown block's child type");
-        }
+        else if (child->nodeType == STMT_LIST_NODE)         // stmt_list
+            flag &= processStatementList(child);
+        else assert(0 == "unknown block's child type");
     }
     closeScope();
     return flag;
@@ -1002,10 +991,6 @@ int checkReturnStmt(AST_NODE* returnNode)
                 return 0;
             }
 
-            if (childType == ERROR_TYPE){
-                return 0;
-            }
-
             assert(childType == INT_TYPE || childType == FLOAT_TYPE);
 
             if (type->properties.dataType == INT_TYPE){
@@ -1131,8 +1116,7 @@ int processDeclDimList(AST_NODE* dimList, TypeDescriptor* typeDescriptor, int is
                 break;
             }
             if (getExprType(iterator) != INT_TYPE) {
-                // error - ARRAY_SIZE_NOT_INT
-                printErrorMsg(dimList, ARRAY_SIZE_NOT_INT);
+                // TODO: error - ARRAY_SIZE_NOT_INT
                 retval = false;
                 addArrayDim(arrayProperties, -4);
                 break;
