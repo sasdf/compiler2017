@@ -363,12 +363,9 @@ int declareInitId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attri
                     return retval;
                 }
                 if ((dataType == FLOAT_TYPE && exprType == FLOAT_TYPE) ||
-                    (dataType == INT_TYPE && exprType == INT_TYPE)){
-                    // nothing
-                } else {
-                    retval = 0;
-                    printErrorMsg(idNode, NOT_ASSIGNABLE);
-                }
+                    (dataType == FLOAT_TYPE && exprType == FLOAT_TYPE))
+                puts("B");
+                printErrorMsg(idNode, NOT_ASSIGNABLE);
             }
         }
     }
@@ -767,7 +764,6 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
                 if (dimNodes->dataType != INT_TYPE && dimNodes->dataType != ERROR_TYPE) {
                     // TODO: error - ARRAY_SUBSCRIPT_NOT_INT
                     printErrorMsg(idNode, ARRAY_SUBSCRIPT_NOT_INT);
-                    retval = false;
                 }
             }
             int trueDim = typeDescriptor->properties.arrayProperties.dimension;
@@ -992,10 +988,6 @@ int checkReturnStmt(AST_NODE* returnNode)
 
             if (childType == INT_PTR_TYPE || childType == FLOAT_PTR_TYPE){
                 printErrorMsg(returnNode, RETURN_ARRAY);
-                return 0;
-            }
-
-            if (childType == ERROR_TYPE){
                 return 0;
             }
 

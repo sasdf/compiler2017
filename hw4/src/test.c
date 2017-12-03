@@ -1,3 +1,10 @@
+int f(int a, int b){
+    /*
+    int c[10];
+    */
+    return a+b;
+}
+
 int main(){
     /*
     int a[10], c;
@@ -5,12 +12,14 @@ int main(){
     int b = a;
     a = c;
     */
-    /*
-    int a;
+    int a = 1;
+    float b[10.6];
     {
         int a;
     }
+    /*
+    f(a, b);
     */
-    int a = 1;
+    a = f(a, b[0]);
     return 0;
 }
