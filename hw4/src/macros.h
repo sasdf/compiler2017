@@ -72,10 +72,10 @@
 #define setExprType(exprNode, type) (exprNode->dataType = type)
 #define getExprValue(exprNode) ( \
         getExprType(exprNode) == INT_TYPE ? \
-            ( exprNode->dataType == CONST_VALUE_NODE ? \
+            ( exprNode->nodeType == CONST_VALUE_NODE ? \
                 exprNode->semantic_value.const1->const_u.intval : \
                 exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue ) : \
-            ( exprNode->dataType == CONST_VALUE_NODE ? \
+            ( exprNode->nodeType == CONST_VALUE_NODE ? \
                 exprNode->semantic_value.const1->const_u.fval : \
                 exprNode->semantic_value.exprSemanticValue.constEvalValue.fValue ) )
 #define setExprValue(exprNode, val) ( \
@@ -84,7 +84,7 @@
         (exprNode->semantic_value.exprSemanticValue.constEvalValue.fValue = val) )
 
 #define getParamDeclName(node) getIDName(node->child->rightSibling)
-#define getParamDeclType(node) getTypeDescriptor(node->child)
+#define getParamDeclType(node) getTypeDescriptor(node->child->rightSibling)
 
 #define addArrayDim(arrayProperties, val) ( \
         arrayProperties->dimension < MAX_ARRAY_DIMENSION ? \
