@@ -5,10 +5,12 @@ int main(){
     int b = a;
     a = c;
     */
+    /*
     int a;
     {
         int a;
-        int a;
     }
+    */
+    int a = 1;
     return 0;
 }
