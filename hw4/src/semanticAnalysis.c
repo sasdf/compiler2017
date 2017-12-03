@@ -645,6 +645,10 @@ int evaluateExprValue(AST_NODE* exprNode)
                 exprNode->semantic_value.exprSemanticValue.isConstEval = false;
                 return false;
             case VOID_TYPE:
+                retval = false;
+                // TODO: error - void operation
+                exprNode->semantic_value.exprSemanticValue.isConstEval = false;
+                return false;
             case NONE_TYPE:
                 assert(0/* Operation on strange type */);
                 break;
