@@ -1053,21 +1053,31 @@ int checkReturnStmt(AST_NODE* returnNode)
                 return 0;
             }
 
-            assert(childType == INT_TYPE || childType == FLOAT_TYPE);
+            assert(childType == INT_TYPE || childType == FLOAT_TYPE || childType == VOID_TYPE);
 
             if (type->properties.dataType == INT_TYPE){
                 if (childType == FLOAT_TYPE){
                     printWarningMsg(returnNode, FLOAT_TO_INT);
                     return flag;
                 }
+                if (childType == VOID_TYPE){
+                    printErrorMsg(returnNode, RETURN_TYPE_UNMATCH);
+                    return 0;
+                }
             } else if (type->properties.dataType == FLOAT_TYPE){
                 if (childType == INT_TYPE){
                     printWarningMsg(returnNode, INT_TO_FLOAT);
                     return flag;
                 }
+                if (childType == VOID_TYPE){
+                    printErrorMsg(returnNode, RETURN_TYPE_UNMATCH);
+                    return 0;
+                }
             } else if (type->properties.dataType == VOID_TYPE){
-                printErrorMsg(returnNode, RETURN_TYPE_UNMATCH);
-                return 0;
+                if (childType != VOID_TYPE){
+                    printErrorMsg(returnNode, RETURN_TYPE_UNMATCH);
+                    return 0;
+                }
             }
             break;
         default:
