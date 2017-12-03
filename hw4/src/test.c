@@ -1,31 +1,20 @@
-int c;
-void f(int a, int b, int d[10]){
-    /*
-    float c[10+6*8-(8-5)/2.0];
-    */
-    return;
-    /*return c[0];*/
+int func(int v[][4]) {
+    return 1;
 }
-
-int main(){
-    /*
-    int a[10], c;
-    a = 0;
-    int b = a;
-    a = c;
-    */
-    int a = 1, b = 2, c[10][20];
-    return f(a, b, c[0]);
-    /*
-    a = f(a, b);
-    float b[10.6];
-    {
-        int a;
-    }
-    */
-    /*
-    f(a, b);
-    c = f();
-    */
+int func2(int k) {
+    return k;
+}
+int main() {
+    int a[3][2][4], b[1], c[3][4], d;
+    /* incompatible array */
+    d = a[1];
+    /* not integer */
+    d = a[1][1.1];
+    /* okay */
+    func(a[2]);
+    /* scalar to array */
+    func(d);
+    /* array to scalar */
+    func2(b);
     return 0;
 }
