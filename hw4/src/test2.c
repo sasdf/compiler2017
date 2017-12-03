@@ -1,7 +1,8 @@
-int a(int b, float c) {
+int a(int b[10], float c) {
     return 0;
 }
-int a;
+typedef int t[10];
 int main() {
-    a(1, 1.1);
+    t x;
+    a(x, 1.1);
 }

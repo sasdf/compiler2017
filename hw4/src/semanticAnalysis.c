@@ -85,6 +85,12 @@ void printErrorMsgSpecial(AST_NODE* node1, char* name2, ErrorMsgKind errorMsgKin
         case SYMBOL_REDECLARE:
             printf("ID %s redeclared.\n", name2);
             break;
+        case TOO_FEW_ARGUMENTS:
+            printf("too few arguments to function %s.\n", name2);
+            break;
+        case TOO_MANY_ARGUMENTS:
+            printf("too many arguments to function %s.\n", name2);
+            break;
         default:
             printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
             break;
@@ -102,6 +108,12 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
             break;
         case RETURN_TYPE_UNMATCH:
             printf("Incompatible return type.\n");
+            break;
+        case INCOMPATIBLE_ARRAY_DIMENSION:
+            printf("Incompatible array dimensions.\n");
+            break;
+        case ARRAY_SUBSCRIPT_NOT_INT:
+            printf("Array subscript is not an integer.\n");
             break;
         default:
             printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
@@ -155,7 +167,11 @@ int processDeclarationList(AST_NODE* declarationList){
     int flag = true;
     AST_NODE *decl = declarationList->child;
     forEach (decl){
-        flag &= processDeclarationNode(decl);
+        if (decl->nodeType == VARIABLE_DECL_LIST_NODE) {
+            flag &= processDeclarationList(decl);
+        } else {
+            flag &= processDeclarationNode(decl);
+        }
     }
     return flag;
 }
@@ -192,6 +208,7 @@ int processDeclarationNode(AST_NODE* declarationNode)
 // typeNode -- idNode
 int processTypeNode(AST_NODE* typeNode)
 {
+    assert(typeNode->nodeType == IDENTIFIER_NODE);
     int retval = true;
     loop1 {
         SymbolTableEntry* typeEntry = retrieveSymbol(getIDName(typeNode));
@@ -248,6 +265,7 @@ int declarePrimitiveType(char* name, DATA_TYPE type)
 // [type id]
 int declareNormalId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attribute, int isParameter)
 {
+    assert(idNode->nodeType == IDENTIFIER_NODE);
     attribute->attr.typeDescriptor = type;
     if (type->kind == SCALAR_TYPE_DESCRIPTOR &&
             type->properties.dataType == VOID_TYPE &&
@@ -261,6 +279,7 @@ int declareNormalId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* att
 // [type id -> [expr ...]]
 int declareArrayId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attribute, int isParameter)
 {
+    assert(idNode->nodeType == IDENTIFIER_NODE);
     int retval = true;
     loop1 {
         if (type->kind == ARRAY_TYPE_DESCRIPTOR) {
@@ -319,6 +338,7 @@ int declareArrayId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attr
 // [type id -> expr]
 int declareInitId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attribute, int isParameter)
 {
+    assert(idNode->nodeType == IDENTIFIER_NODE);
     int retval = true;
     assert(!isParameter); // enforced by grammar
     if (type->kind == ARRAY_TYPE_DESCRIPTOR) {
@@ -352,6 +372,7 @@ int declareInitId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attri
 // [type (NORMAL_ID | ARRAY_ID | WITH_INIT_ID)]
 int declareId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttributeKind kind, int isParameter)
 {
+    assert(idNode->nodeType == IDENTIFIER_NODE);
     int retval;
     SymbolAttribute *attribute = new(SymbolAttribute);
     attribute->attributeKind = kind;
@@ -419,11 +440,13 @@ int checkFunctionCall(AST_NODE* funcNode)
     assert(getStmtKind(funcNode) == FUNCTION_CALL_STMT);
     int retval = true;
     funcNode->dataType = ERROR_TYPE;
+    AST_NODE *iterator = funcNode->child;
+    unpack(iterator, idNode, paramNode);
     loop1{
-        SymbolTableEntry* funcEntry = retrieveSymbol(getIDName(funcNode));
+        SymbolTableEntry* funcEntry = retrieveSymbol(getIDName(idNode));
         if (!funcEntry) {
             // TODO: error - SYMBOL_UNDECLARED
-            printErrorMsgSpecial(funcNode, getIDName(funcNode), SYMBOL_UNDECLARED);
+            printErrorMsgSpecial(funcNode, getIDName(idNode), SYMBOL_UNDECLARED);
             retval = false;
             break;
         }
@@ -433,10 +456,10 @@ int checkFunctionCall(AST_NODE* funcNode)
             retval = false;
             break;
         }
-        setIDEntry(funcNode, funcEntry);
-        FunctionSignature* sig = getFunctionSignature(funcNode);
+        setIDEntry(idNode, funcEntry);
+        FunctionSignature* sig = funcEntry->attribute->attr.functionSignature;
         Parameter *param = sig->parameterList;
-        retval = checkParameterPassing(param, funcNode);
+        retval = checkParameterPassing(param, paramNode);
         if (retval) {
             funcNode->dataType = sig->returnType;
         }
@@ -454,6 +477,7 @@ int checkParameterPassing(Parameter* formalParameter, AST_NODE* actualParameter)
         if (actualParameter->nodeType == NUL_NODE) {
             if (formalParameter != NULL) {
                 //TODO: error - TOO_FEW_ARGUMENTS,
+                printErrorMsgSpecial(actualParameter, getIDName(actualParameter->leftmostSibling), TOO_FEW_ARGUMENTS);
                 retval = false;
                 break;
             }
@@ -472,14 +496,14 @@ int checkParameterPassing(Parameter* formalParameter, AST_NODE* actualParameter)
                     case INT_TYPE:
                     case INT_PTR_TYPE:
                         if (getParamType(fp) != INT_TYPE) {
-                            retval = false;
+                            /* retval = false; */
                             // TODO: error - PARAMETER_TYPE_UNMATCH
                         }
                         break;
                     case FLOAT_TYPE:
                     case FLOAT_PTR_TYPE:
                         if (getParamType(fp) != FLOAT_TYPE) {
-                            retval = false;
+                            /* retval = false; */
                             // TODO: error - PARAMETER_TYPE_UNMATCH
                         }
                         break;
@@ -508,9 +532,11 @@ int checkParameterPassing(Parameter* formalParameter, AST_NODE* actualParameter)
             if (ap != NULL && fp == NULL) {
                 retval = false;
                 //TODO: error - TOO_MANY_ARGUMENTS,
+                printErrorMsgSpecial(actualParameter, getIDName(actualParameter->leftmostSibling), TOO_MANY_ARGUMENTS);
             } else if (ap == NULL && fp != NULL) {
                 retval = false;
                 //TODO: error - TOO_FEW_ARGUMENTS,
+                printErrorMsgSpecial(actualParameter, getIDName(actualParameter->leftmostSibling), TOO_FEW_ARGUMENTS);
             }
         }
     }
@@ -708,6 +734,7 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
         if (getIDKind(idNode) == NORMAL_ID) {
             if (typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR && !isParameter) {
                 // TODO: error - INCOMPATIBLE_ARRAY_DIMENSION
+                printErrorMsg(idNode, INCOMPATIBLE_ARRAY_DIMENSION);
                 retval = false;
                 break;
             }
@@ -733,6 +760,7 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
                 retval &= processExprRelatedNode(dimNodes);
                 if (dimNodes->dataType != INT_TYPE && dimNodes->dataType != ERROR_TYPE) {
                     // TODO: error - ARRAY_SUBSCRIPT_NOT_INT
+                    printErrorMsg(idNode, ARRAY_SUBSCRIPT_NOT_INT);
                 }
             }
             int trueDim = typeDescriptor->properties.arrayProperties.dimension;
@@ -750,6 +778,7 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
             }
             if (dimensions != trueDim) {
                 // TODO: error - INCOMPATIBLE_ARRAY_DIMENSION
+                printErrorMsg(idNode, INCOMPATIBLE_ARRAY_DIMENSION);
                 retval = false;
                 break;
             }
@@ -1104,7 +1133,6 @@ int declareFunction(AST_NODE* iterator)
 {
     int retval = true;
     unpack(iterator, typeNode, idNode, paramList, blockNode);
-    openScope();
 
     SymbolAttribute* attribute = new(SymbolAttribute);
     FunctionSignature* signature = new(FunctionSignature);
@@ -1112,6 +1140,19 @@ int declareFunction(AST_NODE* iterator)
     // attribute
     attribute->attributeKind = FUNCTION_SIGNATURE;
     attribute->attr.functionSignature = signature;
+
+    // declare
+    if (declaredLocally(getIDName(idNode))) {
+        // TODO: error - SYMBOL_REDECLARE
+        retval = false;
+    } else {
+        SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
+        setIDEntry(idNode, entry);
+    }
+
+    // TODO: remove function from symtable if failed
+
+    openScope();
 
     // signature
     // returnType
@@ -1154,18 +1195,8 @@ int declareFunction(AST_NODE* iterator)
         }
     }
 
-
-    // declare
-    if (declaredLocally(getIDName(idNode))) {
-        // TODO: error - SYMBOL_REDECLARE
-        retval = false;
-    }
-    if (retval) {
-        SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
-        setIDEntry(idNode, entry);
-        // block
-        retval &= processBlockNode(blockNode);
-    }
+    // block
+    retval &= processBlockNode(blockNode);
 
     closeScope();
     return retval;
