@@ -13,7 +13,7 @@ int g_anyErrorOccur = 0;
 DATA_TYPE getBiggerType(DATA_TYPE dataType1, DATA_TYPE dataType2);
 int processProgramNode(AST_NODE *programNode);
 int processDeclarationNode(AST_NODE* declarationNode);
-int declarePrimitiveType(char* name, DATA_TYPE type);
+SymbolTableEntry* declarePrimitiveType(char* name, DATA_TYPE type);
 int declareIdList(AST_NODE* typeNode, SymbolAttributeKind isVariableOrTypeAttribute, int ignoreArrayFirstDimSize);
 int declareFunction(AST_NODE* returnTypeNode);
 int processDeclDimList(AST_NODE* variableDeclDimList, TypeDescriptor* typeDescriptor, int isParameter);
@@ -144,9 +144,10 @@ void semanticAnalysis(AST_NODE *root)
 {
     //initializeSymbolTable();
     openScope();
-    declarePrimitiveType(SYMBOL_TABLE_INT_NAME, INT_TYPE);
-    declarePrimitiveType(SYMBOL_TABLE_FLOAT_NAME, FLOAT_TYPE);
-    declarePrimitiveType(SYMBOL_TABLE_VOID_NAME, VOID_TYPE);
+    SymbolTableEntry* tInt = declarePrimitiveType(SYMBOL_TABLE_INT_NAME, INT_TYPE);
+    SymbolTableEntry* tFloat = declarePrimitiveType(SYMBOL_TABLE_FLOAT_NAME, FLOAT_TYPE);
+    SymbolTableEntry* tVoid = declarePrimitiveType(SYMBOL_TABLE_VOID_NAME, VOID_TYPE);
+    /* SymbolTableEntry* tStr = declarePrimitiveType("", CONST_STRING_TYPE); */
     if(!processProgramNode(root))
         g_anyErrorOccur = 1;
     closeScope();
@@ -251,7 +252,7 @@ int checkAssignable(DATA_TYPE type, DATA_TYPE val, int isParameter)
     return true;
 }
 
-int declarePrimitiveType(char* name, DATA_TYPE type)
+SymbolTableEntry* declarePrimitiveType(char* name, DATA_TYPE type)
 {
     TypeDescriptor* typeDescriptor = new(TypeDescriptor);
     typeDescriptor->kind = SCALAR_TYPE_DESCRIPTOR;
@@ -262,7 +263,7 @@ int declarePrimitiveType(char* name, DATA_TYPE type)
     attribute->attr.typeDescriptor = typeDescriptor;
 
     SymbolTableEntry* entry = enterSymbol(name, attribute);
-    return true;
+    return entry;
 }
 
 // [type id]
@@ -439,8 +440,33 @@ int checkAssignmentStmt(AST_NODE* assignmentNode)
 }
 
 */
-int checkWriteFunction(AST_NODE* functionCallNode)
+int checkWriteFunction(AST_NODE* funcNode)
 {
+    assert(funcNode->nodeType == STMT_NODE);
+    assert(getStmtKind(funcNode) == FUNCTION_CALL_STMT);
+    int retval = true;
+    funcNode->dataType = VOID_TYPE;
+    AST_NODE *iterator = funcNode->child;
+    unpack(iterator, idNode, paramNode);
+    assert(paramNode->nodeType == NUL_NODE ||
+            paramNode->nodeType == NONEMPTY_RELOP_EXPR_LIST_NODE);
+
+    loop1 {
+        if (paramNode->nodeType == NUL_NODE) {
+            break;
+        }
+        AST_NODE* ap = paramNode->child;
+        forEach(ap) {
+            if (ap->nodeType == IDENTIFIER_NODE) {
+                retval &= processVariableValue(ap, true);
+            } else if (ap->nodeType == CONST_VALUE_NODE && getConstType(ap) == STRINGC) {
+                // Don't check
+            } else {
+                retval &= processExprRelatedNode(ap);
+            }
+        }
+    }
+    return retval;
 }
 
 int checkFunctionCall(AST_NODE* funcNode)

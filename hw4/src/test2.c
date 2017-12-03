@@ -14,5 +14,8 @@ typedef int t[10];
 int main() {
     int b;
     t c;
+    b = f() * 2;
     return a(b[10], c, d);
+    return f();
+    return write(b[10], c, d) * 2;
 }

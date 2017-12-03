@@ -66,6 +66,7 @@
         param->type->properties.arrayProperties.elementType)
 
 #define isConstExpr(exprNode) (exprNode->nodeType == CONST_VALUE_NODE || (exprNode->nodeType == EXPR_NODE && exprNode->semantic_value.exprSemanticValue.isConstEval))
+#define getConstType(constNode) (constNode->semantic_value.const1->const_type)
 #define getExprType(exprNode) (exprNode->dataType)
 #define getExprKind(exprNode) (exprNode->semantic_value.exprSemanticValue.kind)
 #define getExprOp(exprNode) (getExprKind(exprNode) == UNARY_OPERATION ? exprNode->semantic_value.exprSemanticValue.op.unaryOp : exprNode->semantic_value.exprSemanticValue.op.binaryOp)
