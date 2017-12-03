@@ -362,6 +362,7 @@ int declareInitId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attri
                     printWarningMsg(idNode, INT_TO_FLOAT);
                     return retval;
                 }
+                puts("B");
                 printErrorMsg(idNode, NOT_ASSIGNABLE);
             }
         }
@@ -910,21 +911,31 @@ int processForStmt(AST_NODE *forNode)
 int processAssignStmt(AST_NODE *assignNode)
 {
     int flag = true;
-    AST_NODE *it = assignNode;
-    unpack(it, id, relopExpr);
-    flag &= processExprRelatedNode(relopExpr);
-    flag &= processVariableLValue(id);
-    DATA_TYPE idType = id->dataType;
-    DATA_TYPE exprType = relopExpr->dataType;
-    
-    if (idType == INT_PTR_TYPE || idType == FLOAT_PTR_TYPE){
-        printErrorMsg(assignNode, NOT_ASSIGNABLE);
-        return 0;
+    if (assignNode->nodeType == STMT_NODE && getStmtKind(assignNode) == ASSIGN_STMT){
+        AST_NODE *it = assignNode->child;
+        unpack(it, id, relopExpr);
+        flag &= processExprRelatedNode(relopExpr);
+        flag &= processVariableLValue(id);
+        DATA_TYPE idType = id->dataType;
+        DATA_TYPE exprType = relopExpr->dataType;
+        
+        if (idType == INT_PTR_TYPE || idType == FLOAT_PTR_TYPE){
+            puts("A");
+            printErrorMsg(assignNode, NOT_ASSIGNABLE);
+            return 0;
+        }
+        if (idType == INT_TYPE && exprType == FLOAT_TYPE)
+            printWarningMsg(assignNode, FLOAT_TO_INT);
+        if (idType == FLOAT_TYPE && exprType == INT_TYPE)
+            printWarningMsg(assignNode, INT_TO_FLOAT);
+    } else if (assignNode->nodeType == IDENTIFIER_NODE ||
+               assignNode->nodeType == CONST_VALUE_NODE ||
+               assignNode->nodeType == EXPR_NODE ||
+               assignNode->nodeType == STMT_NODE){
+        AST_NODE *it = assignNode;
+        unpack(it, relopExpr);
+        flag &= processExprRelatedNode(relopExpr);
     }
-    if (idType == INT_TYPE && exprType == FLOAT_TYPE)
-        printWarningMsg(assignNode, FLOAT_TO_INT);
-    if (idType == FLOAT_TYPE && exprType == INT_TYPE)
-        printWarningMsg(assignNode, INT_TO_FLOAT);
 
     return flag;
 }
