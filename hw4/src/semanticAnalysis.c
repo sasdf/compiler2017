@@ -80,16 +80,22 @@ void printErrorMsgSpecial(AST_NODE* node1, char* name2, ErrorMsgKind errorMsgKin
     printf("Error found in line %d\n", node1->linenumber);
     switch(errorMsgKind) {
         case SYMBOL_UNDECLARED:
-            printf("ID %s undeclared.\n", name2);
+            printf("ID \"%s\" undeclared.\n", name2);
             break;
         case SYMBOL_REDECLARE:
-            printf("ID %s redeclared.\n", name2);
+            printf("ID \"%s\" redeclared.\n", name2);
             break;
         case TOO_FEW_ARGUMENTS:
-            printf("too few arguments to function %s.\n", name2);
+            printf("too few arguments to function \"%s\".\n", name2);
             break;
         case TOO_MANY_ARGUMENTS:
-            printf("too many arguments to function %s.\n", name2);
+            printf("too many arguments to function \"%s\".\n", name2);
+            break;
+        case PASS_ARRAY_TO_SCALAR:
+            printf("Array passed to scalar parameter \"%s\"\n", name2);
+            break;
+        case PASS_SCALAR_TO_ARRAY:
+            printf("Scalar passed to array parameter \"%s\"\n", name2);
             break;
         default:
             printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
@@ -529,15 +535,17 @@ int checkParameterPassing(Parameter* formalParameter, AST_NODE* actualParameter)
                     case INT_TYPE:
                     case FLOAT_TYPE:
                         if (fp->type->kind == ARRAY_TYPE_DESCRIPTOR) {
-                            retval = false;
                             // TODO: error - PASS_SCALAR_TO_ARRAY
+                            printErrorMsgSpecial(ap, fp->parameterName, PASS_SCALAR_TO_ARRAY);
+                            retval = false;
                         }
                         break;
                     case INT_PTR_TYPE:
                     case FLOAT_PTR_TYPE:
                         if (fp->type->kind == SCALAR_TYPE_DESCRIPTOR) {
-                            retval = false;
                             // TODO: error - PASS_ARRAY_TO_SCALAR
+                            printErrorMsgSpecial(ap, fp->parameterName, PASS_ARRAY_TO_SCALAR);
+                            retval = false;
                         }
                         break;
                 }
