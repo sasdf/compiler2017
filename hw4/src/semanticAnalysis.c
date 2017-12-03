@@ -115,6 +115,9 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
         case ARRAY_SUBSCRIPT_NOT_INT:
             printf("Array subscript is not an integer.\n");
             break;
+        case ARRAY_SIZE_NOT_INT:
+            printf("Array subscript is not an integer\n");
+            break;
         default:
             printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
             break;
@@ -1124,7 +1127,8 @@ int processDeclDimList(AST_NODE* dimList, TypeDescriptor* typeDescriptor, int is
                 break;
             }
             if (getExprType(iterator) != INT_TYPE) {
-                // TODO: error - ARRAY_SIZE_NOT_INT
+                // error - ARRAY_SIZE_NOT_INT
+                printErrorMsg(dimList, ARRAY_SIZE_NOT_INT);
                 retval = false;
                 addArrayDim(arrayProperties, -4);
                 break;
