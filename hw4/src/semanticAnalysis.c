@@ -438,10 +438,10 @@ int checkAssignmentStmt(AST_NODE* assignmentNode)
     //TODO: error - NOT_ASSIGNABLE
 }
 
+*/
 int checkWriteFunction(AST_NODE* functionCallNode)
 {
 }
-*/
 
 int checkFunctionCall(AST_NODE* funcNode)
 {
@@ -452,6 +452,10 @@ int checkFunctionCall(AST_NODE* funcNode)
     AST_NODE *iterator = funcNode->child;
     unpack(iterator, idNode, paramNode);
     loop1{
+        if (strcmp(getIDName(idNode), "write") == 0) {
+            retval &= checkWriteFunction(funcNode);
+            break;
+        }
         SymbolTableEntry* funcEntry = retrieveSymbol(getIDName(idNode));
         if (!funcEntry) {
             // TODO: error - SYMBOL_UNDECLARED
@@ -761,7 +765,6 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
             }
             idNode->dataType = typeDescriptor->properties.dataType;
         } else if (getIDKind(idNode) == ARRAY_ID) {
-            assert(typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR);
             AST_NODE *dimNodes = idNode->child;
             int dimensions = 0;
             forEach(dimNodes){
@@ -772,6 +775,11 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
                     printErrorMsg(idNode, ARRAY_SUBSCRIPT_NOT_INT);
                     retval = false;
                 }
+            }
+            if (typeDescriptor->kind != ARRAY_TYPE_DESCRIPTOR) {
+                // TODO: error - NOT_ARRAY
+                retval = false;
+                break;
             }
             int trueDim = typeDescriptor->properties.arrayProperties.dimension;
             if (dimensions < trueDim && isParameter) {
@@ -992,6 +1000,7 @@ int checkReturnStmt(AST_NODE* returnNode)
             }
             break;  
         case IDENTIFIER_NODE:
+        case STMT_NODE:
         case CONST_VALUE_NODE:
         case EXPR_NODE:
             flag &= processExprRelatedNode(returnNode);
@@ -1173,11 +1182,11 @@ int declareFunction(AST_NODE* iterator)
     // declare
     if (declaredLocally(getIDName(idNode))) {
         // TODO: error - SYMBOL_REDECLARE
+        printErrorMsgSpecial(typeNode, getIDName(idNode), SYMBOL_REDECLARE);
         retval = false;
-    } else {
-        SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
-        setIDEntry(idNode, entry);
-    }
+    } 
+    SymbolTableEntry* entry = enterSymbol(getIDName(idNode), attribute);
+    setIDEntry(idNode, entry);
 
     // TODO: remove function from symtable if failed
 
@@ -1228,5 +1237,7 @@ int declareFunction(AST_NODE* iterator)
     retval &= processBlockNode(blockNode);
 
     closeScope();
+    
+    if (!retval) removeSymbol(entry);
     return retval;
 }
