@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include "macros.h"
 // This file is for reference only, you are not required to follow the implementation. //
 
 int HASH(char * str) {
@@ -117,7 +118,8 @@ int declaredLocally(char* symbolName)
 
 void openScope()
 {
-    ScopeEntry* scope = (ScopeEntry*)malloc(sizeof(ScopeEntry));
+    ScopeEntry* scope = new(ScopeEntry);
+    scope->nextInSameLevel = NULL;
     scope->outerScope = symbolTable.scopeDisplay;
     symbolTable.scopeDisplay = scope;
     ++symbolTable.currentLevel;

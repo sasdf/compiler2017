@@ -835,17 +835,21 @@ int processBlockNode(AST_NODE* blockNode)
 {
     int flag = true;
     openScope();
-    AST_NODE *child = blockNode->child;
-    if (!child) return true;
-    if (child->rightSibling){       // decl_list stmt_list
-        flag &= processDeclarationList(child);
-        flag &= processStatementList(child->rightSibling);
-    } else{
-        if (child->nodeType == VARIABLE_DECL_LIST_NODE)     // decl_list
+    loop1 {
+        AST_NODE *child = blockNode->child;
+        if (!child) {
+            break;
+        }
+        if (child->rightSibling){       // decl_list stmt_list
             flag &= processDeclarationList(child);
-        else if (child->nodeType == STMT_LIST_NODE)         // stmt_list
-            flag &= processStatementList(child);
-        else assert(0 == "unknown block's child type");
+            flag &= processStatementList(child->rightSibling);
+        } else{
+            if (child->nodeType == VARIABLE_DECL_LIST_NODE)     // decl_list
+                flag &= processDeclarationList(child);
+            else if (child->nodeType == STMT_LIST_NODE)         // stmt_list
+                flag &= processStatementList(child);
+            else assert(0 == "unknown block's child type");
+        }
     }
     closeScope();
     return flag;
