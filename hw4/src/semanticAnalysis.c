@@ -6,6 +6,14 @@
 #include "macros.h"
 #include "assert.h"
 
+// Ignore assertion
+#ifndef _DEBUG
+#ifdef assert
+#undef assert
+#endif
+#define assert(...) {}
+#endif
+
 // This file is for reference only, you are not required to follow the implementation. //
 // You only need to check for errors stated in the hw4 assignment document. //
 int g_anyErrorOccur = 0;
@@ -49,6 +57,7 @@ typedef enum ErrorMsgKind
     TRY_TO_INIT_ARRAY,
     EXCESSIVE_ARRAY_DIM_DECLARATION,
     RETURN_ARRAY,
+    DECL_RETURN_ARRAY,
     VOID_VARIABLE,
     TYPEDEF_VOID_ARRAY,
     PARAMETER_TYPE_UNMATCH,
@@ -61,11 +70,15 @@ typedef enum ErrorMsgKind
     IS_TYPE_NOT_VARIABLE,
     IS_FUNCTION_NOT_VARIABLE,
     STRING_OPERATION,
+    VOID_OPERATION,
+    NONE_OPERATION,
+    PTR_OPERATION,
     ARRAY_SIZE_NOT_INT,
     ARRAY_SIZE_NEGATIVE,
     ARRAY_SUBSCRIPT_NOT_INT,
     PASS_ARRAY_TO_SCALAR,
-    PASS_SCALAR_TO_ARRAY
+    PASS_SCALAR_TO_ARRAY,
+    DIV_ZERO
 } ErrorMsgKind;
 
 typedef enum WarningMsgKind
@@ -115,6 +128,54 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
         case RETURN_TYPE_UNMATCH:
             printf("Incompatible return type.\n");
             break;
+        case RETURN_ARRAY:
+            printf("Incompatible return type.\n");
+            break;
+        case DECL_RETURN_ARRAY:
+            printf("DECL_RETURN_ARRAY.\n");
+            break;
+        case NOT_ARRAY:
+            printf("NOT_ARRAY.\n");
+            break;
+        case SYMBOL_IS_NOT_TYPE:
+            printf("SYMBOL_IS_NOT_TYPE.\n");
+            break;
+        case NOT_FUNCTION_NAME:
+            printf("NOT_FUNCTION_NAME.\n");
+            break;
+        case TRY_TO_INIT_ARRAY:
+            printf("TRY_TO_INIT_ARRAY.\n");
+            break;
+        case EXCESSIVE_ARRAY_DIM_DECLARATION:
+            printf("EXCESSIVE_ARRAY_DIM_DECLARATION.\n");
+            break;
+        case VOID_VARIABLE:
+            printf("VOID_VARIABLE.\n");
+            break;
+        case TYPEDEF_VOID_ARRAY:
+            printf("TYPEDEF_VOID_ARRAY.\n");
+            break;
+        case IS_TYPE_NOT_VARIABLE:
+            printf("IS_TYPE_NOT_VARIABLE.\n");
+            break;
+        case IS_FUNCTION_NOT_VARIABLE:
+            printf("IS_FUNCTION_NOT_VARIABLE.\n");
+            break;
+        case STRING_OPERATION:
+            printf("STRING_OPERATION.\n");
+            break;
+        case PTR_OPERATION:
+            printf("PTR_OPERATION.\n");
+            break;
+        case VOID_OPERATION:
+            printf("VOID_OPERATION.\n");
+            break;
+        case NONE_OPERATION:
+            printf("NONE_OPERATION.\n");
+            break;
+        case ARRAY_SIZE_NEGATIVE:
+            printf("ARRAY_SIZE_NEGATIVE.\n");
+            break;
         case INCOMPATIBLE_ARRAY_DIMENSION:
             printf("Incompatible array dimensions.\n");
             break;
@@ -122,7 +183,7 @@ void printErrorMsg(AST_NODE* node, ErrorMsgKind errorMsgKind)
             printf("Array subscript is not an integer.\n");
             break;
         case ARRAY_SIZE_NOT_INT:
-            printf("Array subscript is not an integer\n");
+            printf("Array subscript is not an integer.\n");
             break;
         default:
             printf("Unhandled case in void printErrorMsg(AST_NODE* node, ERROR_MSG_KIND* errorMsgKind)\n");
@@ -154,8 +215,9 @@ void semanticAnalysis(AST_NODE *root)
     SymbolTableEntry* tFloat = declarePrimitiveType(SYMBOL_TABLE_FLOAT_NAME, FLOAT_TYPE);
     SymbolTableEntry* tVoid = declarePrimitiveType(SYMBOL_TABLE_VOID_NAME, VOID_TYPE);
     /* SymbolTableEntry* tStr = declarePrimitiveType("", CONST_STRING_TYPE); */
-    if(!processProgramNode(root))
-        g_anyErrorOccur = 1;
+    if(!processProgramNode(root)) {
+        /* g_anyErrorOccur = 1; */
+    }
     closeScope();
     //symbolTableEnd();
 }
@@ -230,7 +292,8 @@ int processTypeNode(AST_NODE* typeNode)
         }
         SymbolAttribute* typeAttribute = typeEntry->attribute;
         if (typeAttribute->attributeKind != TYPE_ATTRIBUTE) {
-            // TODO: error - not a type
+            // TODO: error - SYMBOL_IS_NOT_TYPE
+            printErrorMsg(typeNode, SYMBOL_IS_NOT_TYPE);
             retval = false;
             break;
         }
@@ -281,6 +344,7 @@ int declareNormalId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* att
             type->properties.dataType == VOID_TYPE &&
             attribute->attributeKind == VARIABLE_ATTRIBUTE) {
         // TODO: error - VOID_VARIABLE
+        printErrorMsg(idNode, VOID_VARIABLE);
         return false;
     }
     return true;
@@ -307,6 +371,7 @@ int declareArrayId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attr
             if (typeDescriptor->properties.arrayProperties.dimension + 
                     type->properties.arrayProperties.dimension > MAX_ARRAY_DIMENSION) {
                 // TODO: error - EXCESSIVE_ARRAY_DIM_DECLARATION
+                printErrorMsg(idNode, EXCESSIVE_ARRAY_DIM_DECLARATION);
                 retval = false;
                 break;
             }
@@ -322,10 +387,12 @@ int declareArrayId(AST_NODE* idNode, TypeDescriptor* type, SymbolAttribute* attr
             if (type->properties.dataType == VOID_TYPE) {
                 if (attribute->attributeKind == VARIABLE_ATTRIBUTE) {
                     // TODO: error - VOID_VARIABLE
+                    printErrorMsg(idNode, VOID_VARIABLE);
                     retval = false;
                 }
                 if (attribute->attributeKind == TYPE_ATTRIBUTE) {
                     // TODO: error - TYPEDEF_VOID_ARRAY
+                    printErrorMsg(idNode, TYPEDEF_VOID_ARRAY);
                     retval = false;
                 }
             } else {
@@ -498,6 +565,7 @@ int checkFunctionCall(AST_NODE* funcNode)
         SymbolAttribute* typeAttribute = funcEntry->attribute;
         if (typeAttribute->attributeKind != FUNCTION_SIGNATURE) {
             // TODO: error - not a func
+            printErrorMsg(funcNode, NOT_FUNCTION_NAME);
             retval = false;
             break;
         }
@@ -637,21 +705,26 @@ int evaluateExprValue(AST_NODE* exprNode)
             case FLOAT_PTR_TYPE:
                 retval = false;
                 // TODO: error - array operation
+                printErrorMsg(exprNode, PTR_OPERATION);
                 exprNode->semantic_value.exprSemanticValue.isConstEval = false;
                 return false;
             case CONST_STRING_TYPE:
                 retval = false;
                 // TODO: error - string operation
+                printErrorMsg(exprNode, STRING_OPERATION);
                 exprNode->semantic_value.exprSemanticValue.isConstEval = false;
                 return false;
             case VOID_TYPE:
                 retval = false;
                 // TODO: error - void operation
+                printErrorMsg(exprNode, VOID_OPERATION);
                 exprNode->semantic_value.exprSemanticValue.isConstEval = false;
                 return false;
             case NONE_TYPE:
+                printErrorMsg(exprNode, NONE_OPERATION);
                 assert(0/* Operation on strange type */);
-                break;
+                exprNode->semantic_value.exprSemanticValue.isConstEval = false;
+                return false;
         }
         setExprType(exprNode, getBiggerType(getExprType(exprNode), getExprType(operand)));
         if (!isConstExpr(operand)) {
@@ -696,32 +769,41 @@ int evaluateExprValue(AST_NODE* exprNode)
                 if (getExprValue(y) == 0) {
                     retval = false;
                     // TODO: error - division by zero
+                    printErrorMsg(exprNode, DIV_ZERO);
                 } else {
                     setExprValue(exprNode, getExprValue(x) / getExprValue(y));
                 }
                 break;
             case BINARY_OP_EQ:
+                setExprType(exprNode, INT_TYPE);
                 setExprValue(exprNode, getExprValue(x) == getExprValue(y));
                 break;
             case BINARY_OP_GE:
+                setExprType(exprNode, INT_TYPE);
                 setExprValue(exprNode, getExprValue(x) >= getExprValue(y));
                 break;
             case BINARY_OP_LE:
+                setExprType(exprNode, INT_TYPE);
                 setExprValue(exprNode, getExprValue(x) <= getExprValue(y));
                 break;
             case BINARY_OP_NE:
+                setExprType(exprNode, INT_TYPE);
                 setExprValue(exprNode, getExprValue(x) != getExprValue(y));
                 break;
             case BINARY_OP_GT:
+                setExprType(exprNode, INT_TYPE);
                 setExprValue(exprNode, getExprValue(x) > getExprValue(y));
                 break;
             case BINARY_OP_LT:
+                setExprType(exprNode, INT_TYPE);
                 setExprValue(exprNode, getExprValue(x) < getExprValue(y));
                 break;
             case BINARY_OP_AND:
+                setExprType(exprNode, INT_TYPE);
                 setExprValue(exprNode, getExprValue(x) && getExprValue(y));
                 break;
             case BINARY_OP_OR:
+                setExprType(exprNode, INT_TYPE);
                 setExprValue(exprNode, getExprValue(x) || getExprValue(y));
                 break;
             default:
@@ -752,6 +834,7 @@ int processExprNode(AST_NODE* exprNode)
     if (stringOperation) {
         retval = false;
         // TODO: error - STRING_OPERATION
+        printErrorMsg(exprNode, STRING_OPERATION);
     }
     if(!evaluateExprValue(exprNode)) {
         retval = false;
@@ -774,8 +857,15 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
             break;
         }
         SymbolAttribute* typeAttribute = idEntry->attribute;
-        if (typeAttribute->attributeKind != VARIABLE_ATTRIBUTE) {
+        if (typeAttribute->attributeKind == TYPE_ATTRIBUTE) {
             // TODO: error - not a variable
+            printErrorMsg(idNode, IS_TYPE_NOT_VARIABLE);
+            retval = false;
+            break;
+        }
+        if (typeAttribute->attributeKind == FUNCTION_SIGNATURE) {
+            // TODO: error - not a variable
+            printErrorMsg(idNode, IS_FUNCTION_NOT_VARIABLE);
             retval = false;
             break;
         }
@@ -783,13 +873,7 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
         TypeDescriptor* typeDescriptor = getTypeDescriptor(idNode);
         
         if (getIDKind(idNode) == NORMAL_ID) {
-            if (typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR && !isParameter) {
-                // TODO: error - INCOMPATIBLE_ARRAY_DIMENSION
-                printErrorMsg(idNode, RETURN_TYPE_UNMATCH);
-                retval = false;
-                break;
-            }
-            if (typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR && isParameter) {
+            if (typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR) {
                 DATA_TYPE elementType = typeDescriptor->properties.arrayProperties.elementType;
                 switch(elementType) {
                     case INT_TYPE:
@@ -798,6 +882,11 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
                     case FLOAT_TYPE:
                         idNode->dataType = FLOAT_PTR_TYPE;
                         break;
+                }
+                if (!isParameter) {
+                    // TODO: error - INCOMPATIBLE_ARRAY_DIMENSION
+                    printErrorMsg(idNode, INCOMPATIBLE_ARRAY_DIMENSION);
+                    retval = false;
                 }
                 break;
             }
@@ -810,29 +899,26 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
                 retval &= processExprRelatedNode(dimNodes);
                 if (dimNodes->dataType != INT_TYPE && dimNodes->dataType != ERROR_TYPE) {
                     // TODO: error - ARRAY_SUBSCRIPT_NOT_INT
-                    puts("B");
                     printErrorMsg(idNode, ARRAY_SUBSCRIPT_NOT_INT);
                     retval = false;
                 }
             }
             if (typeDescriptor->kind != ARRAY_TYPE_DESCRIPTOR) {
                 // TODO: error - NOT_ARRAY
+                printErrorMsg(idNode, NOT_ARRAY);
                 retval = false;
                 break;
             }
-            int trueDim = typeDescriptor->properties.arrayProperties.dimension;
-            if (dimensions < trueDim && isParameter) {
-                DATA_TYPE elementType = typeDescriptor->properties.arrayProperties.elementType;
-                switch(elementType) {
-                    case INT_TYPE:
-                        idNode->dataType = INT_PTR_TYPE;
-                        break;
-                    case FLOAT_TYPE:
-                        idNode->dataType = FLOAT_PTR_TYPE;
-                        break;
-                }
-                break;
+            DATA_TYPE elementType = typeDescriptor->properties.arrayProperties.elementType;
+            switch(elementType) {
+                case INT_TYPE:
+                    idNode->dataType = INT_PTR_TYPE;
+                    break;
+                case FLOAT_TYPE:
+                    idNode->dataType = FLOAT_PTR_TYPE;
+                    break;
             }
+            int trueDim = typeDescriptor->properties.arrayProperties.dimension;
             if (dimensions != trueDim) {
                 // TODO: error - INCOMPATIBLE_ARRAY_DIMENSION
                 printErrorMsg(idNode, INCOMPATIBLE_ARRAY_DIMENSION);
@@ -842,7 +928,6 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
             idNode->dataType = typeDescriptor->properties.arrayProperties.elementType;
         }
     }
-    if (!retval) idNode->dataType = ERROR_TYPE;
     return retval;
 }
 
@@ -1155,6 +1240,7 @@ int processDeclDimList(AST_NODE* dimList, TypeDescriptor* typeDescriptor, int is
     unpack(iterator, firstDim);
     if (!isParameter && isNullNode(firstDim)) {
         // TODO: error - empty array dim
+        printErrorMsg(firstDim, ARRAY_SIZE_NOT_INT);
         addArrayDim(arrayProperties, -1);
     } else if (isParameter && isNullNode(firstDim)) {
         switch(elementType) {
@@ -1166,6 +1252,8 @@ int processDeclDimList(AST_NODE* dimList, TypeDescriptor* typeDescriptor, int is
                 break;
             case VOID_TYPE:
                 // TODO: error - void array
+                /* printErrorMsg(firstDim, VOID_ARRAY); */
+                /* retval = false; */
                 break;
             default:
                 assert(0/* invalid type for dimension */);
@@ -1189,6 +1277,7 @@ int processDeclDimList(AST_NODE* dimList, TypeDescriptor* typeDescriptor, int is
             }
             if (!isConstExpr(iterator)) {
                 // TODO: error - array size not constant
+                // enforced by grammar
                 retval = false;
                 addArrayDim(arrayProperties, -3);
                 break;
@@ -1202,6 +1291,7 @@ int processDeclDimList(AST_NODE* dimList, TypeDescriptor* typeDescriptor, int is
             }
             if (getExprValue(iterator) < 0) {
                 // TODO: error - ARRAY_SIZE_NEGATIVE
+                printErrorMsg(dimList, ARRAY_SIZE_NEGATIVE);
                 retval = false;
                 addArrayDim(arrayProperties, -5);
                 break;
@@ -1215,6 +1305,7 @@ int processDeclDimList(AST_NODE* dimList, TypeDescriptor* typeDescriptor, int is
     if (excessiveDim) {
         retval = false;
         // TODO: error - EXCESSIVE_ARRAY_DIM_DECLARATION
+        printErrorMsg(dimList, EXCESSIVE_ARRAY_DIM_DECLARATION);
     }
 
     return retval;
@@ -1256,7 +1347,8 @@ int declareFunction(AST_NODE* iterator)
 
         TypeDescriptor* typeDescriptor = getTypeDescriptor(typeNode);
         if (typeDescriptor->kind != SCALAR_TYPE_DESCRIPTOR) {
-            // TODO: error - RETURN_ARRAY
+            // TODO: error - RETURN_ARRAY_DECL
+            printErrorMsg(typeNode, DECL_RETURN_ARRAY);
             retval = false;
             signature->returnType = ERROR_TYPE;
             break;
