@@ -542,6 +542,35 @@ int checkWriteFunction(AST_NODE* funcNode)
     return retval;
 }
 
+int checkReadFunction(AST_NODE* funcNode)
+{
+    assert(funcNode->nodeType == STMT_NODE);
+    assert(getStmtKind(funcNode) == FUNCTION_CALL_STMT);
+    int retval = true;
+    funcNode->dataType = INT_TYPE;
+    AST_NODE *iterator = funcNode->child;
+    unpack(iterator, idNode, paramNode);
+    assert(paramNode->nodeType == NUL_NODE ||
+            paramNode->nodeType == NONEMPTY_RELOP_EXPR_LIST_NODE);
+
+    loop1 {
+        if (paramNode->nodeType == NUL_NODE) {
+            break;
+        }
+        AST_NODE* ap = paramNode->child;
+        forEach(ap) {
+            if (ap->nodeType == IDENTIFIER_NODE) {
+                retval &= processVariableValue(ap, true);
+            } else if (ap->nodeType == CONST_VALUE_NODE && getConstType(ap) == STRINGC) {
+                // Don't check
+            } else {
+                retval &= processExprRelatedNode(ap);
+            }
+        }
+    }
+    return retval;
+}
+
 int checkFunctionCall(AST_NODE* funcNode)
 {
     assert(funcNode->nodeType == STMT_NODE);
@@ -553,6 +582,14 @@ int checkFunctionCall(AST_NODE* funcNode)
     loop1{
         if (strcmp(getIDName(idNode), "write") == 0) {
             retval &= checkWriteFunction(funcNode);
+            break;
+        }
+        if (strcmp(getIDName(idNode), "read") == 0) {
+            retval &= checkReadFunction(funcNode);
+            break;
+        }
+        if (strcmp(getIDName(idNode), "fread") == 0) {
+            retval &= checkReadFunction(funcNode);
             break;
         }
         SymbolTableEntry* funcEntry = retrieveSymbol(getIDName(idNode));
