@@ -785,7 +785,7 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
         if (getIDKind(idNode) == NORMAL_ID) {
             if (typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR && !isParameter) {
                 // TODO: error - INCOMPATIBLE_ARRAY_DIMENSION
-                printErrorMsg(idNode, INCOMPATIBLE_ARRAY_DIMENSION);
+                printErrorMsg(idNode, RETURN_TYPE_UNMATCH);
                 retval = false;
                 break;
             }
@@ -810,6 +810,7 @@ int processVariableValue(AST_NODE* idNode, int isParameter)
                 retval &= processExprRelatedNode(dimNodes);
                 if (dimNodes->dataType != INT_TYPE && dimNodes->dataType != ERROR_TYPE) {
                     // TODO: error - ARRAY_SUBSCRIPT_NOT_INT
+                    puts("B");
                     printErrorMsg(idNode, ARRAY_SUBSCRIPT_NOT_INT);
                     retval = false;
                 }
@@ -979,7 +980,6 @@ int processAssignStmt(AST_NODE *assignNode)
         DATA_TYPE exprType = relopExpr->dataType;
         
         if (idType == INT_PTR_TYPE || idType == FLOAT_PTR_TYPE){
-            puts("A");
             printErrorMsg(assignNode, NOT_ASSIGNABLE);
             return 0;
         }
