@@ -59,17 +59,30 @@ void genTypeDecl(AST_NODE *typeDeclNode)
     return;
 }
 
+int getArraySize(AST_NODE *dim){
+    int size = 1;
+    forEach(dim){
+        size *= getExprValue(dim);
+    }
+    return size;
+}
+
 void genVariableDecl(AST_NODE *variableDeclNode)
 {
     AST_NODE *it = variableDeclNode;
     unpack(it, type, id_list);
     forEach(id_list){
-        fprintf(output, "_g_%s: .word 0\n", getIDName(id_list));
+        if (id_list->child){
+            int size = getArraySize(id_list->child);
+            fprintf(output, "_g_%s: .space %d\n", getIDName(id_list), size);
+        } else{
+            fprintf(output, "_g_%s: .word 0\n", getIDName(id_list));
+        }
     }
 }
 
 void genFunctionDecl(AST_NODE *functionDeclNode)
 {
-    assert()
+    assert(1);
 }
 
