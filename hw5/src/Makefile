@@ -7,10 +7,10 @@ YACC = bison -v
 YACCFLAG = -d
 LIBS = -lfl 
 
-parser: parser.tab.o alloc.o functions.o symbolTable.o semanticAnalysis.o 
-	$(CC) -o $(TARGET) parser.tab.o alloc.o functions.o symbolTable.o semanticAnalysis.o $(LIBS)
+parser: parser.tab.o alloc.o functions.o symbolTable.o semanticAnalysis.o codeGeneration.o
+	$(CC) -o $(TARGET) parser.tab.o alloc.o functions.o symbolTable.o semanticAnalysis.o codeGeneration.o $(LIBS)
 
-parser.tab.o: parser.tab.c lex.yy.c alloc.o functions.c symbolTable.o semanticAnalysis.o
+parser.tab.o: parser.tab.c lex.yy.c alloc.o functions.c symbolTable.o semanticAnalysis.o codeGeneration.o
 	$(CC) -c parser.tab.c
     
 semanticAnalysis.o: semanticAnalysis.c symbolTable.o
@@ -30,6 +30,9 @@ alloc.o: alloc.c
 	
 functions.o: functions.c
 	$(CC) -c functions.c
+
+codeGeneration.o: codeGeneration.c
+	$(CC) -c codeGeneration.c
 
 clean:
 	rm -f $(TARGET) $(OBJECT) $(OUTPUT)

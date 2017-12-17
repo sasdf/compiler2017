@@ -765,11 +765,13 @@ char *argv[];
      initializeSymbolTable();
 
      semanticAnalysis(prog);
+     codeGeneration(prog);
 
      symbolTableEnd();
      if (!g_anyErrorOccur) {
         printf("Parsing completed. No errors found.\n");
      }
+
   } /* main */
 
 
