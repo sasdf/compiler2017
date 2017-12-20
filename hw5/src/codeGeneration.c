@@ -12,13 +12,20 @@ void genVariableDeclList(AST_NODE *declListNode);
 void genTypeDecl(AST_NODE *typeDeclNode);
 void genVariableDecl(AST_NODE *variableDeclNode);
 void genFunctionDecl(AST_NODE *functionDeclNode);
-void genBlock(AST_NODE *block, DATA_TYPE returnType);
+void genBlock(AST_NODE *block);
 int getVariableListSize(AST_NODE *declListNode);
 int getVariableSize(AST_NODE *declNode);
 void genFunctionPrologue(int size);
 void genFunctionEpilogue(int size, DATA_TYPE returnType);
 void genStmtList(AST_NODE *stmtList);
 void genStmt(AST_NODE *stmt);
+void genWhile(AST_NODE *whileNode);
+void genAssign(AST_NODE *assignNode);
+void genIf(AST_NODE *ifNode);
+void genFunctionCall(AST_NODE *functionCallNode);
+void genReturn(AST_NODE *returnNode);
+
+void genRelopExpr(AST_NODE *relopExpr);
 
 FILE *output;
 
@@ -109,12 +116,12 @@ void genFunctionDecl(AST_NODE *functionDeclNode)
     printf("local stack size %d\n", size);
     genFunctionPrologue(size);
 
-    genBlock(block, returnType);
+    genBlock(block);
 
     genFunctionEpilogue(size, returnType);
 }
 
-void genBlock(AST_NODE *block, DATA_TYPE returnType)
+void genBlock(AST_NODE *block)
 {
     assert(block->nodeType == BLOCK_NODE);
     
@@ -209,6 +216,66 @@ void genStmtList(AST_NODE *stmtList)
 
 void genStmt(AST_NODE *stmt)
 {
-    
+    switch(stmt->nodeType){
+        case BLOCK_NODE:
+            genBlock(stmt);
+            break;
+        case STMT_NODE:
+            switch(getStmtKind(stmt)){
+                case WHILE_STMT:
+                    genWhile(stmt->child);
+                    break;
+                case ASSIGN_STMT:
+                    genAssign(stmt->child);
+                    break;
+                case IF_STMT:
+                    genIf(stmt->child);
+                    break;
+                case FUNCTION_CALL_STMT:
+                    genFunctionCall(stmt->child);
+                    break;
+                case RETURN_STMT:
+                    genReturn(stmt->child);
+                    break;
+                default:
+                    puts("Undefined statement");
+            }
+            break;
+        case NUL_NODE:
+            // nothing to do
+            break;
+        default:
+            puts("Undefined stmt node");
+    }
+}
+
+void genWhile(AST_NODE *whileNode)
+{
+
+}
+
+void genAssign(AST_NODE *assignNode)
+{
+
+}
+
+void genIf(AST_NODE *ifNode)
+{
+
+}
+
+void genFunctionCall(AST_NODE *functionCallNode)
+{
+
+}
+
+void genReturn(AST_NODE *returnNode)
+{
+
+}
+
+void genRelopExpr(AST_NODE *relopExpr)
+{
+
 }
 
