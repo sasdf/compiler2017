@@ -17,6 +17,7 @@ int getVariableListSize(AST_NODE *declListNode);
 int getVariableSize(AST_NODE *declNode);
 void genFunctionPrologue(int size);
 void genFunctionEpilogue(int size, DATA_TYPE returnType);
+void genStmtList(AST_NODE *stmtList);
 void genStmt(AST_NODE *stmt);
 
 FILE *output;
@@ -96,30 +97,28 @@ void genFunctionDecl(AST_NODE *functionDeclNode)
     AST_NODE *it = functionDeclNode->child;
     unpack(it, head, id, param, block);
 
-    SymbolTableEntry *st = getTypeEntry(head);
-    //FunctionSignature *fs = getHeadFunctionSignature(head);
-    FunctionSignature *fs = getFunctionSignature(functionDeclNode);
-    __asm__("int3");
-    DATA_TYPE returnType = getHeadFunctionSignature(head)->returnType;
+    TypeDescriptor *td = getTypeDescriptor(head);
+    DATA_TYPE returnType = td->properties.dataType;
     fprintf(output, "_%s:\n", getIDName(id));
     // this hw only has parameterless function call
     // no need to proceed param
+    
+    int size = 0;
+    // size = ...
+    size = countDeclListInBlock(block);
+    printf("local stack size %d\n", size);
+    genFunctionPrologue(size);
+
     genBlock(block, returnType);
+
+    genFunctionEpilogue(size, returnType);
 }
 
 void genBlock(AST_NODE *block, DATA_TYPE returnType)
 {
     assert(block->nodeType == BLOCK_NODE);
     
-    int size = 0;
-    // size = ...
     AST_NODE *it = block->child;
-    if (it->nodeType == VARIABLE_DECL_LIST_NODE){
-        size = getVariableListSize(it);
-    }
-    printf("local stack size %d\n", size);
-    genFunctionPrologue(size);
-
     // block -> decl_list stmt_list
     if (it->rightSibling){
         unpack(it, decl_list, stmt_list);
@@ -131,14 +130,28 @@ void genBlock(AST_NODE *block, DATA_TYPE returnType)
         if (it->nodeType == VARIABLE_DECL_LIST_NODE){
             // nothing to do
         } else if (it->nodeType == STMT_LIST_NODE){
-            genStmt(it);
+            genStmtList(it);
         } else {
             puts("Undefined block child nodeType");
         }
     }
 
-    genFunctionEpilogue(size, returnType);
     //__asm__("int3");
+}
+
+int countDeclListInBlock(AST_NODE *curr)
+{
+    int size = 0;
+    if (curr->child){
+        AST_NODE *it = curr->child;
+        forEach(it){
+            if (it->nodeType == VARIABLE_DECL_LIST_NODE){
+                size += getVariableListSize(it);
+            }
+            size += countDeclListInBlock(it);
+        }
+    }
+    return size;
 }
 
 int getVariableListSize(AST_NODE *declListNode)
@@ -186,7 +199,16 @@ void genFunctionEpilogue(int size, DATA_TYPE returnType)
 
 }
 
+void genStmtList(AST_NODE *stmtList)
+{
+    AST_NODE *it = stmtList->child;
+    forEach(it){
+        genStmt(it);
+    }
+}
+
 void genStmt(AST_NODE *stmt)
 {
-
+    
 }
+
