@@ -36,6 +36,7 @@ REG genVariableRef(AST_NODE *idNode);
 REG genConstValue(AST_NODE *constValueNode);
 
 FILE *output;
+int const_n;
 
 void codeGeneration(AST_NODE *root)
 {
@@ -98,6 +99,7 @@ void genVariableDecl(AST_NODE *variableDeclNode)
     AST_NODE *it = variableDeclNode;
     unpack(it, type, id_list);
     forEach(id_list){
+        setIDGlobal(id_list, 1);
         if (id_list->child){
             int size = getArrayCount(id_list->child)*4;
             fprintf(output, "_g_%s: .space %d\n", getIDName(id_list), size);
@@ -114,7 +116,7 @@ void genFunctionDecl(AST_NODE *functionDeclNode)
 
     TypeDescriptor *td = getTypeDescriptor(head);
     DATA_TYPE returnType = td->properties.dataType;
-    fprintf(output, "_%s:\n", getIDName(id));
+    fprintf(output, "_start_%s:\n", getIDName(id));
     // this hw only has parameterless function call
     // no need to proceed param
     
@@ -194,6 +196,8 @@ void countVariableSize(AST_NODE *declNode, int* size)
     assert ( getIDAttr(id_list)->attributeKind == VARIABLE_ATTRIBUTE );
     forEach(id_list){
         setIDOffset(id_list, *size);
+        //printf("%s offset %d\n", getIDName(id_list), getIDOffset(id_list));
+        setIDGlobal(id_list, 0);
         if (id_list->child){
             *size += getArrayCount(id_list->child)*4;
         } else{
@@ -204,7 +208,22 @@ void countVariableSize(AST_NODE *declNode, int* size)
 
 void genFunctionPrologue(int size)
 {
-
+    fprintf(output, "str x30, [sp, #0]\n");
+    fprintf(output, "str x29, [sp, #-8]\n");
+    fprintf(output, "add x29, sp, #-8\n");
+    fprintf(output, "add sp, sp, #-16\n");
+    int offset = 0;
+    for(int i = 19; i <= 29; ++i){
+        offset += 8;
+        fprintf(adotout, "str x%d, [x29, #%d]\n", i, -offset);
+    }
+    fprintf(output, ".data\n");
+    fprintf(output, "_AR_SIZE_%d: .word %d\n", const_n, offset);
+    fprintf(output, ".align 3\n");
+    fprintf(output, ".text\n");
+    fprintf(output, "ldr w19, _AR_SIZE_%d\n", const_n);
+    fprintf(output, "sub sp, sp, w19\n");
+    ++const_n;
 }
 
 void genFunctionEpilogue(int size, DATA_TYPE returnType)

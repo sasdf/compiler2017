@@ -6,4 +6,4 @@ _g_d: .word 0
 _g_e: .space 144
 _g_f: .word 0
 .text
-_main:
+_start_MAIN:
