@@ -13,8 +13,9 @@ void genTypeDecl(AST_NODE *typeDeclNode);
 void genVariableDecl(AST_NODE *variableDeclNode);
 void genFunctionDecl(AST_NODE *functionDeclNode);
 void genBlock(AST_NODE *block, DATA_TYPE returnType);
-int getVariableListSize(AST_NODE *declListNode);
-int getVariableSize(AST_NODE *declNode);
+void countDeclListInBlock(AST_NODE *curr, int* size);
+void countVariableListSize(AST_NODE *declListNode, int* size);
+void countVariableSize(AST_NODE *declNode, int* size);
 void genFunctionPrologue(int size);
 void genFunctionEpilogue(int size, DATA_TYPE returnType);
 void genStmtList(AST_NODE *stmtList);
@@ -105,7 +106,7 @@ void genFunctionDecl(AST_NODE *functionDeclNode)
     
     int size = 0;
     // size = ...
-    size = countDeclListInBlock(block);
+    countDeclListInBlock(block, &size);
     printf("local stack size %d\n", size);
     genFunctionPrologue(size);
 
@@ -139,24 +140,21 @@ void genBlock(AST_NODE *block, DATA_TYPE returnType)
     //__asm__("int3");
 }
 
-int countDeclListInBlock(AST_NODE *curr)
+void countDeclListInBlock(AST_NODE *curr, int* size)
 {
-    int size = 0;
     if (curr->child){
         AST_NODE *it = curr->child;
         forEach(it){
             if (it->nodeType == VARIABLE_DECL_LIST_NODE){
-                size += getVariableListSize(it);
+                countVariableListSize(it, size);
             }
-            size += countDeclListInBlock(it);
+            countDeclListInBlock(it, size);
         }
     }
-    return size;
 }
 
-int getVariableListSize(AST_NODE *declListNode)
+void countVariableListSize(AST_NODE *declListNode, int* size)
 {
-    int size = 0;
     AST_NODE *it = declListNode->child;
     forEach(it){
         assert(it->nodeType == DECLARATION_NODE);
@@ -165,28 +163,29 @@ int getVariableListSize(AST_NODE *declListNode)
                 // nothing to do
                 break;
             case VARIABLE_DECL:
-                size += getVariableSize(it->child);
+                countVariableSize(it->child, size);
                 break;
             default:
                 printf("Undefined variable list kind\n");
         }
     }
-    return size;
 }
 
-int getVariableSize(AST_NODE *declNode)
+void countVariableSize(AST_NODE *declNode, int* size)
 {
-    int size = 0;
     AST_NODE *it = declNode;
     unpack(it, type, id_list);
+    assert (id_list->nodeType == IDENTIFIER_NODE);
+    assert (getIDEntry(id_list) != NULL);
+    assert (getIDAttr(id_list)->attributeKind == VARIABLE_ATTRIBUTE);
     forEach(id_list){
+        setIDOffset(id_list, *size);
         if (id_list->child){
-            size += getArrayCount(id_list->child)*4;
+            *size += getArrayCount(id_list->child)*4;
         } else{
-            size += 4;
+            *size += 4;
         }
     }
-    return size;
 }
 
 void genFunctionPrologue(int size)
