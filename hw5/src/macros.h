@@ -52,6 +52,8 @@
 #define getIDAttr(idNode) (getIDEntry(idNode)->attribute)
 #define getIDOffset(idNode) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.typeDescriptor->offset)
 #define setIDOffset(idNode, val) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.typeDescriptor->offset = (val))
+#define getIDGlobal(idNode) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.typeDescriptor->global)
+#define setIDGlobal(idNode, val) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.typeDescriptor->global = (val))
 
 #define getDeclKind(declNode) (declNode->semantic_value.declSemanticValue.kind)
 #define setDeclKind(declNode, val) (declNode->semantic_value.declSemanticValue.kind = val)

@@ -32,10 +32,11 @@ REG genExprRelated(AST_NODE *exprRelated);
 REG genRelopExpr(AST_NODE *relopExpr);
 
 FILE *output;
+int const_n;
 
 void codeGeneration(AST_NODE *root)
 {
-    output = fopen("output.S", "w");
+    output = fopen("output.s", "w");
     genProgramNode(root);
     fclose(output);
     return;
@@ -94,6 +95,7 @@ void genVariableDecl(AST_NODE *variableDeclNode)
     AST_NODE *it = variableDeclNode;
     unpack(it, type, id_list);
     forEach(id_list){
+        setIDGlobal(id_list, 1);
         if (id_list->child){
             int size = getArrayCount(id_list->child)*4;
             fprintf(output, "_g_%s: .space %d\n", getIDName(id_list), size);
@@ -191,6 +193,7 @@ void countVariableSize(AST_NODE *declNode, int* size)
     forEach(id_list){
         setIDOffset(id_list, *size);
         //printf("%s offset %d\n", getIDName(id_list), getIDOffset(id_list));
+        setIDGlobal(id_list, 0);
         if (id_list->child){
             *size += getArrayCount(id_list->child)*4;
         } else{
@@ -201,7 +204,22 @@ void countVariableSize(AST_NODE *declNode, int* size)
 
 void genFunctionPrologue(int size)
 {
-
+    fprintf(output, "str x30, [sp, #0]\n");
+    fprintf(output, "str x29, [sp, #-8]\n");
+    fprintf(output, "add x29, sp, #-8\n");
+    fprintf(output, "add sp, sp, #-16\n");
+    int offset = 0;
+    for(int i = 19; i <= 29; ++i){
+        offset += 8;
+        fprintf(adotout, "str x%d, [x29, #%d]\n", i, -offset);
+    }
+    fprintf(output, ".data\n");
+    fprintf(output, "_AR_SIZE_%d: .word %d\n", const_n, offset);
+    fprintf(output, ".align 3\n");
+    fprintf(output, ".text\n");
+    fprintf(output, "ldr w19, _AR_SIZE_%d\n", const_n);
+    fprintf(output, "sub sp, sp, w19\n");
+    ++const_n;
 }
 
 void genFunctionEpilogue(int size, DATA_TYPE returnType)
