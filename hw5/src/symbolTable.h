@@ -37,6 +37,7 @@ typedef struct ArrayProperties
 typedef struct TypeDescriptor
 {
     int offset;
+    int global;
     TypeDescriptorKind kind;
     union
     {

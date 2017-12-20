@@ -28,8 +28,12 @@ void genIf(AST_NODE *ifNode);
 void genFunctionCall(AST_NODE *functionCallNode);
 void genReturn(AST_NODE *returnNode);
 
+REG getReg();
+void freeReg(REG reg);
 REG genExprRelated(AST_NODE *exprRelated);
 REG genRelopExpr(AST_NODE *relopExpr);
+REG genVariableRef(AST_NODE *idNode);
+REG genConstValue(AST_NODE *constValueNode);
 
 FILE *output;
 
@@ -185,9 +189,9 @@ void countVariableSize(AST_NODE *declNode, int* size)
 {
     AST_NODE *it = declNode;
     unpack(it, type, id_list);
-    assert (id_list->nodeType == IDENTIFIER_NODE);
-    assert (getIDEntry(id_list) != NULL);
-    assert (getIDAttr(id_list)->attributeKind == VARIABLE_ATTRIBUTE);
+    assert ( id_list->nodeType == IDENTIFIER_NODE );
+    assert ( getIDEntry(id_list) != NULL );
+    assert ( getIDAttr(id_list)->attributeKind == VARIABLE_ATTRIBUTE );
     forEach(id_list){
         setIDOffset(id_list, *size);
         if (id_list->child){
@@ -280,30 +284,75 @@ void genReturn(AST_NODE *returnNode)
 
 REG genExprRelated(AST_NODE *exprRelated)
 {
-    /* switch(exprRelatedNode->nodeType) */
-    /* { */
-    /* case EXPR_NODE: */
-        /* return genExprNode(exprRelatedNode); */
-        /* break; */
-    /* case STMT_NODE: */
-        /* //function call */
-        /* return genStmt(exprRelatedNode); */
-        /* break; */
-    /* case IDENTIFIER_NODE: */
-        /* return genVariableRef(exprRelatedNode); */
-        /* break; */
-    /* case CONST_VALUE_NODE: */
-        /* return genConstValueNode(exprRelatedNode); */
-        /* break; */
-    /* default: */
-        /* printf("Unhandle case in void processExprRelatedNode(AST_NODE* exprRelatedNode)\n"); */
-        /* exprRelatedNode->dataType = ERROR_TYPE; */
-        /* break; */
-    /* } */
+    switch(exprRelated->nodeType)
+    {
+    case EXPR_NODE:
+        return genRelopExpr(exprRelated);
+        break;
+    case STMT_NODE:
+        //function call
+        // TODO
+        /* return genFunctionCall(exprRelated); */
+        break;
+    case IDENTIFIER_NODE:
+        return genVariableRef(exprRelated);
+        break;
+    case CONST_VALUE_NODE:
+        return genConstValue(exprRelated);
+        break;
+    default:
+        printf("Unhandle case in void processExprRelatedNode(AST_NODE* exprRelatedNode)\n");
+        exprRelated->dataType = ERROR_TYPE;
+        break;
+    }
+}
+
+#define NUM_REG 28
+int isRegInUse[NUM_REG];
+
+REG getReg()
+{
+    for (int i=1; i<NUM_REG; ++i) {
+        if (!isRegInUse[i]) {
+            isRegInUse[i] = 1;
+            return i;
+        }
+    }
+    assert ( 0 && "No more register" );
+}
+
+void freeReg(REG reg)
+{
+    assert ( reg >= 1 && reg < NUM_REG );
+    isRegInUse[reg] = 0;
 }
 
 REG genRelopExpr(AST_NODE *relopExpr)
 {
+
+}
+
+REG genVariableRef(AST_NODE *idNode)
+{
+    assert ( idNode->nodeType == IDENTIFIER_NODE );
+    assert ( getIDEntry(idNode) != NULL );
+    assert ( getIDAttr(idNode)->attributeKind == VARIABLE_ATTRIBUTE );
+    TypeDescriptor* typeDescriptor = getIDTypeDescriptor(idNode);
+    REG reg = getReg();
+    if (typeDescriptor->global) {
+        // TODO: mov %reg, %getIDName(idNode)
+    } else {
+        // TODO: mov %reg, [x29, #%getIDOffset(idNode)]
+    }
+    return reg;
+}
+
+REG genConstValue(AST_NODE *constValueNode)
+{
+    assert ( constValueNode->nodeType == CONST_VALUE_NODE );
+    REG reg = getReg();
+    // TODO: mov %reg, %const;
+    return reg;
 
 }
 
