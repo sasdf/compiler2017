@@ -96,9 +96,10 @@ void genFunctionDecl(AST_NODE *functionDeclNode)
     AST_NODE *it = functionDeclNode->child;
     unpack(it, head, id, param, block);
 
-    //SymbolTableEntry *st = getTypeEntry(head);
+    SymbolTableEntry *st = getTypeEntry(head);
     //FunctionSignature *fs = getHeadFunctionSignature(head);
-    //__asm__("int3");
+    FunctionSignature *fs = getFunctionSignature(functionDeclNode);
+    __asm__("int3");
     DATA_TYPE returnType = getHeadFunctionSignature(head)->returnType;
     fprintf(output, "_%s:\n", getIDName(id));
     // this hw only has parameterless function call
