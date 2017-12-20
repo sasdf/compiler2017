@@ -8,6 +8,7 @@ float main(int argc, int argv){
     float f;
     {
         int jizz[10][10][10];
+        float yee;
     }
     return 0;
 }

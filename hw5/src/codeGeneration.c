@@ -32,7 +32,7 @@ FILE *output;
 
 void codeGeneration(AST_NODE *root)
 {
-    output = fopen("output.s", "w");
+    output = fopen("output.S", "w");
     genProgramNode(root);
     fclose(output);
     return;
@@ -107,7 +107,7 @@ void genFunctionDecl(AST_NODE *functionDeclNode)
 
     TypeDescriptor *td = getTypeDescriptor(head);
     DATA_TYPE returnType = td->properties.dataType;
-    fprintf(output, "_%s:\n", getIDName(id));
+    fprintf(output, "_start_%s:\n", getIDName(id));
     // this hw only has parameterless function call
     // no need to proceed param
     
@@ -187,6 +187,7 @@ void countVariableSize(AST_NODE *declNode, int* size)
     assert (getIDAttr(id_list)->attributeKind == VARIABLE_ATTRIBUTE);
     forEach(id_list){
         setIDOffset(id_list, *size);
+        //printf("%s offset %d\n", getIDName(id_list), getIDOffset(id_list));
         if (id_list->child){
             *size += getArrayCount(id_list->child)*4;
         } else{

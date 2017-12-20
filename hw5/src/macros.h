@@ -50,7 +50,7 @@
 #define getIDEntry(idNode) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry)
 #define setIDEntry(idNode, val) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry = val)
 #define getIDAttr(idNode) (getIDEntry(idNode)->attribute)
-#define getIDOffset(idNode) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry.attribute->attr.typeDescriptor->offset)
+#define getIDOffset(idNode) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.typeDescriptor->offset)
 #define setIDOffset(idNode, val) (idNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.typeDescriptor->offset = (val))
 
 #define getDeclKind(declNode) (declNode->semantic_value.declSemanticValue.kind)
