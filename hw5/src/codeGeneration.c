@@ -6,6 +6,8 @@
 #include "symbolTable.h"
 #include "macros.h"
 
+typedef int REG;
+
 void codeGeneration(AST_NODE *root);
 void genProgramNode(AST_NODE *root);
 void genVariableDeclList(AST_NODE *declListNode);
@@ -26,7 +28,8 @@ void genIf(AST_NODE *ifNode);
 void genFunctionCall(AST_NODE *functionCallNode);
 void genReturn(AST_NODE *returnNode);
 
-void genRelopExpr(AST_NODE *relopExpr);
+REG genExprRelated(AST_NODE *exprRelated);
+REG genRelopExpr(AST_NODE *relopExpr);
 
 FILE *output;
 
@@ -270,10 +273,36 @@ void genFunctionCall(AST_NODE *functionCallNode)
 
 void genReturn(AST_NODE *returnNode)
 {
-
+    unpack(returnNode->child, exprRelated);
+    REG reg = genExprRelated(exprRelated);
+    // TODO; mov w0, %reg
 }
 
-void genRelopExpr(AST_NODE *relopExpr)
+REG genExprRelated(AST_NODE *exprRelated)
+{
+    /* switch(exprRelatedNode->nodeType) */
+    /* { */
+    /* case EXPR_NODE: */
+        /* return genExprNode(exprRelatedNode); */
+        /* break; */
+    /* case STMT_NODE: */
+        /* //function call */
+        /* return genStmt(exprRelatedNode); */
+        /* break; */
+    /* case IDENTIFIER_NODE: */
+        /* return genVariableRef(exprRelatedNode); */
+        /* break; */
+    /* case CONST_VALUE_NODE: */
+        /* return genConstValueNode(exprRelatedNode); */
+        /* break; */
+    /* default: */
+        /* printf("Unhandle case in void processExprRelatedNode(AST_NODE* exprRelatedNode)\n"); */
+        /* exprRelatedNode->dataType = ERROR_TYPE; */
+        /* break; */
+    /* } */
+}
+
+REG genRelopExpr(AST_NODE *relopExpr)
 {
 
 }
