@@ -306,11 +306,18 @@ void genWhile(AST_NODE *whileNode)
 
 void genAssignStmt(AST_NODE *assignNode)
 {
-
+    AST_NODE *it = whileNode;
+    unpack(it, id, relop_expr);
+    // TODO variable reference
+    REG right_reg = genExprRelated(relop_expr);
+    // stack[offset] = right_reg
 }
 
 void genIf(AST_NODE *ifNode)
 {
+    AST_NODE *it = whileNode;
+    unpack(it, test, stmt, elseStmt);
+
 
 }
 
