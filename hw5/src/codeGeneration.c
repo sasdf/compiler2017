@@ -489,290 +489,230 @@ void genAlignment(){
     fprintf(output, ".align 3\n");
 }
 
-REG genBoolean(char* branch)
+/*
+void genBranchBoolean(REG LReg, REG RReg, char* branch, bool isFloat)
 {
     static int counter = 0;
-    REG reg = getReg();
+    if (isFloat) {
+        fprintf(output, "cmp s%d, s%d\n", LReg, RReg);
+    } else {
+        fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
+    }
     fprintf(output, "%s _TRUE_%d\n", branch, counter);
-    fprintf(output, "mov w%d, #0\n", reg);
+    fprintf(output, "mov w%d, #0\n", LReg);
     fprintf(output, "b _BOOLEAN_END_%d\n", counter);
     fprintf(output, "_TRUE_%d:\n", counter);
-    fprintf(output, "mov w%d, #1\n", reg);
+    fprintf(output, "mov w%d, #1\n", LReg);
     fprintf(output, "_BOOLEAN_END_%d:\n", counter);
     counter++;
-    return reg;
 }
+*/
 
 REG genRelopExpr(AST_NODE *exprNode)
 {
-    /* AST_NODE* it = exprNode->child; */
+    AST_NODE* it = exprNode->child;
 
-    /* if (isConstExpr(exprNode)) */
-        /* return genConstValue(exprNode); */
+    if (isConstExpr(exprNode))
+        return genConstValue(exprNode);
 
-	/* if (getExprKind(exprNode) == BINARY_OPERATION) { */
-        /* unpack(it, lvalue, rvalue); */
+    if (getExprKind(exprNode) == BINARY_OPERATION) {
+        unpack(it, lvalue, rvalue);
 
-        /* REG LReg = genExprRelated(lvalue); */
-        /* REG RReg = genExprRelated(rvalue); */
+        REG LReg = genExprRelated(lvalue);
+        REG RReg = genExprRelated(rvalue);
 
-        /* if(lvalue->dataType == INT_TYPE && rvalue->dataType == INT_TYPE){ */
-            /* switch(getExprOp(exprNode)){ */
-                /* case BINARY_OP_ADD: */
-                    /* fprintf(output, "add w%d, w%d, w%d\n", LReg, LReg, RReg); */
-                    /* break; */
-                /* case BINARY_OP_SUB: */
-                    /* fprintf(output, "sub w%d, w%d, w%d\n", LReg, LReg, RReg); */
-                    /* break; */
-                /* case BINARY_OP_MUL: */
-                    /* fprintf(output, "mul w%d, w%d, w%d\n", LReg, LReg, RReg); */
-                    /* break; */
-                /* case BINARY_OP_DIV: */
-                    /* fprintf(output, "sdiv w%d, w%d, w%d\n", LReg, LReg, RReg); */
-                    /* break; */
+        if(lvalue->dataType == INT_TYPE && rvalue->dataType == INT_TYPE){
+            switch(getExprOp(exprNode)){
+                case BINARY_OP_ADD:
+                    fprintf(output, "add w%d, w%d, w%d\n", LReg, LReg, RReg);
+                    break;
+                case BINARY_OP_SUB:
+                    fprintf(output, "sub w%d, w%d, w%d\n", LReg, LReg, RReg);
+                    break;
+                case BINARY_OP_MUL:
+                    fprintf(output, "mul w%d, w%d, w%d\n", LReg, LReg, RReg);
+                    break;
+                case BINARY_OP_DIV:
+                    fprintf(output, "sdiv w%d, w%d, w%d\n", LReg, LReg, RReg);
+                    break;
 
-                /* case BINARY_OP_EQ: */
-                    /* fprintf(output, "cmp w%d, w%d\n", LReg, RReg); */
-                    /* reg = genBoolean("beq"); */
-                    /* break; */
-                /* case BINARY_OP_GE: */
-                    /* fprintf(output, "cmp w%d, w%d\n", LReg, RReg); */
-                    /* reg = genBoolean("bge"); */
-                    /* break; */
-                /* case BINARY_OP_LE: */
-                    /* fprintf(output, "cmp w%d, w%d\n", LReg, RReg); */
-                    /* reg = genBoolean("ble"); */
-                    /* break; */
-                /* case BINARY_OP_NE: */
-                    /* fprintf(output, "cmp w%d, w%d\n", LReg, RReg); */
-                    /* reg = genBoolean("bne"); */
-                    /* break; */
-                /* case BINARY_OP_GT: */
-                    /* fprintf(output, "cmp w%d, w%d\n", LReg, RReg); */
-                    /* reg = genBoolean("bgt"); */
-                    /* break; */
-                /* case BINARY_OP_LT: */
-                    /* fprintf(output, "cmp w%d, w%d\n", LReg, RReg); */
-                    /* reg = genBoolean("blt"); */
-                    /* break; */
+                case BINARY_OP_EQ:
+                    fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
+                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    break;
+                case BINARY_OP_GE:
+                    fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
+                    fprintf(output, "cset w%d, ge\n", LReg, RReg);
+                    break;
+                case BINARY_OP_LE:
+                    fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
+                    fprintf(output, "cset w%d, le\n", LReg, RReg);
+                    break;
+                case BINARY_OP_NE:
+                    fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
+                    fprintf(output, "cset w%d, ne\n", LReg, RReg);
+                    break;
+                case BINARY_OP_GT:
+                    fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
+                    fprintf(output, "cset w%d, gt\n", LReg, RReg);
+                    break;
+                case BINARY_OP_LT:
+                    fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
+                    fprintf(output, "cset w%d, lt\n", LReg, RReg);
+                    break;
 
-                /* case BINARY_OP_AND: */
-                    /* fprintf(output, "cmp w%d, #0\n", LReg); */
-                    /* fprintf(output, "beq _ELSE_%d\n", _const); */
-                    /* fprintf(output, "cmp w%d, #0\n", RReg); */
-                    /* fprintf(output, "beq _ELSE_%d\n", _const); */
-                    /* fprintf(output, "mov w%d, #1\n", LReg); */
-                    /* fprintf(output, "b _END_%d\n", _const); */
-                    /* fprintf(output, "_ELSE_%d:\n", _const); */
-                    /* fprintf(output, "mov w%d, #0\n", LReg); */
-                    /* fprintf(output, "_END_%d:\n", _const); */
-                    /* ++_const; */
-                    /* break; */
-                /* case BINARY_OP_OR: */
-                    /* fprintf(output, "cmp w%d, #0\n", LReg); */
-                    /* fprintf(output, "bne _ELSE_%d\n", _const); */
-                    /* fprintf(output, "cmp w%d, #0\n", RReg); */
-                    /* fprintf(output, "bne _ELSE_%d\n", _const); */
-                    /* fprintf(output, "mov w%d, #0\n", LReg); */
-                    /* fprintf(output, "b _END_%d\n", _const); */
-                    /* fprintf(output, "_ELSE_%d:\n", _const); */
-                    /* fprintf(output, "mov w%d, #1\n", LReg); */
-                    /* fprintf(output, "_END_%d:\n", _const); */
-                    /* ++_const; */
-                    /* break; */
+                case BINARY_OP_AND:
+                    fprintf(output, "cmp w%d, #0\n", LReg);
+                    fprintf(output, "cset w%d, eq\n", LReg);
+                    fprintf(output, "cmp w%d, #0\n", RReg);
+                    fprintf(output, "cset w%d, eq\n", RReg);
+                    fprintf(output, "and w%d, w%d, w%d\n", LReg, LReg, RReg);
+                    break;
+                case BINARY_OP_OR:
+                    fprintf(output, "cmp w%d, #0\n", LReg);
+                    fprintf(output, "cset w%d, eq\n", LReg);
+                    fprintf(output, "cmp w%d, #0\n", RReg);
+                    fprintf(output, "cset w%d, eq\n", RReg);
+                    fprintf(output, "or w%d, w%d, w%d\n", LReg, LReg, RReg);
+                    break;
+            }
+            freeReg(RReg);
+            return LReg;
+        }else{
+            // Float expr
+            if(lvalue->dataType == INT_TYPE)
+                fprintf(output, "scvtf s%d, w%d\n", LReg, LReg);
+
+            if(rvalue->dataType == INT_TYPE)
+                fprintf(output, "scvtf s%d, w%d\n", RReg, RReg);
+
+            switch(getExprOp(exprNode)){
+                case BINARY_OP_ADD:
+                    fprintf(output, "fadd s%d, s%d, s%d\n", LReg, LReg, RReg);
+                    break;
+                case BINARY_OP_SUB:
+                    fprintf(output, "fsub s%d, s%d, s%d\n", LReg, LReg, RReg);
+                    break;
+                case BINARY_OP_MUL:
+                    fprintf(output, "fmul s%d, s%d, s%d\n", LReg, LReg, RReg);
+                    break;
+                case BINARY_OP_DIV:
+                    fprintf(output, "fdiv s%d, s%d, s%d\n", LReg, LReg, RReg);
+                    break;
+                case BINARY_OP_EQ:
+                    fprintf(output, "fcmp s%d, s%d\n", LReg, RReg);
+                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    break;
+                case BINARY_OP_GE:
+                    fprintf(output, "fcmp s%d, s%d\n", LReg, RReg);
+                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    break;
+                case BINARY_OP_LE:
+                    fprintf(output, "fcmp s%d, s%d\n", LReg, RReg);
+                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    break;
+                case BINARY_OP_NE:
+                    fprintf(output, "fcmp s%d, s%d\n", LReg, RReg);
+                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    break;
+                case BINARY_OP_GT:
+                    fprintf(output, "fcmp s%d, s%d\n", LReg, RReg);
+                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    break;
+                case BINARY_OP_LT:
+                    fprintf(output, "fcmp s%d, s%d\n", LReg, RReg);
+                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    break;
+                case BINARY_OP_AND:
+                    fprintf(output, "cmp w%d, #0\n", LReg);
+                    fprintf(output, "cset w%d, eq\n", LReg);
+                    fprintf(output, "cmp w%d, #0\n", RReg);
+                    fprintf(output, "cset w%d, eq\n", RReg);
+                    fprintf(output, "or w%d, w%d, w%d\n", LReg, LReg, RReg);
+                    break;
+                case BINARY_OP_OR:
+                    fprintf(output, "cmp w%d, #0\n", LReg);
+                    fprintf(output, "cset w%d, eq\n", LReg);
+                    fprintf(output, "cmp w%d, #0\n", RReg);
+                    fprintf(output, "cset w%d, eq\n", RReg);
+                    fprintf(output, "or w%d, w%d, w%d\n", LReg, LReg, RReg);
+                    break;
+            }
+            freeReg(RReg);
+            return LReg;
+        }
+    }else{
+        /* AST_NODE* operand = exprNode->child; */
+        /* processExprRelatedNode(operand); */
+        /* exprNode->dataType = operand->dataType; */
+
+        /* if((exprNode->dataType != ERROR_TYPE) && */
+                /* (operand->nodeType == CONST_VALUE_NODE || (operand->nodeType == EXPR_NODE && operand->semantic_value.exprSemanticValue.isConstEval)) */
+          /* ){ */
+            /* evaluateExprValue(exprNode); */
+            /* exprNode->semantic_value.exprSemanticValue.isConstEval = 1; */
+            /* fprintf(output, ".data\n"); */
+            /* if(exprNode->dataType == INT_TYPE){ */
+                /* fprintf(output, "_integer_const_%d: .word %d\n", _const, exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue); */
+            /* }else{ */
+                /* fprintf(output, "_float_const_%d: .float %f\n", _const, exprNode->semantic_value.exprSemanticValue.constEvalValue.fValue); */
             /* } */
-            /* freeReg(reg2); */
-            /* return reg1; */
+            /* emitAlignment(); */
+            /* fprintf(output, ".text\n"); */
+            /* int reg = getReg(); */
+            /* if(exprNode->dataType == INT_TYPE){ */
+                /* fprintf(output, "ldr w%d, _integer_const_%d\n", reg, _const); */
+            /* }else{ */
+                /* fprintf(output, "ldr s%d, _float_const_%d\n", reg, _const); */
+            /* } */
+            /* ++_const; */
+            /* return reg; */
         /* }else{ */
-            /* exprNode->dataType = FLOAT_TYPE; */
-            /* if(leftOp->dataType == INT_TYPE){ */
-                /* fprintf(output, "scvtf s%d, w%d\n", reg1, reg1); */
+            /* int reg = emitExprRelatedNode(operand); */
+            /* if(operand->dataType == INT_TYPE){ */
+                /* exprNode->dataType = INT_TYPE; */
+                /* switch(exprNode->semantic_value.exprSemanticValue.op.unaryOp){ */
+                    /* case UNARY_OP_POSITIVE: */
+                        /* break; */
+                    /* case UNARY_OP_NEGATIVE: */
+                        /* fprintf(output, "neg w%d, w%d", reg, reg); */
+                        /* break; */
+                    /* case UNARY_OP_LOGICAL_NEGATION: */
+                        /* fprintf(output, "cmp w%d, #0\n", reg); */
+                        /* fprintf(output, "beq _ELSE_%d\n", _const); */
+                        /* fprintf(output, "mov w%d, #0\n", reg); */
+                        /* fprintf(output, "b _END_%d\n", _const); */
+                        /* fprintf(output, "_ELSE_%d:\n", _const); */
+                        /* fprintf(output, "mov w%d, #1\n", reg); */
+                        /* fprintf(output, "_END_%d:\n", _const); */
+                        /* ++_const; */
+                        /* break; */
+                /* } */
+            /* }else{ */
+                /* exprNode->dataType = FLOAT_TYPE; */
+                /* switch(exprNode->semantic_value.exprSemanticValue.op.unaryOp){ */
+                    /* case UNARY_OP_POSITIVE: */
+                        /* break; */
+                    /* case UNARY_OP_NEGATIVE: */
+                        /* fprintf(output, "fneg s%d, s%d", reg, reg); */
+                        /* break; */
+                    /* case UNARY_OP_LOGICAL_NEGATION: */
+                        /* exprNode->dataType = INT_TYPE; */
+                        /* fprintf(output, "fcvtzs w%d, s%d\n", reg, reg); */
+                        /* fprintf(output, "cmp w%d, #0\n", reg); */
+                        /* fprintf(output, "beq _ELSE_%d\n", _const); */
+                        /* fprintf(output, "mov w%d, #0\n", reg); */
+                        /* fprintf(output, "b _END_%d\n", _const); */
+                        /* fprintf(output, "_ELSE_%d:\n", _const); */
+                        /* fprintf(output, "mov w%d, #1\n", reg); */
+                        /* fprintf(output, "_END_%d:\n", _const); */
+                        /* ++_const; */
+                        /* break; */
+                /* } */
             /* } */
-            /* if(rightOp->dataType == INT_TYPE){ */
-                /* fprintf(output, "scvtf s%d, w%d\n", reg2, reg2); */
-            /* } */
-            /* switch(exprNode->semantic_value.exprSemanticValue.op.binaryOp){ */
-                /* case BINARY_OP_ADD: */
-                    /* fprintf(output, "fadd s%d, s%d, s%d\n", reg1, reg1, reg2); */
-                    /* break; */
-                /* case BINARY_OP_SUB: */
-                    /* fprintf(output, "fsub s%d, s%d, s%d\n", reg1, reg1, reg2); */
-                    /* break; */
-                /* case BINARY_OP_MUL: */
-                    /* fprintf(output, "fmul s%d, s%d, s%d\n", reg1, reg1, reg2); */
-                    /* break; */
-                /* case BINARY_OP_DIV: */
-                    /* fprintf(output, "fdiv s%d, s%d, s%d\n", reg1, reg1, reg2); */
-                    /* break; */
-                /* case BINARY_OP_EQ: */
-                    /* exprNode->dataType = INT_TYPE; */
-                    /* fprintf(output, "fcmp s%d, s%d\n", reg1, reg2); */
-                    /* fprintf(output, "beq _ELSE_%d\n", _const); */
-                    /* fprintf(output, "mov w%d, #0\n", reg1); */
-                    /* fprintf(output, "b _END_%d\n", _const); */
-                    /* fprintf(output, "_ELSE_%d:\n", _const); */
-                    /* fprintf(output, "mov w%d, #1\n", reg1); */
-                    /* fprintf(output, "_END_%d:\n", _const); */
-                    /* ++_const; */
-                    /* break; */
-                /* case BINARY_OP_GE: */
-                    /* exprNode->dataType = INT_TYPE; */
-                    /* fprintf(output, "fcmp s%d, s%d\n", reg1, reg2); */
-                    /* fprintf(output, "bge _ELSE_%d\n", _const); */
-                    /* fprintf(output, "mov w%d, #0\n", reg1); */
-                    /* fprintf(output, "b _END_%d\n", _const); */
-                    /* fprintf(output, "_ELSE_%d:\n", _const); */
-                    /* fprintf(output, "mov w%d, #1\n", reg1); */
-                    /* fprintf(output, "_END_%d:\n", _const); */
-                    /* ++_const; */
-                    /* break; */
-                /* case BINARY_OP_LE: */
-                    /* exprNode->dataType = INT_TYPE; */
-                    /* fprintf(output, "fcmp s%d, s%d\n", reg1, reg2); */
-                    /* fprintf(output, "ble _ELSE_%d\n", _const); */
-                    /* fprintf(output, "mov w%d, #0\n", reg1); */
-                    /* fprintf(output, "b _END_%d\n", _const); */
-                    /* fprintf(output, "_ELSE_%d:\n", _const); */
-                    /* fprintf(output, "mov w%d, #1\n", reg1); */
-                    /* fprintf(output, "_END_%d:\n", _const); */
-                    /* ++_const; */
-                    /* break; */
-                /* case BINARY_OP_NE: */
-                    /* exprNode->dataType = INT_TYPE; */
-                    /* fprintf(output, "fcmp s%d, s%d\n", reg1, reg2); */
-                    /* fprintf(output, "bne _ELSE_%d\n", _const); */
-                    /* fprintf(output, "mov w%d, #0\n", reg1); */
-                    /* fprintf(output, "b _END_%d\n", _const); */
-                    /* fprintf(output, "_ELSE_%d:\n", _const); */
-                    /* fprintf(output, "mov w%d, #1\n", reg1); */
-                    /* fprintf(output, "_END_%d:\n", _const); */
-                    /* ++_const; */
-                    /* break; */
-                /* case BINARY_OP_GT: */
-                    /* exprNode->dataType = INT_TYPE; */
-                    /* fprintf(output, "fcmp s%d, s%d\n", reg1, reg2); */
-                    /* fprintf(output, "bgt _ELSE_%d\n", _const); */
-                    /* fprintf(output, "mov w%d, #0\n", reg1); */
-                    /* fprintf(output, "b _END_%d\n", _const); */
-                    /* fprintf(output, "_ELSE_%d:\n", _const); */
-                    /* fprintf(output, "mov w%d, #1\n", reg1); */
-                    /* fprintf(output, "_END_%d:\n", _const); */
-                    /* ++_const; */
-                    /* break; */
-                /* case BINARY_OP_LT: */
-                    /* exprNode->dataType = INT_TYPE; */
-                    /* fprintf(output, "fcmp s%d, s%d\n", reg1, reg2); */
-                    /* fprintf(output, "blt _ELSE_%d\n", _const); */
-                    /* fprintf(output, "mov w%d, #0\n", reg1); */
-                    /* fprintf(output, "b _END_%d\n", _const); */
-                    /* fprintf(output, "_ELSE_%d:\n", _const); */
-                    /* fprintf(output, "mov w%d, #1\n", reg1); */
-                    /* fprintf(output, "_END_%d:\n", _const); */
-                    /* ++_const; */
-                    /* break; */
-                /* case BINARY_OP_AND: */
-                    /* exprNode->dataType = INT_TYPE; */
-                    /* fprintf(output, "fcmp s%d, #0\n", reg1); */
-                    /* fprintf(output, "beq _ELSE_%d\n", _const); */
-                    /* fprintf(output, "cmp s%d, #0\n", reg2); */
-                    /* fprintf(output, "beq _ELSE_%d\n", _const); */
-                    /* fprintf(output, "mov w%d, #1\n", reg1); */
-                    /* fprintf(output, "b _END_%d\n", _const); */
-                    /* fprintf(output, "_ELSE_%d:\n", _const); */
-                    /* fprintf(output, "mov w%d, #0\n", reg1); */
-                    /* fprintf(output, "_END_%d:\n", _const); */
-                    /* ++_const; */
-                    /* break; */
-                /* case BINARY_OP_OR: */
-                    /* exprNode->dataType = INT_TYPE; */
-                    /* fprintf(output, "fcmp s%d, #0\n", reg1); */
-                    /* fprintf(output, "bne _ELSE_%d\n", _const); */
-                    /* fprintf(output, "cmp s%d, #0\n", reg2); */
-                    /* fprintf(output, "bne _ELSE_%d\n", _const); */
-                    /* fprintf(output, "mov w%d, #0\n", reg1); */
-                    /* fprintf(output, "b _END_%d\n", _const); */
-                    /* fprintf(output, "_ELSE_%d:\n", _const); */
-                    /* fprintf(output, "mov w%d, #1\n", reg1); */
-                    /* fprintf(output, "_END_%d:\n", _const); */
-                    /* ++_const; */
-                    /* break; */
-            /* } */
-            /* freeReg(reg2); */
-            /* return reg1; */
+            /* return reg; */
         /* } */
-	/* }else{ */
-		/* [> Unary operation <] */
-		/* AST_NODE* operand = exprNode->child; */
-		/* processExprRelatedNode(operand); */
-		/* exprNode->dataType = operand->dataType; */
-
-		/* if((exprNode->dataType != ERROR_TYPE) && */
-				/* (operand->nodeType == CONST_VALUE_NODE || (operand->nodeType == EXPR_NODE && operand->semantic_value.exprSemanticValue.isConstEval)) */
-		  /* ){ */
-			/* evaluateExprValue(exprNode); */
-			/* exprNode->semantic_value.exprSemanticValue.isConstEval = 1; */
-			/* fprintf(output, ".data\n"); */
-			/* if(exprNode->dataType == INT_TYPE){ */
-				/* fprintf(output, "_integer_const_%d: .word %d\n", _const, exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue); */
-			/* }else{ */
-				/* fprintf(output, "_float_const_%d: .float %f\n", _const, exprNode->semantic_value.exprSemanticValue.constEvalValue.fValue); */
-			/* } */
-			/* emitAlignment(); */
-			/* fprintf(output, ".text\n"); */
-			/* int reg = getReg(); */
-			/* if(exprNode->dataType == INT_TYPE){ */
-				/* fprintf(output, "ldr w%d, _integer_const_%d\n", reg, _const); */
-			/* }else{ */
-				/* fprintf(output, "ldr s%d, _float_const_%d\n", reg, _const); */
-			/* } */
-			/* ++_const; */
-			/* return reg; */
-		/* }else{ */
-			/* int reg = emitExprRelatedNode(operand); */
-			/* if(operand->dataType == INT_TYPE){ */
-				/* exprNode->dataType = INT_TYPE; */
-				/* switch(exprNode->semantic_value.exprSemanticValue.op.unaryOp){ */
-					/* case UNARY_OP_POSITIVE: */
-						/* break; */
-					/* case UNARY_OP_NEGATIVE: */
-						/* fprintf(output, "neg w%d, w%d", reg, reg); */
-						/* break; */
-					/* case UNARY_OP_LOGICAL_NEGATION: */
-						/* fprintf(output, "cmp w%d, #0\n", reg); */
-						/* fprintf(output, "beq _ELSE_%d\n", _const); */
-						/* fprintf(output, "mov w%d, #0\n", reg); */
-						/* fprintf(output, "b _END_%d\n", _const); */
-						/* fprintf(output, "_ELSE_%d:\n", _const); */
-						/* fprintf(output, "mov w%d, #1\n", reg); */
-						/* fprintf(output, "_END_%d:\n", _const); */
-						/* ++_const; */
-						/* break; */
-				/* } */
-			/* }else{ */
-				/* exprNode->dataType = FLOAT_TYPE; */
-				/* switch(exprNode->semantic_value.exprSemanticValue.op.unaryOp){ */
-					/* case UNARY_OP_POSITIVE: */
-						/* break; */
-					/* case UNARY_OP_NEGATIVE: */
-						/* fprintf(output, "fneg s%d, s%d", reg, reg); */
-						/* break; */
-					/* case UNARY_OP_LOGICAL_NEGATION: */
-						/* exprNode->dataType = INT_TYPE; */
-						/* fprintf(output, "fcvtzs w%d, s%d\n", reg, reg); */
-						/* fprintf(output, "cmp w%d, #0\n", reg); */
-						/* fprintf(output, "beq _ELSE_%d\n", _const); */
-						/* fprintf(output, "mov w%d, #0\n", reg); */
-						/* fprintf(output, "b _END_%d\n", _const); */
-						/* fprintf(output, "_ELSE_%d:\n", _const); */
-						/* fprintf(output, "mov w%d, #1\n", reg); */
-						/* fprintf(output, "_END_%d:\n", _const); */
-						/* ++_const; */
-						/* break; */
-				/* } */
-			/* } */
-			/* return reg; */
-		/* } */
-	/* } */
+    }
 }
 
 REG genArrayRef(AST_NODE *idNode)
