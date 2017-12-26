@@ -395,11 +395,11 @@ void genVariableAssign(AST_NODE *idNode, REG val)
         if(getIDGlobal(idNode)){
             REG addr = getReg();
             if(idNode->dataType == INT_TYPE){
-                fprintf(output, "ldr w%d, =_g_%s\n", addr, getIDName(idNode));
+                fprintf(output, "ldr x%d, =_g_%s\n", addr, getIDName(idNode));
                 fprintf(output, "str w%d, [x%d, #0]\n", val, addr);
             }else{
-                fprintf(output, "ldr s%d, =_g_%s\n", addr, getIDName(idNode));
-                fprintf(output, "str w%d, [x%d, #0]\n", val, addr);
+                fprintf(output, "ldr x%d, =_g_%s\n", addr, getIDName(idNode));
+                fprintf(output, "str s%d, [x%d, #0]\n", val, addr);
             }
             freeReg(addr);
         }else{
@@ -882,20 +882,20 @@ REG genVariableRef(AST_NODE *idNode)
         if(getIDGlobal(idNode)){
             reg = getReg();
             if(idNode->dataType == INT_TYPE){
-                fprintf(output, "ldr w%d, =_g_%s\n", reg, getIDName(idNode));
+                fprintf(output, "ldr x%d, =_g_%s\n", reg, getIDName(idNode));
             }else{
-                fprintf(output, "ldr s%d, =_g_%s\n", reg, getIDName(idNode));
+                fprintf(output, "ldr x%d, =_g_%s\n", reg, getIDName(idNode));
             }
         }else{
             int offset = getIDOffset(idNode);
             fprintf(stderr, "name: %s, offset: %d\n", getIDName(idNode), offset);
             reg = genIntLiteral(offset);
             fprintf(output, "sub x%d, x29, x%d\n", reg, reg);
-            if(idNode->dataType == INT_TYPE){
-                fprintf(output, "ldr w%d, [x%d, #0]\n", reg, reg);
-            }else{
-                fprintf(output, "ldr s%d, [x%d, #0]\n", reg, reg);
-            }
+        }
+        if(idNode->dataType == INT_TYPE){
+            fprintf(output, "ldr w%d, [x%d, #0]\n", reg, reg);
+        }else{
+            fprintf(output, "ldr s%d, [x%d, #0]\n", reg, reg);
         }
     }
     return reg;
