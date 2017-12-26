@@ -215,7 +215,7 @@ void genFunctionPrologue(int size)
     int offset = 0;
     for(int i = 19; i <= 29; ++i){
         offset += 8;
-        fprintf(adotout, "str x%d, [x29, #%d]\n", i, -offset);
+        fprintf(output, "str x%d, [x29, #%d]\n", i, -offset);
     }
     fprintf(output, ".data\n");
     fprintf(output, "_AR_SIZE_%d: .word %d\n", const_n, offset);
@@ -224,11 +224,20 @@ void genFunctionPrologue(int size)
     fprintf(output, "ldr w19, _AR_SIZE_%d\n", const_n);
     fprintf(output, "sub sp, sp, w19\n");
     ++const_n;
+    //_offset = 0
 }
 
 void genFunctionEpilogue(int size, DATA_TYPE returnType)
 {
-
+    int offset = 0;
+    for (int i = 19; i <= 29; ++i){
+        offset += 8;
+        fprintf(output, "ldr x%d, [x29, #%d]\n", i, -offset);
+    }
+    fprintf(output, "ldr x30, [x29, #8]\n");
+    fprintf(output, "add sp, x29, #8\n");
+    fprintf(output, "ldr x29, [x29, #0]\n");
+    fprintf(output, "ret x30\n");
 }
 
 void genStmtList(AST_NODE *stmtList)
@@ -251,7 +260,7 @@ void genStmt(AST_NODE *stmt)
                     genWhile(stmt->child);
                     break;
                 case ASSIGN_STMT:
-                    genAssign(stmt->child);
+                    genAssignStmt(stmt->child);
                     break;
                 case IF_STMT:
                     genIf(stmt->child);
@@ -276,10 +285,26 @@ void genStmt(AST_NODE *stmt)
 
 void genWhile(AST_NODE *whileNode)
 {
-
+    AST_NODE *it = whileNode;
+    unpack(it, test, stmt);
+    int while_n = const_n++;
+    fprintf(output, "_WHILE_%d:\n", while_n);
+    if (test->nodeType == STMT_NODE && getStmtKind(test) == ASSIGN_STMT){
+        genAssignStmt(test);
+        test = test->child;
+    }
+    REG reg = genExprRelated(test);
+    if (test->dataType == FLOAT_TYPE)
+        fprintf(output, "fcvtzs w%d, s%d\n", reg, reg);
+    fprintf(output, "cmp w%d, #0\n", reg);
+    fprintf(output, "beq _WHILE_END_%d\n", while_n);
+    genStmt(stmt);
+    fprintf(output, "b _WHILE_%d\n", while_n);
+    fprintf(output, "_WHILE_END_%d:\n", while_n);
+    freeReg(reg);
 }
 
-void genAssign(AST_NODE *assignNode)
+void genAssignStmt(AST_NODE *assignNode)
 {
 
 }
