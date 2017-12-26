@@ -140,17 +140,20 @@ void genFunctionDecl(AST_NODE *functionDeclNode)
 }
 
 void genDeclList(AST_NODE *declList){
-    AST_NODE *type = declList->child->child;
-    AST_NODE *it = type->rightSibling;
-    forEach(it){
-        if (it->child){
-            REG reg = genExprRelated(it->child);
-            if (type->dataType == INT_TYPE){
-                fprintf(output, "str w%d, [x29, #-%d]\n", reg, getIDOffset(it));
-            } else if (type->dataType == FLOAT_TYPE){
-                fprintf(output, "str s%d, [x29, #-%d]\n", reg, getIDOffset(it));
+    AST_NODE *declIter = declList->child;
+    forEach(declIter){
+        AST_NODE *type = declIter->child;
+        AST_NODE *it = type->rightSibling;
+        forEach(it){
+            if (it->child){
+                REG reg = genExprRelated(it->child);
+                if (type->dataType == INT_TYPE){
+                    fprintf(output, "str w%d, [x29, #-%d]\n", reg, getIDOffset(it));
+                } else if (type->dataType == FLOAT_TYPE){
+                    fprintf(output, "str s%d, [x29, #-%d]\n", reg, getIDOffset(it));
+                }
+                freeReg(reg);
             }
-            freeReg(reg);
         }
     }
 }
@@ -222,7 +225,7 @@ void countVariableSize(AST_NODE *declNode, int* size)
     assert ( getIDAttr(id_list)->attributeKind == VARIABLE_ATTRIBUTE );
     forEach(id_list){
         setIDOffset(id_list, *size);
-        //printf("%s offset %d\n", getIDName(id_list), getIDOffset(id_list));
+        printf("%s offset %d\n", getIDName(id_list), getIDOffset(id_list));
         setIDGlobal(id_list, 0);
         if (id_list->child && getIDKind(id_list->child) == ARRAY_ID){
             *size += getArrayCount(id_list->child)*4;
