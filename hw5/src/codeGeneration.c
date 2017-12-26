@@ -23,7 +23,7 @@ void genFunctionEpilogue(int size, DATA_TYPE returnType);
 void genStmtList(AST_NODE *stmtList);
 void genStmt(AST_NODE *stmt);
 void genWhile(AST_NODE *whileNode);
-void genAssign(AST_NODE *assignNode);
+void genAssignStmt(AST_NODE *assignNode);
 void genIf(AST_NODE *ifNode);
 void genFunctionCall(AST_NODE *functionCallNode);
 void genReturn(AST_NODE *returnNode);
