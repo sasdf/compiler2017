@@ -1,3 +1,3 @@
-int a(float x, float y) {
-    return x == y;
+float a(float x, float y) {
+    return 0.5;
 }
