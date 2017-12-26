@@ -548,23 +548,22 @@ REG genExprRelated(AST_NODE *exprRelatedNode)
     }
 }
 
-#define NUM_REG 28
-int isRegInUse[NUM_REG];
+int isRegInUse[29 - 19];
 
 REG getReg()
 {
-    for (int i=1; i<NUM_REG; ++i) {
+    for (int i=19; i<29; ++i) {
         if (!isRegInUse[i]) {
             isRegInUse[i] = 1;
             return i;
         }
     }
-    assert ( 0 && "No more register" );
+    assert ( 0 && "No freed register" );
 }
 
 void freeReg(REG reg)
 {
-    assert ( reg >= 1 && reg < NUM_REG );
+    assert ( reg >= 19 && reg < 29 );
     isRegInUse[reg] = 0;
 }
 
@@ -863,7 +862,7 @@ REG genVariableRef(AST_NODE *idNode)
             }
         }else{
             int offset = getIDOffset(idNode);
-            REG reg = genIntLiteral(offset);
+            reg = genIntLiteral(offset);
             fprintf(output, "sub x%d, x29, x%d\n", reg, reg);
             if(idNode->dataType == INT_TYPE){
                 fprintf(output, "ldr w%d, [x%d, #0]\n", reg, reg);
