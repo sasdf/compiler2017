@@ -147,11 +147,14 @@ void genDeclList(AST_NODE *declList){
         forEach(it){
             if (it->child){
                 REG reg = genExprRelated(it->child);
+                REG addr = genIntLiteral(getIDOffset(it));
+                fprintf(output, "sub x%d, x29, x%d\n", addr, addr);
                 if (type->dataType == INT_TYPE){
-                    fprintf(output, "str w%d, [x29, #-%d]\n", reg, getIDOffset(it));
+                    fprintf(output, "str w%d, [x%d, #0]\n", reg, addr);
                 } else if (type->dataType == FLOAT_TYPE){
-                    fprintf(output, "str s%d, [x29, #-%d]\n", reg, getIDOffset(it));
+                    fprintf(output, "str s%d, [x%d, #0]\n", reg, addr);
                 }
+                freeReg(addr);
                 freeReg(reg);
             }
         }
@@ -227,9 +230,11 @@ void countVariableSize(AST_NODE *declNode, int* size)
         setIDOffset(id_list, *size);
         printf("%s offset %d\n", getIDName(id_list), getIDOffset(id_list));
         setIDGlobal(id_list, 0);
-        if (id_list->child && getIDKind(id_list->child) == ARRAY_ID){
+        if (id_list->child && getIDKind(id_list) == ARRAY_ID){
+            puts("it is array");
             *size += getArrayCount(id_list->child)*4;
         } else{
+            puts("it is var");
             *size += 4;
         }
         //printf("size: %d\n", *size);
@@ -838,6 +843,7 @@ REG genArrayRef(AST_NODE *idNode)
         int stackOffset = getIDOffset(idNode);
         varReg = genIntLiteral(stackOffset);
         fprintf(output, "sub x%d, x29, x%d\n", varReg, varReg);
+        fprintf(stderr, "name: %s, offset: %d\n", getIDName(idNode), stackOffset);
     }
 
     int i = 0;
