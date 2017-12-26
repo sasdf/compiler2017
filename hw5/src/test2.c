@@ -3,8 +3,7 @@ int x() {
 }
 
 int MAIN() {
-    int i;
-    i = 0;
+    int i = 2;
     x();
     if (i > 0) {
         write(i);
