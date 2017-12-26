@@ -7,7 +7,10 @@ int MAIN(){
         float yee;
     }
     write(b);
+    write("\n");
     write(c);
+    write("\n");
     write(f);
+    write("\n");
     return 0;
 }
