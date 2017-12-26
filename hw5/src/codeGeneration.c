@@ -393,11 +393,15 @@ void genVariableAssign(AST_NODE *idNode, REG val)
         return;
     }else{
         if(getIDGlobal(idNode)){
+            REG addr = getReg();
             if(idNode->dataType == INT_TYPE){
-                fprintf(output, "str w%d, =_g_%s\n", val, getIDName(idNode));
+                fprintf(output, "ldr w%d, =_g_%s\n", addr, getIDName(idNode));
+                fprintf(output, "str w%d, [x%d, #0]\n", val, addr);
             }else{
-                fprintf(output, "str s%d, =_g_%s\n", val, getIDName(idNode));
+                fprintf(output, "ldr s%d, =_g_%s\n", addr, getIDName(idNode));
+                fprintf(output, "str w%d, [x%d, #0]\n", val, addr);
             }
+            freeReg(addr);
         }else{
             int offset = getIDOffset(idNode);
             REG reg = genIntLiteral(offset);
