@@ -240,7 +240,7 @@ void genFunctionEpilogue(int size, DATA_TYPE returnType)
 {
     fprintf(output, "add sp, x29, #-112\n");
     int offset = 0;
-    for (int i = 29; i >= 19; ++i){
+    for (int i = 29; i >= 19; --i){
         offset += 8;
         fprintf(output, "ldr x%d, [x29, #%d]\n", i, offset);
     }
