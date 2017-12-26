@@ -36,4 +36,5 @@ codeGeneration.o: codeGeneration.c
 
 clean:
 	rm -f $(TARGET) $(OBJECT) $(OUTPUT)
+	rm output.s a.out -f
 
