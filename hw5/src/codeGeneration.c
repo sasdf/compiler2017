@@ -337,19 +337,19 @@ void genReturn(AST_NODE *returnNode)
     // TODO; mov w0, %reg
 }
 
-REG genExprRelated(AST_NODE *exprRelated)
+REG genExprRelated(AST_NODE *exprRelatedNode)
 {
     REG reg;
-    switch(exprRelated->nodeType)
+    switch(exprRelatedNode->nodeType)
     {
     case EXPR_NODE:
-        return genRelopExpr(exprRelated);
+        return genRelopExpr(exprRelatedNode);
         break;
     case STMT_NODE:
         //function call
-		genFunctionCall(exprRelated);
+		genFunctionCall(exprRelatedNode);
         reg = getReg();
-        switch(exprRelated->dataType){
+        switch(exprRelatedNode->dataType){
           case INT_TYPE:
             fprintf(output, "mov w%d, w0\n", reg);
             break;
@@ -360,14 +360,13 @@ REG genExprRelated(AST_NODE *exprRelated)
         return reg;
         break;
     case IDENTIFIER_NODE:
-        return genVariableRef(exprRelated);
+        return genVariableRef(exprRelatedNode);
         break;
     case CONST_VALUE_NODE:
-        return genConstValue(exprRelated);
+        return genConstValue(exprRelatedNode);
         break;
     default:
-        printf("Unhandle case in void processExprRelatedNode(AST_NODE* exprRelatedNode)\n");
-        exprRelated->dataType = ERROR_TYPE;
+        printf("Unhandle case in void genExprRelated(AST_NODE* exprRelatedNode)\n");
         break;
     }
 }
@@ -393,29 +392,330 @@ void freeReg(REG reg)
 }
 
 
-int genIntLiteral(int i){
+REG genIntLiteral(int i){
+    static int counter = 0;
     fprintf(output, ".data\n");
-    fprintf(output, "_CONST_%d: .word %d\n", const_n, i);
+    fprintf(output, "_INT_CONST_%d: .word %d\n", counter, i);
     genAlignment();
     fprintf(output, ".text\n");
-    return const_n++;
+    REG reg = getReg();
+    fprintf(output, "ldr x%d, _INT_CONST_%d\n", reg, counter);
+    counter++;
+    return reg;
 }
 
-int genFloatLiteral(float f){
+REG genFloatLiteral(float f){
+    static int counter = 0;
     fprintf(output, ".data\n");
-    fprintf(output, "_CONST_%d: .float %f\n", const_n, f);
+    fprintf(output, "_FLOAT_CONST_%d: .float %f\n", counter, f);
     genAlignment();
     fprintf(output, ".text\n");
-    return const_n++;
+    REG reg = getReg();
+    fprintf(output, "ldr s%d, _FLOAT_CONST_%d\n", reg, counter);
+    counter++;
+    return reg;
+}
+
+REG genStrLiteral(char* s){
+    static int counter = 0;
+    fprintf(output, ".data\n");
+    fprintf(output, "_STR_CONST_%d: .asciz %s\n", counter, s);
+    genAlignment();
+    fprintf(output, ".text\n");
+    REG reg = getReg();
+    fprintf(output, "ldr x%d, =_STR_CONST_%d\n", reg, counter);
+    counter++;
+    return reg;
 }
 
 void genAlignment(){
     fprintf(output, ".align 3\n");
 }
 
-REG genRelopExpr(AST_NODE *relopExpr)
+REG genBoolean(char* branch)
 {
+    static int counter = 0;
+    REG reg = getReg();
+    fprintf(output, "%s _TRUE_%d\n", branch, counter);
+    fprintf(output, "mov w%d, #0\n", reg);
+    fprintf(output, "b _BOOLEAN_END_%d\n", counter);
+    fprintf(output, "_TRUE_%d:\n", counter);
+    fprintf(output, "mov w%d, #1\n", reg);
+    fprintf(output, "_BOOLEAN_END_%d:\n", counter);
+    counter++;
+    return reg;
+}
 
+REG genRelopExpr(AST_NODE *exprNode)
+{
+    /* AST_NODE* it = exprNode->child; */
+
+    /* if (isConstExpr(exprNode)) */
+        /* return genConstValue(exprNode); */
+
+	/* if (getExprKind(exprNode) == BINARY_OPERATION) { */
+        /* unpack(it, lvalue, rvalue); */
+
+        /* REG LReg = genExprRelated(lvalue); */
+        /* REG RReg = genExprRelated(rvalue); */
+
+        /* if(lvalue->dataType == INT_TYPE && rvalue->dataType == INT_TYPE){ */
+            /* switch(getExprOp(exprNode)){ */
+                /* case BINARY_OP_ADD: */
+                    /* fprintf(output, "add w%d, w%d, w%d\n", LReg, LReg, RReg); */
+                    /* break; */
+                /* case BINARY_OP_SUB: */
+                    /* fprintf(output, "sub w%d, w%d, w%d\n", LReg, LReg, RReg); */
+                    /* break; */
+                /* case BINARY_OP_MUL: */
+                    /* fprintf(output, "mul w%d, w%d, w%d\n", LReg, LReg, RReg); */
+                    /* break; */
+                /* case BINARY_OP_DIV: */
+                    /* fprintf(output, "sdiv w%d, w%d, w%d\n", LReg, LReg, RReg); */
+                    /* break; */
+
+                /* case BINARY_OP_EQ: */
+                    /* fprintf(output, "cmp w%d, w%d\n", LReg, RReg); */
+                    /* reg = genBoolean("beq"); */
+                    /* break; */
+                /* case BINARY_OP_GE: */
+                    /* fprintf(output, "cmp w%d, w%d\n", LReg, RReg); */
+                    /* reg = genBoolean("bge"); */
+                    /* break; */
+                /* case BINARY_OP_LE: */
+                    /* fprintf(output, "cmp w%d, w%d\n", LReg, RReg); */
+                    /* reg = genBoolean("ble"); */
+                    /* break; */
+                /* case BINARY_OP_NE: */
+                    /* fprintf(output, "cmp w%d, w%d\n", LReg, RReg); */
+                    /* reg = genBoolean("bne"); */
+                    /* break; */
+                /* case BINARY_OP_GT: */
+                    /* fprintf(output, "cmp w%d, w%d\n", LReg, RReg); */
+                    /* reg = genBoolean("bgt"); */
+                    /* break; */
+                /* case BINARY_OP_LT: */
+                    /* fprintf(output, "cmp w%d, w%d\n", LReg, RReg); */
+                    /* reg = genBoolean("blt"); */
+                    /* break; */
+
+                /* case BINARY_OP_AND: */
+                    /* fprintf(output, "cmp w%d, #0\n", LReg); */
+                    /* fprintf(output, "beq _ELSE_%d\n", _const); */
+                    /* fprintf(output, "cmp w%d, #0\n", RReg); */
+                    /* fprintf(output, "beq _ELSE_%d\n", _const); */
+                    /* fprintf(output, "mov w%d, #1\n", LReg); */
+                    /* fprintf(output, "b _END_%d\n", _const); */
+                    /* fprintf(output, "_ELSE_%d:\n", _const); */
+                    /* fprintf(output, "mov w%d, #0\n", LReg); */
+                    /* fprintf(output, "_END_%d:\n", _const); */
+                    /* ++_const; */
+                    /* break; */
+                /* case BINARY_OP_OR: */
+                    /* fprintf(output, "cmp w%d, #0\n", LReg); */
+                    /* fprintf(output, "bne _ELSE_%d\n", _const); */
+                    /* fprintf(output, "cmp w%d, #0\n", RReg); */
+                    /* fprintf(output, "bne _ELSE_%d\n", _const); */
+                    /* fprintf(output, "mov w%d, #0\n", LReg); */
+                    /* fprintf(output, "b _END_%d\n", _const); */
+                    /* fprintf(output, "_ELSE_%d:\n", _const); */
+                    /* fprintf(output, "mov w%d, #1\n", LReg); */
+                    /* fprintf(output, "_END_%d:\n", _const); */
+                    /* ++_const; */
+                    /* break; */
+            /* } */
+            /* freeReg(reg2); */
+            /* return reg1; */
+        /* }else{ */
+            /* exprNode->dataType = FLOAT_TYPE; */
+            /* if(leftOp->dataType == INT_TYPE){ */
+                /* fprintf(output, "scvtf s%d, w%d\n", reg1, reg1); */
+            /* } */
+            /* if(rightOp->dataType == INT_TYPE){ */
+                /* fprintf(output, "scvtf s%d, w%d\n", reg2, reg2); */
+            /* } */
+            /* switch(exprNode->semantic_value.exprSemanticValue.op.binaryOp){ */
+                /* case BINARY_OP_ADD: */
+                    /* fprintf(output, "fadd s%d, s%d, s%d\n", reg1, reg1, reg2); */
+                    /* break; */
+                /* case BINARY_OP_SUB: */
+                    /* fprintf(output, "fsub s%d, s%d, s%d\n", reg1, reg1, reg2); */
+                    /* break; */
+                /* case BINARY_OP_MUL: */
+                    /* fprintf(output, "fmul s%d, s%d, s%d\n", reg1, reg1, reg2); */
+                    /* break; */
+                /* case BINARY_OP_DIV: */
+                    /* fprintf(output, "fdiv s%d, s%d, s%d\n", reg1, reg1, reg2); */
+                    /* break; */
+                /* case BINARY_OP_EQ: */
+                    /* exprNode->dataType = INT_TYPE; */
+                    /* fprintf(output, "fcmp s%d, s%d\n", reg1, reg2); */
+                    /* fprintf(output, "beq _ELSE_%d\n", _const); */
+                    /* fprintf(output, "mov w%d, #0\n", reg1); */
+                    /* fprintf(output, "b _END_%d\n", _const); */
+                    /* fprintf(output, "_ELSE_%d:\n", _const); */
+                    /* fprintf(output, "mov w%d, #1\n", reg1); */
+                    /* fprintf(output, "_END_%d:\n", _const); */
+                    /* ++_const; */
+                    /* break; */
+                /* case BINARY_OP_GE: */
+                    /* exprNode->dataType = INT_TYPE; */
+                    /* fprintf(output, "fcmp s%d, s%d\n", reg1, reg2); */
+                    /* fprintf(output, "bge _ELSE_%d\n", _const); */
+                    /* fprintf(output, "mov w%d, #0\n", reg1); */
+                    /* fprintf(output, "b _END_%d\n", _const); */
+                    /* fprintf(output, "_ELSE_%d:\n", _const); */
+                    /* fprintf(output, "mov w%d, #1\n", reg1); */
+                    /* fprintf(output, "_END_%d:\n", _const); */
+                    /* ++_const; */
+                    /* break; */
+                /* case BINARY_OP_LE: */
+                    /* exprNode->dataType = INT_TYPE; */
+                    /* fprintf(output, "fcmp s%d, s%d\n", reg1, reg2); */
+                    /* fprintf(output, "ble _ELSE_%d\n", _const); */
+                    /* fprintf(output, "mov w%d, #0\n", reg1); */
+                    /* fprintf(output, "b _END_%d\n", _const); */
+                    /* fprintf(output, "_ELSE_%d:\n", _const); */
+                    /* fprintf(output, "mov w%d, #1\n", reg1); */
+                    /* fprintf(output, "_END_%d:\n", _const); */
+                    /* ++_const; */
+                    /* break; */
+                /* case BINARY_OP_NE: */
+                    /* exprNode->dataType = INT_TYPE; */
+                    /* fprintf(output, "fcmp s%d, s%d\n", reg1, reg2); */
+                    /* fprintf(output, "bne _ELSE_%d\n", _const); */
+                    /* fprintf(output, "mov w%d, #0\n", reg1); */
+                    /* fprintf(output, "b _END_%d\n", _const); */
+                    /* fprintf(output, "_ELSE_%d:\n", _const); */
+                    /* fprintf(output, "mov w%d, #1\n", reg1); */
+                    /* fprintf(output, "_END_%d:\n", _const); */
+                    /* ++_const; */
+                    /* break; */
+                /* case BINARY_OP_GT: */
+                    /* exprNode->dataType = INT_TYPE; */
+                    /* fprintf(output, "fcmp s%d, s%d\n", reg1, reg2); */
+                    /* fprintf(output, "bgt _ELSE_%d\n", _const); */
+                    /* fprintf(output, "mov w%d, #0\n", reg1); */
+                    /* fprintf(output, "b _END_%d\n", _const); */
+                    /* fprintf(output, "_ELSE_%d:\n", _const); */
+                    /* fprintf(output, "mov w%d, #1\n", reg1); */
+                    /* fprintf(output, "_END_%d:\n", _const); */
+                    /* ++_const; */
+                    /* break; */
+                /* case BINARY_OP_LT: */
+                    /* exprNode->dataType = INT_TYPE; */
+                    /* fprintf(output, "fcmp s%d, s%d\n", reg1, reg2); */
+                    /* fprintf(output, "blt _ELSE_%d\n", _const); */
+                    /* fprintf(output, "mov w%d, #0\n", reg1); */
+                    /* fprintf(output, "b _END_%d\n", _const); */
+                    /* fprintf(output, "_ELSE_%d:\n", _const); */
+                    /* fprintf(output, "mov w%d, #1\n", reg1); */
+                    /* fprintf(output, "_END_%d:\n", _const); */
+                    /* ++_const; */
+                    /* break; */
+                /* case BINARY_OP_AND: */
+                    /* exprNode->dataType = INT_TYPE; */
+                    /* fprintf(output, "fcmp s%d, #0\n", reg1); */
+                    /* fprintf(output, "beq _ELSE_%d\n", _const); */
+                    /* fprintf(output, "cmp s%d, #0\n", reg2); */
+                    /* fprintf(output, "beq _ELSE_%d\n", _const); */
+                    /* fprintf(output, "mov w%d, #1\n", reg1); */
+                    /* fprintf(output, "b _END_%d\n", _const); */
+                    /* fprintf(output, "_ELSE_%d:\n", _const); */
+                    /* fprintf(output, "mov w%d, #0\n", reg1); */
+                    /* fprintf(output, "_END_%d:\n", _const); */
+                    /* ++_const; */
+                    /* break; */
+                /* case BINARY_OP_OR: */
+                    /* exprNode->dataType = INT_TYPE; */
+                    /* fprintf(output, "fcmp s%d, #0\n", reg1); */
+                    /* fprintf(output, "bne _ELSE_%d\n", _const); */
+                    /* fprintf(output, "cmp s%d, #0\n", reg2); */
+                    /* fprintf(output, "bne _ELSE_%d\n", _const); */
+                    /* fprintf(output, "mov w%d, #0\n", reg1); */
+                    /* fprintf(output, "b _END_%d\n", _const); */
+                    /* fprintf(output, "_ELSE_%d:\n", _const); */
+                    /* fprintf(output, "mov w%d, #1\n", reg1); */
+                    /* fprintf(output, "_END_%d:\n", _const); */
+                    /* ++_const; */
+                    /* break; */
+            /* } */
+            /* freeReg(reg2); */
+            /* return reg1; */
+        /* } */
+	/* }else{ */
+		/* [> Unary operation <] */
+		/* AST_NODE* operand = exprNode->child; */
+		/* processExprRelatedNode(operand); */
+		/* exprNode->dataType = operand->dataType; */
+
+		/* if((exprNode->dataType != ERROR_TYPE) && */
+				/* (operand->nodeType == CONST_VALUE_NODE || (operand->nodeType == EXPR_NODE && operand->semantic_value.exprSemanticValue.isConstEval)) */
+		  /* ){ */
+			/* evaluateExprValue(exprNode); */
+			/* exprNode->semantic_value.exprSemanticValue.isConstEval = 1; */
+			/* fprintf(output, ".data\n"); */
+			/* if(exprNode->dataType == INT_TYPE){ */
+				/* fprintf(output, "_integer_const_%d: .word %d\n", _const, exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue); */
+			/* }else{ */
+				/* fprintf(output, "_float_const_%d: .float %f\n", _const, exprNode->semantic_value.exprSemanticValue.constEvalValue.fValue); */
+			/* } */
+			/* emitAlignment(); */
+			/* fprintf(output, ".text\n"); */
+			/* int reg = getReg(); */
+			/* if(exprNode->dataType == INT_TYPE){ */
+				/* fprintf(output, "ldr w%d, _integer_const_%d\n", reg, _const); */
+			/* }else{ */
+				/* fprintf(output, "ldr s%d, _float_const_%d\n", reg, _const); */
+			/* } */
+			/* ++_const; */
+			/* return reg; */
+		/* }else{ */
+			/* int reg = emitExprRelatedNode(operand); */
+			/* if(operand->dataType == INT_TYPE){ */
+				/* exprNode->dataType = INT_TYPE; */
+				/* switch(exprNode->semantic_value.exprSemanticValue.op.unaryOp){ */
+					/* case UNARY_OP_POSITIVE: */
+						/* break; */
+					/* case UNARY_OP_NEGATIVE: */
+						/* fprintf(output, "neg w%d, w%d", reg, reg); */
+						/* break; */
+					/* case UNARY_OP_LOGICAL_NEGATION: */
+						/* fprintf(output, "cmp w%d, #0\n", reg); */
+						/* fprintf(output, "beq _ELSE_%d\n", _const); */
+						/* fprintf(output, "mov w%d, #0\n", reg); */
+						/* fprintf(output, "b _END_%d\n", _const); */
+						/* fprintf(output, "_ELSE_%d:\n", _const); */
+						/* fprintf(output, "mov w%d, #1\n", reg); */
+						/* fprintf(output, "_END_%d:\n", _const); */
+						/* ++_const; */
+						/* break; */
+				/* } */
+			/* }else{ */
+				/* exprNode->dataType = FLOAT_TYPE; */
+				/* switch(exprNode->semantic_value.exprSemanticValue.op.unaryOp){ */
+					/* case UNARY_OP_POSITIVE: */
+						/* break; */
+					/* case UNARY_OP_NEGATIVE: */
+						/* fprintf(output, "fneg s%d, s%d", reg, reg); */
+						/* break; */
+					/* case UNARY_OP_LOGICAL_NEGATION: */
+						/* exprNode->dataType = INT_TYPE; */
+						/* fprintf(output, "fcvtzs w%d, s%d\n", reg, reg); */
+						/* fprintf(output, "cmp w%d, #0\n", reg); */
+						/* fprintf(output, "beq _ELSE_%d\n", _const); */
+						/* fprintf(output, "mov w%d, #0\n", reg); */
+						/* fprintf(output, "b _END_%d\n", _const); */
+						/* fprintf(output, "_ELSE_%d:\n", _const); */
+						/* fprintf(output, "mov w%d, #1\n", reg); */
+						/* fprintf(output, "_END_%d:\n", _const); */
+						/* ++_const; */
+						/* break; */
+				/* } */
+			/* } */
+			/* return reg; */
+		/* } */
+	/* } */
 }
 
 REG genArrayRef(AST_NODE *idNode)
@@ -423,15 +723,47 @@ REG genArrayRef(AST_NODE *idNode)
     assert ( idNode->nodeType == IDENTIFIER_NODE );
     assert ( getIDEntry(idNode) != NULL );
     assert ( getIDAttr(idNode)->attributeKind == VARIABLE_ATTRIBUTE );
+    assert ( getIDKind(idNode) == ARRAY_ID );
     TypeDescriptor* typeDescriptor = getIDTypeDescriptor(idNode);
-    REG reg = getReg();
-    if (typeDescriptor->global) {
-        fprintf(output, ".data\n");
-        // TODO: mov %reg, %getIDName(idNode)
-    } else {
-        // TODO: mov %reg, [x29, #%getIDOffset(idNode)]
+
+    REG varReg;
+    if(getIDGlobal(idNode)){
+        varReg = getReg();
+        fprintf(output, "ldr x%d, =_%s\n", varReg, getIDName(idNode));
+    }else{
+        int stackOffset = getIDOffset(idNode);
+        REG varReg = genIntLiteral(stackOffset);
+        fprintf(output, "sub x%d, x29, x%d\n", varReg, varReg);
     }
-    return reg;
+
+    int i = 0;
+    int *sizes = typeDescriptor->properties.arrayProperties.sizeInEachDimension;
+    AST_NODE *dimNode = idNode->child;
+
+    REG offsetReg = getReg();
+    fprintf(output, "mov x%d, #0\n", offsetReg);
+    forEach(dimNode){
+        REG sizeReg = genIntLiteral(sizes[i]);
+        fprintf(output, "mul x%d, x%d, x%d\n", offsetReg, offsetReg, sizeReg);
+        freeReg(sizeReg);
+
+        REG indexReg = genExprRelated(dimNode);
+        fprintf(output, "lsl x%d, x%d, #2\n", indexReg, indexReg);
+        fprintf(output, "add x%d, x%d, x%d\n", offsetReg, offsetReg, indexReg);
+        freeReg(indexReg);
+
+        ++i;
+    }
+
+    fprintf(output, "add x%d, x%d, x%d\n", varReg, varReg, offsetReg);
+    freeReg(offsetReg);
+    if(idNode->dataType == INT_TYPE){
+        fprintf(output, "ldr w%d, [x%d, #0]\n", varReg, varReg);
+    }else{
+        fprintf(output, "ldr s%d, [x%d, #0]\n", varReg, varReg);
+    }
+
+    return varReg;
 }
 
 REG genVariableRef(AST_NODE *idNode)
@@ -441,141 +773,46 @@ REG genVariableRef(AST_NODE *idNode)
     assert ( getIDAttr(idNode)->attributeKind == VARIABLE_ATTRIBUTE );
     TypeDescriptor* typeDescriptor = getIDTypeDescriptor(idNode);
 
-    REG reg = getReg();
+    REG reg;
 
     if(getIDKind(idNode) == ARRAY_ID){
         return genArrayRef(idNode);
     }else{
-      if(typeDescriptor->global){
-        if(idNode->dataType == INT_TYPE){
-          fprintf(output, "ldr w%d, _%s\n", reg, getIDName(idNode));
+        if(getIDGlobal(idNode)){
+            reg = getReg();
+            if(idNode->dataType == INT_TYPE){
+                fprintf(output, "ldr w%d, _%s\n", reg, getIDName(idNode));
+            }else{
+                fprintf(output, "ldr s%d, _%s\n", reg, getIDName(idNode));
+            }
         }else{
-          fprintf(output, "ldr s%d, _%s\n", reg, getIDName(idNode));
+            int offset = getIDOffset(idNode);
+            REG reg = genIntLiteral(offset);
+            fprintf(output, "sub x%d, x29, x%d\n", reg, reg);
+            if(idNode->dataType == INT_TYPE){
+                fprintf(output, "ldr w%d, [x%d, #0]\n", reg, reg);
+            }else{
+                fprintf(output, "ldr s%d, [x%d, #0]\n", reg, reg);
+            }
         }
-      }else{
-        int offset = getIDOffset(idNode);
-        int id = genIntLiteral(offset);
-        fprintf(output, "ldr w%d, _const_%d\n", reg, id);
-        fprintf(output, "sub x%d, x29, x%d\n", reg, reg);
-        if(idNode->dataType == INT_TYPE){
-          fprintf(output, "ldr w%d, [x%d, #0]\n", reg, reg);
-        }else{
-          fprintf(output, "ldr s%d, [x%d, #0]\n", reg, reg);
-        }
-      }
     }
     return reg;
 }
 
 REG genConstValue(AST_NODE *constValueNode)
 {
-    assert ( constValueNode->nodeType == CONST_VALUE_NODE );
-    REG reg = getReg();
-    // TODO: mov %reg, %const;
+    assert ( constValueNode->nodeType == CONST_VALUE_NODE ||
+            (constValueNode->nodeType == EXPR_NODE && isConstExpr(constValueNode)) );
+
+    REG reg;
+
+    if(constValueNode->dataType == INT_TYPE){
+        reg = genIntLiteral(getExprValue(constValueNode));
+    }else if(constValueNode->dataType == FLOAT_TYPE){
+        reg = genFloatLiteral(getExprValue(constValueNode));
+    }else{
+        reg = genStrLiteral(constValueNode->semantic_value.const1->const_u.sc);
+    }
+
     return reg;
 }
-
-/* REG a() { */
-    /* case IDENTIFIER_NODE: */
-      /* // emitVariableRValue(exprRelatedNode); */
-      /* { */
-        /* AST_NODE* idNode = exprRelatedNode; */
-        /* SymbolTableEntry *symbolTableEntry = retrieveSymbol(idNode->semantic_value.identifierSemanticValue.identifierName); */
-        /* idNode->semantic_value.identifierSemanticValue.symbolTableEntry = symbolTableEntry; */
-        /* TypeDescriptor *typeDescriptor = idNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.typeDescriptor; */
-        /* if(idNode->semantic_value.identifierSemanticValue.kind == NORMAL_ID){ */
-          /* idNode->dataType = typeDescriptor->properties.dataType; */
-          /* if(symbolTableEntry->attribute->global){ */
-            /* if(idNode->dataType == INT_TYPE){ */
-              /* fprintf(adotout, "ldr w%d, _%s\n", reg, idName(idNode)); */
-            /* }else{ */
-              /* fprintf(adotout, "ldr s%d, _%s\n", reg, idName(idNode)); */
-            /* } */
-          /* }else{ */
-            /* int offset = symbolTableEntry->attribute->offset; */
-            /* int id = emitIntLiteral(offset); */
-            /* fprintf(adotout, "ldr w%d, _const_%d\n", reg, id); */
-            /* fprintf(adotout, "sub x%d, x29, x%d\n", reg, reg); */
-            /* if(idNode->dataType == INT_TYPE){ */
-              /* fprintf(adotout, "ldr w%d, [x%d, #0]\n", reg, reg); */
-            /* }else{ */
-              /* fprintf(adotout, "ldr s%d, [x%d, #0]\n", reg, reg); */
-            /* } */
-          /* } */
-        /* }else{ */
-          /* idNode->dataType = typeDescriptor->properties.arrayProperties.elementType; */
-          /* int dimension = 0; */
-          /* int * arrayDims = typeDescriptor->properties.arrayProperties.sizeInEachDimension; */
-          /* AST_NODE *traverseDimList = idNode->child; */
-          /* fprintf(adotout, "mov x%d, #0\n", reg); */
-          /* while(traverseDimList){ */
-            /* int id = emitIntLiteral(arrayDims[dimension]); */
-            /* int _reg = getReg(); */
-            /* fprintf(adotout, "ldr x%d, _const_%d\n", _reg, id); */
-            /* fprintf(adotout, "mul x%d, x%d, x%d\n", reg, reg, _reg); */
-            /* freeReg(_reg); */
-            /* int indexReg = emitExprRelatedNode(traverseDimList); */
-            /* fprintf(adotout, "lsl x%d, x%d, #2\n", indexReg, indexReg); */
-            /* fprintf(adotout, "add x%d, x%d, x%d\n", reg, reg, indexReg); */
-            /* freeReg(indexReg); */
-            /* traverseDimList = traverseDimList->rightSibling; */
-            /* ++dimension; */
-          /* } */
-          /* int offset = symbolTableEntry->attribute->offset; */
-          /* int _reg = getReg(); */
-          /* if(symbolTableEntry->attribute->global){ */
-            /* fprintf(adotout, "ldr x%d, =_%s\n", _reg, idName(idNode)); */
-          /* }else{ */
-            /* fprintf(adotout, "add x%d, x%d, x%d\n", reg, reg, 29); */
-            /* int id = emitIntLiteral(offset); */
-            /* fprintf(adotout, "ldr x%d, _const_%d\n", _reg, id); */
-            /* fprintf(adotout, "neg x%d, x%d\n", _reg, _reg); */
-          /* } */
-          /* freeReg(_reg); */
-          /* fprintf(adotout, "add x%d, x%d, x%d\n", reg, reg, _reg); */
-          /* if(idNode->dataType == INT_TYPE){ */
-            /* fprintf(adotout, "ldr w%d, [x%d, #0]\n", reg, reg); */
-          /* }else{ */
-            /* fprintf(adotout, "ldr s%d, [x%d, #0]\n", reg, reg); */
-          /* } */
-        /* } */
-      /* } */
-      /* break; */
-    /* case CONST_VALUE_NODE: */
-      /* switch(exprRelatedNode->semantic_value.const1->const_type){ */
-        /* case INTEGERC: */
-          /* exprRelatedNode->dataType = INT_TYPE; */
-          /* exprRelatedNode->semantic_value.exprSemanticValue.constEvalValue.iValue = */
-            /* exprRelatedNode->semantic_value.const1->const_u.intval; */
-          /* fprintf(adotout, ".data\n"); */
-          /* fprintf(adotout, "_integer_const_%d: .word %d\n", _const, exprRelatedNode->semantic_value.const1->const_u.intval); */
-          /* emitAlignment(); */
-          /* fprintf(adotout, ".text\n"); */
-          /* fprintf(adotout, "ldr w%d, _integer_const_%d\n", reg, _const); */
-          /* _const++; */
-          /* break; */
-        /* case FLOATC: */
-          /* exprRelatedNode->dataType = FLOAT_TYPE; */
-          /* exprRelatedNode->semantic_value.exprSemanticValue.constEvalValue.fValue = */
-            /* exprRelatedNode->semantic_value.const1->const_u.fval; */
-          /* fprintf(adotout, ".data\n"); */
-          /* fprintf(adotout, "_float_const_%d: .float %f\n", _const, exprRelatedNode->semantic_value.const1->const_u.fval); */
-          /* emitAlignment(); */
-          /* fprintf(adotout, ".text\n"); */
-          /* fprintf(adotout, "ldr s%d, _float_const_%d\n", reg, _const); */
-          /* _const++; */
-          /* break; */
-        /* case STRINGC: */
-          /* exprRelatedNode->dataType = CONST_STRING_TYPE; */
-          /* fprintf(adotout, ".data\n"); */
-          /* fprintf(adotout, "_string_const_%d: .asciz %s\n", _const, exprRelatedNode->semantic_value.const1->const_u.sc); */
-          /* emitAlignment(); */
-          /* fprintf(adotout, ".text\n"); */
-          /* fprintf(adotout, "ldr x%d, =_string_const_%d\n", reg, _const); */
-          /* _const++; */
-          /* break; */
-      /* } */
-      /* break; */
-  /* } */
-  /* return reg; */
-/* } */
