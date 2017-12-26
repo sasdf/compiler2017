@@ -238,7 +238,7 @@ void genFunctionPrologue(int size)
 // does not need size actually
 void genFunctionEpilogue(int size, DATA_TYPE returnType)
 {
-    fprintf(output, "add sp, x29, #-112\n");
+    fprintf(output, "add sp, x29, #112\n");
     int offset = 0;
     for (int i = 29; i >= 19; --i){
         offset += 8;
