@@ -34,6 +34,9 @@ void freeReg(REG reg);
 REG genExprRelated(AST_NODE *exprRelated);
 REG genRelopExpr(AST_NODE *relopExpr);
 REG genVariableRef(AST_NODE *idNode);
+REG genArrayRef(AST_NODE *idNode);
+REG genVariableAssign(AST_NODE *idNode, REG reg);
+REG genArrayAssign(AST_NODE *idNode, REG reg);
 REG genConstValue(AST_NODE *constValueNode);
 
 int genIntLiteral(int i);
@@ -312,13 +315,97 @@ void genWhile(AST_NODE *whileNode)
     fprintf(output, "_WHILE_END_%d:\n", while_n);
 }
 
+void genArrayAssign(AST_NODE *idNode, REG reg)
+{
+    assert ( idNode->nodeType == IDENTIFIER_NODE );
+    assert ( getIDEntry(idNode) != NULL );
+    assert ( getIDAttr(idNode)->attributeKind == VARIABLE_ATTRIBUTE );
+    assert ( getIDKind(idNode) == ARRAY_ID );
+    TypeDescriptor* typeDescriptor = getIDTypeDescriptor(idNode);
+
+    REG varReg;
+    if(getIDGlobal(idNode)){
+        varReg = getReg();
+        fprintf(output, "ldr x%d, =_g_%s\n", varReg, getIDName(idNode));
+    }else{
+        int stackOffset = getIDOffset(idNode);
+        REG varReg = genIntLiteral(stackOffset);
+        fprintf(output, "sub x%d, x29, x%d\n", varReg, varReg);
+    }
+
+    int i = 0;
+    int *sizes = typeDescriptor->properties.arrayProperties.sizeInEachDimension;
+    AST_NODE *dimNode = idNode->child;
+
+    REG offsetReg = getReg();
+    fprintf(output, "mov x%d, #0\n", offsetReg);
+    forEach(dimNode){
+        REG sizeReg = genIntLiteral(sizes[i]);
+        fprintf(output, "mul x%d, x%d, x%d\n", offsetReg, offsetReg, sizeReg);
+        freeReg(sizeReg);
+
+        REG indexReg = genExprRelated(dimNode);
+        fprintf(output, "lsl x%d, x%d, #2\n", indexReg, indexReg);
+        fprintf(output, "add x%d, x%d, x%d\n", offsetReg, offsetReg, indexReg);
+        freeReg(indexReg);
+
+        ++i;
+    }
+
+    fprintf(output, "add x%d, x%d, x%d\n", varReg, varReg, offsetReg);
+    freeReg(offsetReg);
+    if(idNode->dataType == INT_TYPE){
+        fprintf(output, "ldr w%d, [x%d, #0]\n", varReg, varReg);
+    }else{
+        fprintf(output, "ldr s%d, [x%d, #0]\n", varReg, varReg);
+    }
+
+    return varReg;
+}
+
+void genVariableAssign(AST_NODE *idNode, REG reg)
+{
+    assert ( idNode->nodeType == IDENTIFIER_NODE );
+    assert ( getIDEntry(idNode) != NULL );
+    assert ( getIDAttr(idNode)->attributeKind == VARIABLE_ATTRIBUTE );
+    TypeDescriptor* typeDescriptor = getIDTypeDescriptor(idNode);
+
+    REG reg;
+
+    if(getIDKind(idNode) == ARRAY_ID){
+        genArrayRef(idNode);
+        return;
+    }else{
+        if(getIDGlobal(idNode)){
+            reg = getReg();
+            if(idNode->dataType == INT_TYPE){
+                fprintf(output, "str w%d, _g_%s\n", reg, getIDName(idNode));
+            }else{
+                fprintf(output, "str s%d, _g_%s\n", reg, getIDName(idNode));
+            }
+        }else{
+            int offset = getIDOffset(idNode);
+            REG reg = genIntLiteral(offset);
+            fprintf(output, "sub x%d, x29, x%d\n", reg, reg);
+            if(idNode->dataType == INT_TYPE){
+                fprintf(output, "str w%d, [x%d, #0]\n", reg, reg);
+            }else{
+                fprintf(output, "str s%d, [x%d, #0]\n", reg, reg);
+            }
+        }
+        freeReg(reg);
+    }
+    return;
+}
+
 void genAssignStmt(AST_NODE *assignNode)
 {
     AST_NODE *it = assignNode;
     unpack(it, id, relop_expr);
+    REG reg = genExprRelated(relop_expr);
     // TODO variable reference
-    REG right_reg = genExprRelated(relop_expr);
     // stack[offset] = right_reg
+    genVariableAssign(id, reg);
 }
 
 void genIf(AST_NODE *ifNode)
@@ -722,7 +809,7 @@ REG genArrayRef(AST_NODE *idNode)
     REG varReg;
     if(getIDGlobal(idNode)){
         varReg = getReg();
-        fprintf(output, "ldr x%d, =_%s\n", varReg, getIDName(idNode));
+        fprintf(output, "ldr x%d, =_g_%s\n", varReg, getIDName(idNode));
     }else{
         int stackOffset = getIDOffset(idNode);
         REG varReg = genIntLiteral(stackOffset);
@@ -774,9 +861,9 @@ REG genVariableRef(AST_NODE *idNode)
         if(getIDGlobal(idNode)){
             reg = getReg();
             if(idNode->dataType == INT_TYPE){
-                fprintf(output, "ldr w%d, _%s\n", reg, getIDName(idNode));
+                fprintf(output, "ldr w%d, _g_%s\n", reg, getIDName(idNode));
             }else{
-                fprintf(output, "ldr s%d, _%s\n", reg, getIDName(idNode));
+                fprintf(output, "ldr s%d, _g_%s\n", reg, getIDName(idNode));
             }
         }else{
             int offset = getIDOffset(idNode);
