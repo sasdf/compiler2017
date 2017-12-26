@@ -27,6 +27,7 @@ void genAssignStmt(AST_NODE *assignNode);
 void genIf(AST_NODE *ifNode);
 void genFunctionCall(AST_NODE *functionCallNode);
 void genReturn(AST_NODE *returnNode);
+void genWrite(AST_NODE *functionCallNode);
 
 REG getReg();
 void freeReg(REG reg);
@@ -348,9 +349,44 @@ void genIf(AST_NODE *ifNode)
     fprintf(output, "_END_IF_%d:\n", if_n);
 }
 
+void genWrite(AST_NODE *functionCallNode){
+    AST_NODE *it = functionCallNode;
+    unpack(it, id, paramList);
+    AST_NODE *param = paramList->child;
+    
+    REG reg = genExprRelated(param);
+    switch(param->dataType){
+        case INT_TYPE:
+            fprintf(output, "mov w0, w%d\n", reg);
+            fprintf(output, "bl _write_int\n");
+            break;
+        case FLOAT_TYPE:
+            fprintf(output, "mov s0, s%d\n", reg);
+            fprintf(output, "bl _write_float\n");
+            break;
+        case CONST_STRING_TYPE:
+            fprintf(output, "mov x0, x%d\n", reg);
+            fprintf(output, "bl _write_str\n");
+            break;
+    }
+    freeReg(reg);
+}
+
 void genFunctionCall(AST_NODE *functionCallNode)
 {
+    AST_NODE *it = functionCallNode;
+    unpack(it, id, param);
 
+    char *name = getIDName(id);
+    if (!strcmp(name, "write")){
+        genWrite(functionCallNode);
+    } else if (!strcmp(name, "read")){
+        fprintf(output, "bl _read_int\n");
+    } else if (!strcmp(name, "fread")){
+        fprintf(output, "bl _read_float\n");
+    } else {
+        fprintf(output, "bl _start_%s\n", name);
+    }
 }
 
 void genReturn(AST_NODE *returnNode)
@@ -392,6 +428,7 @@ void genReturn(AST_NODE *returnNode)
             puts("Undefined return type");
             break;
     }
+    freeReg(reg);
 }
 
 REG genExprRelated(AST_NODE *exprRelated)
