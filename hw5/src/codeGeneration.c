@@ -888,6 +888,7 @@ REG genVariableRef(AST_NODE *idNode)
             }
         }else{
             int offset = getIDOffset(idNode);
+            fprintf(stderr, "name: %s, offset: %d\n", getIDName(idNode), offset);
             reg = genIntLiteral(offset);
             fprintf(output, "sub x%d, x29, x%d\n", reg, reg);
             if(idNode->dataType == INT_TYPE){
