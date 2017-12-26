@@ -35,6 +35,10 @@ REG genRelopExpr(AST_NODE *relopExpr);
 REG genVariableRef(AST_NODE *idNode);
 REG genConstValue(AST_NODE *constValueNode);
 
+int genIntLiteral(int i);
+int genFloatLiteral(float i);
+void genAlignment();
+
 FILE *output;
 int const_n;
 
@@ -335,6 +339,7 @@ void genReturn(AST_NODE *returnNode)
 
 REG genExprRelated(AST_NODE *exprRelated)
 {
+    REG reg;
     switch(exprRelated->nodeType)
     {
     case EXPR_NODE:
@@ -342,8 +347,17 @@ REG genExprRelated(AST_NODE *exprRelated)
         break;
     case STMT_NODE:
         //function call
-        // TODO
-        /* return genFunctionCall(exprRelated); */
+		genFunctionCall(exprRelated);
+        reg = getReg();
+        switch(exprRelated->dataType){
+          case INT_TYPE:
+            fprintf(output, "mov w%d, w0\n", reg);
+            break;
+          case FLOAT_TYPE:
+            fprintf(output, "fmov s%d, s0\n", reg);
+            break;
+        }
+        return reg;
         break;
     case IDENTIFIER_NODE:
         return genVariableRef(exprRelated);
@@ -378,9 +392,46 @@ void freeReg(REG reg)
     isRegInUse[reg] = 0;
 }
 
+
+int genIntLiteral(int i){
+    fprintf(output, ".data\n");
+    fprintf(output, "_CONST_%d: .word %d\n", const_n, i);
+    genAlignment();
+    fprintf(output, ".text\n");
+    return const_n++;
+}
+
+int genFloatLiteral(float f){
+    fprintf(output, ".data\n");
+    fprintf(output, "_CONST_%d: .float %f\n", const_n, f);
+    genAlignment();
+    fprintf(output, ".text\n");
+    return const_n++;
+}
+
+void genAlignment(){
+    fprintf(output, ".align 3\n");
+}
+
 REG genRelopExpr(AST_NODE *relopExpr)
 {
 
+}
+
+REG genArrayRef(AST_NODE *idNode)
+{
+    assert ( idNode->nodeType == IDENTIFIER_NODE );
+    assert ( getIDEntry(idNode) != NULL );
+    assert ( getIDAttr(idNode)->attributeKind == VARIABLE_ATTRIBUTE );
+    TypeDescriptor* typeDescriptor = getIDTypeDescriptor(idNode);
+    REG reg = getReg();
+    if (typeDescriptor->global) {
+        fprintf(output, ".data\n");
+        // TODO: mov %reg, %getIDName(idNode)
+    } else {
+        // TODO: mov %reg, [x29, #%getIDOffset(idNode)]
+    }
+    return reg;
 }
 
 REG genVariableRef(AST_NODE *idNode)
@@ -389,11 +440,29 @@ REG genVariableRef(AST_NODE *idNode)
     assert ( getIDEntry(idNode) != NULL );
     assert ( getIDAttr(idNode)->attributeKind == VARIABLE_ATTRIBUTE );
     TypeDescriptor* typeDescriptor = getIDTypeDescriptor(idNode);
+
     REG reg = getReg();
-    if (typeDescriptor->global) {
-        // TODO: mov %reg, %getIDName(idNode)
-    } else {
-        // TODO: mov %reg, [x29, #%getIDOffset(idNode)]
+
+    if(getIDKind(idNode) == ARRAY_ID){
+        return genArrayRef(idNode);
+    }else{
+      if(typeDescriptor->global){
+        if(idNode->dataType == INT_TYPE){
+          fprintf(output, "ldr w%d, _%s\n", reg, getIDName(idNode));
+        }else{
+          fprintf(output, "ldr s%d, _%s\n", reg, getIDName(idNode));
+        }
+      }else{
+        int offset = getIDOffset(idNode);
+        int id = genIntLiteral(offset);
+        fprintf(output, "ldr w%d, _const_%d\n", reg, id);
+        fprintf(output, "sub x%d, x29, x%d\n", reg, reg);
+        if(idNode->dataType == INT_TYPE){
+          fprintf(output, "ldr w%d, [x%d, #0]\n", reg, reg);
+        }else{
+          fprintf(output, "ldr s%d, [x%d, #0]\n", reg, reg);
+        }
+      }
     }
     return reg;
 }
@@ -404,6 +473,109 @@ REG genConstValue(AST_NODE *constValueNode)
     REG reg = getReg();
     // TODO: mov %reg, %const;
     return reg;
-
 }
 
+/* REG a() { */
+    /* case IDENTIFIER_NODE: */
+      /* // emitVariableRValue(exprRelatedNode); */
+      /* { */
+        /* AST_NODE* idNode = exprRelatedNode; */
+        /* SymbolTableEntry *symbolTableEntry = retrieveSymbol(idNode->semantic_value.identifierSemanticValue.identifierName); */
+        /* idNode->semantic_value.identifierSemanticValue.symbolTableEntry = symbolTableEntry; */
+        /* TypeDescriptor *typeDescriptor = idNode->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.typeDescriptor; */
+        /* if(idNode->semantic_value.identifierSemanticValue.kind == NORMAL_ID){ */
+          /* idNode->dataType = typeDescriptor->properties.dataType; */
+          /* if(symbolTableEntry->attribute->global){ */
+            /* if(idNode->dataType == INT_TYPE){ */
+              /* fprintf(adotout, "ldr w%d, _%s\n", reg, idName(idNode)); */
+            /* }else{ */
+              /* fprintf(adotout, "ldr s%d, _%s\n", reg, idName(idNode)); */
+            /* } */
+          /* }else{ */
+            /* int offset = symbolTableEntry->attribute->offset; */
+            /* int id = emitIntLiteral(offset); */
+            /* fprintf(adotout, "ldr w%d, _const_%d\n", reg, id); */
+            /* fprintf(adotout, "sub x%d, x29, x%d\n", reg, reg); */
+            /* if(idNode->dataType == INT_TYPE){ */
+              /* fprintf(adotout, "ldr w%d, [x%d, #0]\n", reg, reg); */
+            /* }else{ */
+              /* fprintf(adotout, "ldr s%d, [x%d, #0]\n", reg, reg); */
+            /* } */
+          /* } */
+        /* }else{ */
+          /* idNode->dataType = typeDescriptor->properties.arrayProperties.elementType; */
+          /* int dimension = 0; */
+          /* int * arrayDims = typeDescriptor->properties.arrayProperties.sizeInEachDimension; */
+          /* AST_NODE *traverseDimList = idNode->child; */
+          /* fprintf(adotout, "mov x%d, #0\n", reg); */
+          /* while(traverseDimList){ */
+            /* int id = emitIntLiteral(arrayDims[dimension]); */
+            /* int _reg = getReg(); */
+            /* fprintf(adotout, "ldr x%d, _const_%d\n", _reg, id); */
+            /* fprintf(adotout, "mul x%d, x%d, x%d\n", reg, reg, _reg); */
+            /* freeReg(_reg); */
+            /* int indexReg = emitExprRelatedNode(traverseDimList); */
+            /* fprintf(adotout, "lsl x%d, x%d, #2\n", indexReg, indexReg); */
+            /* fprintf(adotout, "add x%d, x%d, x%d\n", reg, reg, indexReg); */
+            /* freeReg(indexReg); */
+            /* traverseDimList = traverseDimList->rightSibling; */
+            /* ++dimension; */
+          /* } */
+          /* int offset = symbolTableEntry->attribute->offset; */
+          /* int _reg = getReg(); */
+          /* if(symbolTableEntry->attribute->global){ */
+            /* fprintf(adotout, "ldr x%d, =_%s\n", _reg, idName(idNode)); */
+          /* }else{ */
+            /* fprintf(adotout, "add x%d, x%d, x%d\n", reg, reg, 29); */
+            /* int id = emitIntLiteral(offset); */
+            /* fprintf(adotout, "ldr x%d, _const_%d\n", _reg, id); */
+            /* fprintf(adotout, "neg x%d, x%d\n", _reg, _reg); */
+          /* } */
+          /* freeReg(_reg); */
+          /* fprintf(adotout, "add x%d, x%d, x%d\n", reg, reg, _reg); */
+          /* if(idNode->dataType == INT_TYPE){ */
+            /* fprintf(adotout, "ldr w%d, [x%d, #0]\n", reg, reg); */
+          /* }else{ */
+            /* fprintf(adotout, "ldr s%d, [x%d, #0]\n", reg, reg); */
+          /* } */
+        /* } */
+      /* } */
+      /* break; */
+    /* case CONST_VALUE_NODE: */
+      /* switch(exprRelatedNode->semantic_value.const1->const_type){ */
+        /* case INTEGERC: */
+          /* exprRelatedNode->dataType = INT_TYPE; */
+          /* exprRelatedNode->semantic_value.exprSemanticValue.constEvalValue.iValue = */
+            /* exprRelatedNode->semantic_value.const1->const_u.intval; */
+          /* fprintf(adotout, ".data\n"); */
+          /* fprintf(adotout, "_integer_const_%d: .word %d\n", _const, exprRelatedNode->semantic_value.const1->const_u.intval); */
+          /* emitAlignment(); */
+          /* fprintf(adotout, ".text\n"); */
+          /* fprintf(adotout, "ldr w%d, _integer_const_%d\n", reg, _const); */
+          /* _const++; */
+          /* break; */
+        /* case FLOATC: */
+          /* exprRelatedNode->dataType = FLOAT_TYPE; */
+          /* exprRelatedNode->semantic_value.exprSemanticValue.constEvalValue.fValue = */
+            /* exprRelatedNode->semantic_value.const1->const_u.fval; */
+          /* fprintf(adotout, ".data\n"); */
+          /* fprintf(adotout, "_float_const_%d: .float %f\n", _const, exprRelatedNode->semantic_value.const1->const_u.fval); */
+          /* emitAlignment(); */
+          /* fprintf(adotout, ".text\n"); */
+          /* fprintf(adotout, "ldr s%d, _float_const_%d\n", reg, _const); */
+          /* _const++; */
+          /* break; */
+        /* case STRINGC: */
+          /* exprRelatedNode->dataType = CONST_STRING_TYPE; */
+          /* fprintf(adotout, ".data\n"); */
+          /* fprintf(adotout, "_string_const_%d: .asciz %s\n", _const, exprRelatedNode->semantic_value.const1->const_u.sc); */
+          /* emitAlignment(); */
+          /* fprintf(adotout, ".text\n"); */
+          /* fprintf(adotout, "ldr x%d, =_string_const_%d\n", reg, _const); */
+          /* _const++; */
+          /* break; */
+      /* } */
+      /* break; */
+  /* } */
+  /* return reg; */
+/* } */
