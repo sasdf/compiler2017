@@ -145,6 +145,7 @@ void genBlock(AST_NODE *block)
         unpack(it, decl_list, stmt_list);
         assert(decl_list->nodeType == VARIABLE_DECL_LIST_NODE);
         assert(stmt_list->nodeType == STMT_LIST_NODE);
+        genStmtList(stmt_list);
     }
     // block -> decl_list | stmt_list
     else {
@@ -212,35 +213,35 @@ void countVariableSize(AST_NODE *declNode, int* size)
 
 void genFunctionPrologue(int size)
 {
-    fprintf(output, "str x30, [sp, #0]\n");
-    fprintf(output, "str x29, [sp, #-8]\n");
-    fprintf(output, "add x29, sp, #-8\n");
-    fprintf(output, "add sp, sp, #-16\n");
-    int offset = 0;
+    fprintf(output, "str x30, [sp, #-8]\n");
+    fprintf(output, "str x29, [sp, #-16]\n");
+    int offset = 16;
     for(int i = 19; i <= 29; ++i){
         offset += 8;
-        fprintf(output, "str x%d, [x29, #%d]\n", i, -offset);
+        fprintf(output, "str x%d, [sp, #%d]\n", i, -offset);
     }
+    fprintf(output, "add x29, sp, #-104\n");
     fprintf(output, ".data\n");
-    fprintf(output, "_AR_SIZE_%d: .word %d\n", const_n, offset);
+    fprintf(output, "_AR_SIZE_%d: .word %d\n", const_n, size);
     fprintf(output, ".align 3\n");
     fprintf(output, ".text\n");
     fprintf(output, "ldr w19, _AR_SIZE_%d\n", const_n);
-    fprintf(output, "sub sp, sp, w19\n");
+    fprintf(output, "sub sp, x29, w19\n");
     ++const_n;
     //_offset = 0
 }
 
+// does not need size actually
 void genFunctionEpilogue(int size, DATA_TYPE returnType)
 {
+    fprintf(output, "add sp, x29, #-104\n");
     int offset = 0;
-    for (int i = 19; i <= 29; ++i){
+    for (int i = 29; i >= 19; ++i){
+        fprintf(output, "ldr x%d, [x29, #%d]\n", i, offset);
         offset += 8;
-        fprintf(output, "ldr x%d, [x29, #%d]\n", i, -offset);
     }
-    fprintf(output, "ldr x30, [x29, #8]\n");
-    fprintf(output, "add sp, x29, #8\n");
-    fprintf(output, "ldr x29, [x29, #0]\n");
+    fprintf(output, "ldr x30, [sp, #8]\n");
+    fprintf(output, "ldr x29, [sp, #16]\n");
     fprintf(output, "ret x30\n");
 }
 
@@ -292,6 +293,7 @@ void genWhile(AST_NODE *whileNode)
     AST_NODE *it = whileNode;
     unpack(it, test, stmt);
     int while_n = const_n++;
+
     fprintf(output, "_WHILE_%d:\n", while_n);
     if (test->nodeType == STMT_NODE && getStmtKind(test) == ASSIGN_STMT){
         genAssignStmt(test);
@@ -300,12 +302,13 @@ void genWhile(AST_NODE *whileNode)
     REG reg = genExprRelated(test);
     if (test->dataType == FLOAT_TYPE)
         fprintf(output, "fcvtzs w%d, s%d\n", reg, reg);
+
     fprintf(output, "cmp w%d, #0\n", reg);
+    freeReg(reg);
     fprintf(output, "beq _WHILE_END_%d\n", while_n);
     genStmt(stmt);
     fprintf(output, "b _WHILE_%d\n", while_n);
     fprintf(output, "_WHILE_END_%d:\n", while_n);
-    freeReg(reg);
 }
 
 void genAssignStmt(AST_NODE *assignNode)
@@ -321,8 +324,28 @@ void genIf(AST_NODE *ifNode)
 {
     AST_NODE *it = ifNode;
     unpack(it, test, stmt, elseStmt);
+    int if_n = const_n++;
+    
+    fprintf(output, "_IF_%d:\n", if_n);
+    if (test->nodeType == STMT_NODE && getStmtKind(test) == ASSIGN_STMT){
+        genAssignStmt(test);
+        test = test->child;
+    }
+    REG reg = genExprRelated(test);
+    if (test->dataType == FLOAT_TYPE)
+        fprintf(output, "fcvtzs w%d, s%d\n", reg, reg);
 
+    fprintf(output, "cmp w%d, #0\n", reg);
+    freeReg(reg);
+    fprintf(output, "beq _ELSE_%d\n", if_n);
+    genStmt(stmt);
+    fprintf(output, "b _END_IF_%d\n", if_n);
+   
 
+    fprintf(output, "_ELSE_%d:\n", if_n);
+    //if (elseStmt->nodeType != NUL_NODE)
+    genStmt(elseStmt);
+    fprintf(output, "_END_IF_%d:\n", if_n);
 }
 
 void genFunctionCall(AST_NODE *functionCallNode)
@@ -332,9 +355,43 @@ void genFunctionCall(AST_NODE *functionCallNode)
 
 void genReturn(AST_NODE *returnNode)
 {
-    unpack(returnNode->child, exprRelated);
-    REG reg = genExprRelated(exprRelated);
-    // TODO; mov w0, %reg
+    AST_NODE *it = returnNode;
+    unpack(it, exprRelated);
+    REG reg;
+    if (exprRelated->nodeType != NUL_NODE){
+        reg = genExprRelated(exprRelated);
+    }
+
+    AST_NODE *parent = returnNode;
+    findParentDecl(parent, FUNCTION_DECL);
+    FunctionSignature *fs = getHeadFunctionSignature(parent->child);
+    switch(fs->returnType){
+        case INT_TYPE:
+            if (returnNode->dataType == INT_TYPE)
+                fprintf(output, "mov w0, w%d\n", reg);
+            else if (returnNode->dataType == FLOAT_TYPE){
+                fprintf(output, "fmov s0, s%d\n", reg);
+                fprintf(output, "fcvtzs w0, s0\n");
+            } else {
+                puts("return type error");
+            }
+            break;
+        case FLOAT_TYPE:
+            if (returnNode->dataType == INT_TYPE){
+                fprintf(output, "mov w0, w%d\n", reg);
+                fprintf(output, "scvtf s0, w0\n");
+            } else if (returnNode->dataType == FLOAT_TYPE){
+                fprintf(output, "fmov s0, s%d\n", reg);
+            } else {
+                puts("return type error");
+            }
+            break;
+        case VOID_TYPE:
+            break;
+        default:
+            puts("Undefined return type");
+            break;
+    }
 }
 
 REG genExprRelated(AST_NODE *exprRelatedNode)

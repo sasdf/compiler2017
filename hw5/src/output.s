@@ -1,9 +1,43 @@
-.data
-_g_a: .space 720
-_g_b: .word 0
-_g_c: .word 0
-_g_d: .word 0
-_g_e: .space 144
-_g_f: .word 0
 .text
 _start_MAIN:
+str x30, [sp, #0]
+str x29, [sp, #-8]
+add x29, sp, #-8
+add sp, sp, #-16
+str x19, [x29, #-8]
+str x20, [x29, #-16]
+str x21, [x29, #-24]
+str x22, [x29, #-32]
+str x23, [x29, #-40]
+str x24, [x29, #-48]
+str x25, [x29, #-56]
+str x26, [x29, #-64]
+str x27, [x29, #-72]
+str x28, [x29, #-80]
+str x29, [x29, #-88]
+.data
+_AR_SIZE_0: .word 88
+.align 3
+.text
+ldr w19, _AR_SIZE_0
+sub sp, sp, w19
+_WHILE_1:
+cmp w1, #0
+beq _WHILE_END_1
+b _WHILE_1
+_WHILE_END_1:
+ldr x19, [x29, #-8]
+ldr x20, [x29, #-16]
+ldr x21, [x29, #-24]
+ldr x22, [x29, #-32]
+ldr x23, [x29, #-40]
+ldr x24, [x29, #-48]
+ldr x25, [x29, #-56]
+ldr x26, [x29, #-64]
+ldr x27, [x29, #-72]
+ldr x28, [x29, #-80]
+ldr x29, [x29, #-88]
+ldr x30, [x29, #8]
+add sp, x29, #8
+ldr x29, [x29, #0]
+ret x30
