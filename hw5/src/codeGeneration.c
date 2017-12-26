@@ -329,7 +329,7 @@ void genArrayAssign(AST_NODE *idNode, REG val)
         fprintf(output, "ldr x%d, =_g_%s\n", varReg, getIDName(idNode));
     }else{
         int stackOffset = getIDOffset(idNode);
-        REG varReg = genIntLiteral(stackOffset);
+        varReg = genIntLiteral(stackOffset);
         fprintf(output, "sub x%d, x29, x%d\n", varReg, varReg);
     }
 
@@ -807,7 +807,7 @@ REG genArrayRef(AST_NODE *idNode)
         fprintf(output, "ldr x%d, =_g_%s\n", varReg, getIDName(idNode));
     }else{
         int stackOffset = getIDOffset(idNode);
-        REG varReg = genIntLiteral(stackOffset);
+        varReg = genIntLiteral(stackOffset);
         fprintf(output, "sub x%d, x29, x%d\n", varReg, varReg);
     }
 
