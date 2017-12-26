@@ -1,0 +1,7 @@
+#!/bin/bash
+
+make clean && \
+git add -A ../.. && \
+git commit -m 'sync' && \
+git pull && \
+git push

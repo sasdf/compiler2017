@@ -400,27 +400,23 @@ void genVariableAssign(AST_NODE *idNode, REG val)
         genArrayAssign(idNode, val);
         return;
     }else{
+        REG addr;
         if(getIDGlobal(idNode)){
-            REG addr = getReg();
-            if(idNode->dataType == INT_TYPE){
-                fprintf(output, "ldr x%d, =_g_%s\n", addr, getIDName(idNode));
-                fprintf(output, "str w%d, [x%d, #0]\n", val, addr);
-            }else{
-                fprintf(output, "ldr x%d, =_g_%s\n", addr, getIDName(idNode));
-                fprintf(output, "str s%d, [x%d, #0]\n", val, addr);
-            }
-            freeReg(addr);
+            addr = getReg();
+            fprintf(output, "ldr x%d, =_g_%s\n", addr, getIDName(idNode));
         }else{
             int offset = getIDOffset(idNode);
-            REG reg = genIntLiteral(offset);
-            fprintf(output, "sub x%d, x29, x%d\n", reg, reg);
-            if(idNode->dataType == INT_TYPE){
-                fprintf(output, "str w%d, [x%d, #0]\n", val, reg);
-            }else{
-                fprintf(output, "str s%d, [x%d, #0]\n", val, reg);
-            }
-            freeReg(reg);
+            addr = genIntLiteral(offset);
+            fprintf(output, "sub x%d, x29, x%d\n", addr, addr);
         }
+
+        if(idNode->dataType == INT_TYPE){
+            fprintf(output, "str w%d, [x%d, #0]\n", val, addr);
+        }else{
+            fprintf(output, "str s%d, [x%d, #0]\n", val, addr);
+        }
+
+        freeReg(addr);
     }
     return;
 }
@@ -890,11 +886,7 @@ REG genVariableRef(AST_NODE *idNode)
     }else{
         if(getIDGlobal(idNode)){
             reg = getReg();
-            if(idNode->dataType == INT_TYPE){
-                fprintf(output, "ldr x%d, =_g_%s\n", reg, getIDName(idNode));
-            }else{
-                fprintf(output, "ldr x%d, =_g_%s\n", reg, getIDName(idNode));
-            }
+            fprintf(output, "ldr x%d, =_g_%s\n", reg, getIDName(idNode));
         }else{
             int offset = getIDOffset(idNode);
             fprintf(stderr, "name: %s, offset: %d\n", getIDName(idNode), offset);
