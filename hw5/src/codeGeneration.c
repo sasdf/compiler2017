@@ -575,46 +575,44 @@ REG genRelopExpr(AST_NODE *exprNode)
 
                 case BINARY_OP_EQ:
                     fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
-                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    fprintf(output, "cset w%d, eq\n", LReg);
                     break;
                 case BINARY_OP_GE:
                     fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
-                    fprintf(output, "cset w%d, ge\n", LReg, RReg);
+                    fprintf(output, "cset w%d, ge\n", LReg);
                     break;
                 case BINARY_OP_LE:
                     fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
-                    fprintf(output, "cset w%d, le\n", LReg, RReg);
+                    fprintf(output, "cset w%d, le\n", LReg);
                     break;
                 case BINARY_OP_NE:
                     fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
-                    fprintf(output, "cset w%d, ne\n", LReg, RReg);
+                    fprintf(output, "cset w%d, ne\n", LReg);
                     break;
                 case BINARY_OP_GT:
                     fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
-                    fprintf(output, "cset w%d, gt\n", LReg, RReg);
+                    fprintf(output, "cset w%d, gt\n", LReg);
                     break;
                 case BINARY_OP_LT:
                     fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
-                    fprintf(output, "cset w%d, lt\n", LReg, RReg);
+                    fprintf(output, "cset w%d, lt\n", LReg);
                     break;
 
                 case BINARY_OP_AND:
                     fprintf(output, "cmp w%d, #0\n", LReg);
-                    fprintf(output, "cset w%d, eq\n", LReg);
+                    fprintf(output, "cset w%d, ne\n", LReg);
                     fprintf(output, "cmp w%d, #0\n", RReg);
-                    fprintf(output, "cset w%d, eq\n", RReg);
+                    fprintf(output, "cset w%d, ne\n", RReg);
                     fprintf(output, "and w%d, w%d, w%d\n", LReg, LReg, RReg);
                     break;
                 case BINARY_OP_OR:
                     fprintf(output, "cmp w%d, #0\n", LReg);
-                    fprintf(output, "cset w%d, eq\n", LReg);
+                    fprintf(output, "cset w%d, ne\n", LReg);
                     fprintf(output, "cmp w%d, #0\n", RReg);
-                    fprintf(output, "cset w%d, eq\n", RReg);
+                    fprintf(output, "cset w%d, ne\n", RReg);
                     fprintf(output, "or w%d, w%d, w%d\n", LReg, LReg, RReg);
                     break;
             }
-            freeReg(RReg);
-            return LReg;
         }else{
             // Float expr
             if(lvalue->dataType == INT_TYPE)
@@ -638,117 +636,78 @@ REG genRelopExpr(AST_NODE *exprNode)
                     break;
                 case BINARY_OP_EQ:
                     fprintf(output, "fcmp s%d, s%d\n", LReg, RReg);
-                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    fprintf(output, "cset w%d, eq\n", LReg);
                     break;
                 case BINARY_OP_GE:
                     fprintf(output, "fcmp s%d, s%d\n", LReg, RReg);
-                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    fprintf(output, "cset w%d, ge\n", LReg);
                     break;
                 case BINARY_OP_LE:
                     fprintf(output, "fcmp s%d, s%d\n", LReg, RReg);
-                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    fprintf(output, "cset w%d, le\n", LReg);
                     break;
                 case BINARY_OP_NE:
                     fprintf(output, "fcmp s%d, s%d\n", LReg, RReg);
-                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    fprintf(output, "cset w%d, ne\n", LReg);
                     break;
                 case BINARY_OP_GT:
                     fprintf(output, "fcmp s%d, s%d\n", LReg, RReg);
-                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    fprintf(output, "cset w%d, gt\n", LReg);
                     break;
                 case BINARY_OP_LT:
                     fprintf(output, "fcmp s%d, s%d\n", LReg, RReg);
-                    fprintf(output, "cset w%d, eq\n", LReg, RReg);
+                    fprintf(output, "cset w%d, lt\n", LReg);
                     break;
                 case BINARY_OP_AND:
-                    fprintf(output, "cmp w%d, #0\n", LReg);
-                    fprintf(output, "cset w%d, eq\n", LReg);
-                    fprintf(output, "cmp w%d, #0\n", RReg);
-                    fprintf(output, "cset w%d, eq\n", RReg);
+                    fprintf(output, "fcmp s%d, #0\n", LReg);
+                    fprintf(output, "cset w%d, ne\n", LReg);
+                    fprintf(output, "fcmp s%d, #0\n", RReg);
+                    fprintf(output, "cset w%d, ne\n", RReg);
                     fprintf(output, "or w%d, w%d, w%d\n", LReg, LReg, RReg);
                     break;
                 case BINARY_OP_OR:
-                    fprintf(output, "cmp w%d, #0\n", LReg);
-                    fprintf(output, "cset w%d, eq\n", LReg);
-                    fprintf(output, "cmp w%d, #0\n", RReg);
-                    fprintf(output, "cset w%d, eq\n", RReg);
+                    fprintf(output, "fcmp s%d, #0\n", LReg);
+                    fprintf(output, "cset w%d, ne\n", LReg);
+                    fprintf(output, "fcmp s%d, #0\n", RReg);
+                    fprintf(output, "cset w%d, ne\n", RReg);
                     fprintf(output, "or w%d, w%d, w%d\n", LReg, LReg, RReg);
                     break;
             }
-            freeReg(RReg);
-            return LReg;
         }
+        freeReg(RReg);
+        return LReg;
     }else{
-        /* AST_NODE* operand = exprNode->child; */
-        /* processExprRelatedNode(operand); */
-        /* exprNode->dataType = operand->dataType; */
+        // Unary operation
+ 
+        unpack(it, value);
+        REG reg = genExprRelated(value);
 
-        /* if((exprNode->dataType != ERROR_TYPE) && */
-                /* (operand->nodeType == CONST_VALUE_NODE || (operand->nodeType == EXPR_NODE && operand->semantic_value.exprSemanticValue.isConstEval)) */
-          /* ){ */
-            /* evaluateExprValue(exprNode); */
-            /* exprNode->semantic_value.exprSemanticValue.isConstEval = 1; */
-            /* fprintf(output, ".data\n"); */
-            /* if(exprNode->dataType == INT_TYPE){ */
-                /* fprintf(output, "_integer_const_%d: .word %d\n", _const, exprNode->semantic_value.exprSemanticValue.constEvalValue.iValue); */
-            /* }else{ */
-                /* fprintf(output, "_float_const_%d: .float %f\n", _const, exprNode->semantic_value.exprSemanticValue.constEvalValue.fValue); */
-            /* } */
-            /* emitAlignment(); */
-            /* fprintf(output, ".text\n"); */
-            /* int reg = getReg(); */
-            /* if(exprNode->dataType == INT_TYPE){ */
-                /* fprintf(output, "ldr w%d, _integer_const_%d\n", reg, _const); */
-            /* }else{ */
-                /* fprintf(output, "ldr s%d, _float_const_%d\n", reg, _const); */
-            /* } */
-            /* ++_const; */
-            /* return reg; */
-        /* }else{ */
-            /* int reg = emitExprRelatedNode(operand); */
-            /* if(operand->dataType == INT_TYPE){ */
-                /* exprNode->dataType = INT_TYPE; */
-                /* switch(exprNode->semantic_value.exprSemanticValue.op.unaryOp){ */
-                    /* case UNARY_OP_POSITIVE: */
-                        /* break; */
-                    /* case UNARY_OP_NEGATIVE: */
-                        /* fprintf(output, "neg w%d, w%d", reg, reg); */
-                        /* break; */
-                    /* case UNARY_OP_LOGICAL_NEGATION: */
-                        /* fprintf(output, "cmp w%d, #0\n", reg); */
-                        /* fprintf(output, "beq _ELSE_%d\n", _const); */
-                        /* fprintf(output, "mov w%d, #0\n", reg); */
-                        /* fprintf(output, "b _END_%d\n", _const); */
-                        /* fprintf(output, "_ELSE_%d:\n", _const); */
-                        /* fprintf(output, "mov w%d, #1\n", reg); */
-                        /* fprintf(output, "_END_%d:\n", _const); */
-                        /* ++_const; */
-                        /* break; */
-                /* } */
-            /* }else{ */
-                /* exprNode->dataType = FLOAT_TYPE; */
-                /* switch(exprNode->semantic_value.exprSemanticValue.op.unaryOp){ */
-                    /* case UNARY_OP_POSITIVE: */
-                        /* break; */
-                    /* case UNARY_OP_NEGATIVE: */
-                        /* fprintf(output, "fneg s%d, s%d", reg, reg); */
-                        /* break; */
-                    /* case UNARY_OP_LOGICAL_NEGATION: */
-                        /* exprNode->dataType = INT_TYPE; */
-                        /* fprintf(output, "fcvtzs w%d, s%d\n", reg, reg); */
-                        /* fprintf(output, "cmp w%d, #0\n", reg); */
-                        /* fprintf(output, "beq _ELSE_%d\n", _const); */
-                        /* fprintf(output, "mov w%d, #0\n", reg); */
-                        /* fprintf(output, "b _END_%d\n", _const); */
-                        /* fprintf(output, "_ELSE_%d:\n", _const); */
-                        /* fprintf(output, "mov w%d, #1\n", reg); */
-                        /* fprintf(output, "_END_%d:\n", _const); */
-                        /* ++_const; */
-                        /* break; */
-                /* } */
-            /* } */
-            /* return reg; */
-        /* } */
+        if(value->dataType == INT_TYPE){
+            switch(getExprOp(exprNode)){
+                case UNARY_OP_POSITIVE:
+                    break;
+                case UNARY_OP_NEGATIVE:
+                    fprintf(output, "neg w%d, w%d", reg, reg);
+                    break;
+                case UNARY_OP_LOGICAL_NEGATION:
+                    fprintf(output, "cmp w%d, #0\n", reg);
+                    fprintf(output, "cset w%d, eq\n", reg);
+                    break;
+            }
+        }else{
+            switch(getExprOp(exprNode)){
+                case UNARY_OP_POSITIVE:
+                    break;
+                case UNARY_OP_NEGATIVE:
+                    fprintf(output, "fneg s%d, s%d", reg, reg);
+                    break;
+                case UNARY_OP_LOGICAL_NEGATION:
+                    fprintf(output, "fcmp s%d, #0\n", reg);
+                    fprintf(output, "cset w%d, eq\n", reg);
+                    break;
+            }
+        }
+        return reg;
     }
 }
 
