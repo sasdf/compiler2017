@@ -146,9 +146,9 @@ void genDeclList(AST_NODE *declList){
         if (it->child){
             REG reg = genExprRelated(it->child);
             if (type->dataType == INT_TYPE){
-                fprintf(output, "str w%d, [x29, #-%d]", reg, getIDOffset(it));
+                fprintf(output, "str w%d, [x29, #-%d]\n", reg, getIDOffset(it));
             } else if (type->dataType == FLOAT_TYPE){
-                fprintf(output, "str s%d, [x29, #-%d]", reg, getIDOffset(it));
+                fprintf(output, "str s%d, [x29, #-%d]\n", reg, getIDOffset(it));
             }
             freeReg(reg);
         }
