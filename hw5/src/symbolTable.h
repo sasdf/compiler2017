@@ -36,8 +36,6 @@ typedef struct ArrayProperties
 
 typedef struct TypeDescriptor
 {
-    int offset;
-    int global;
     TypeDescriptorKind kind;
     union
     {
@@ -64,6 +62,8 @@ typedef struct FunctionSignature
 typedef struct SymbolAttribute
 {
     SymbolAttributeKind attributeKind;
+    int offset;
+    int global;
 
     union
     {
