@@ -394,9 +394,9 @@ void genVariableAssign(AST_NODE *idNode, REG val)
     }else{
         if(getIDGlobal(idNode)){
             if(idNode->dataType == INT_TYPE){
-                fprintf(output, "str w%d, _g_%s\n", val, getIDName(idNode));
+                fprintf(output, "str w%d, =_g_%s\n", val, getIDName(idNode));
             }else{
-                fprintf(output, "str s%d, _g_%s\n", val, getIDName(idNode));
+                fprintf(output, "str s%d, =_g_%s\n", val, getIDName(idNode));
             }
         }else{
             int offset = getIDOffset(idNode);
@@ -714,7 +714,7 @@ REG genRelopExpr(AST_NODE *exprNode)
                     fprintf(output, "cset w%d, ne\n", LReg);
                     fprintf(output, "cmp w%d, #0\n", RReg);
                     fprintf(output, "cset w%d, ne\n", RReg);
-                    fprintf(output, "or w%d, w%d, w%d\n", LReg, LReg, RReg);
+                    fprintf(output, "orr w%d, w%d, w%d\n", LReg, LReg, RReg);
                     break;
             }
         }else{
@@ -767,14 +767,14 @@ REG genRelopExpr(AST_NODE *exprNode)
                     fprintf(output, "cset w%d, ne\n", LReg);
                     fprintf(output, "fcmp s%d, #0\n", RReg);
                     fprintf(output, "cset w%d, ne\n", RReg);
-                    fprintf(output, "or w%d, w%d, w%d\n", LReg, LReg, RReg);
+                    fprintf(output, "orr w%d, w%d, w%d\n", LReg, LReg, RReg);
                     break;
                 case BINARY_OP_OR:
                     fprintf(output, "fcmp s%d, #0\n", LReg);
                     fprintf(output, "cset w%d, ne\n", LReg);
                     fprintf(output, "fcmp s%d, #0\n", RReg);
                     fprintf(output, "cset w%d, ne\n", RReg);
-                    fprintf(output, "or w%d, w%d, w%d\n", LReg, LReg, RReg);
+                    fprintf(output, "orr w%d, w%d, w%d\n", LReg, LReg, RReg);
                     break;
             }
         }
@@ -878,9 +878,9 @@ REG genVariableRef(AST_NODE *idNode)
         if(getIDGlobal(idNode)){
             reg = getReg();
             if(idNode->dataType == INT_TYPE){
-                fprintf(output, "ldr w%d, _g_%s\n", reg, getIDName(idNode));
+                fprintf(output, "ldr w%d, =_g_%s\n", reg, getIDName(idNode));
             }else{
-                fprintf(output, "ldr s%d, _g_%s\n", reg, getIDName(idNode));
+                fprintf(output, "ldr s%d, =_g_%s\n", reg, getIDName(idNode));
             }
         }else{
             int offset = getIDOffset(idNode);
