@@ -1,6 +1,6 @@
 
 int MAIN(){
-    int i = 10;
+    int i = 1012;
 
     write(i);
     /*
