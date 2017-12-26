@@ -139,6 +139,21 @@ void genFunctionDecl(AST_NODE *functionDeclNode)
     genFunctionEpilogue(size, returnType);
 }
 
+void genDeclList(AST_NODE *declList){
+    AST_NODE *type = declList;
+    AST_NODE *it = type->rightSibling;
+    forEach(it){
+        if (it->child){
+            REG reg = genExprRelated(it->child);
+            if (type->dataType == INT_TYPE){
+                fprintf(output, "str w%d, [x29, #-%d]", reg, getIDOffset(it));
+            } else if (type->dataType == FLOAT_TYPE){
+                fprintf(output, "str s%d, [x29, #-%d]", reg, getIDOffset(it));
+            }
+        }
+    }
+}
+
 void genBlock(AST_NODE *block)
 {
     assert(block->nodeType == BLOCK_NODE);
@@ -149,12 +164,13 @@ void genBlock(AST_NODE *block)
         unpack(it, decl_list, stmt_list);
         assert(decl_list->nodeType == VARIABLE_DECL_LIST_NODE);
         assert(stmt_list->nodeType == STMT_LIST_NODE);
+        genDeclList(decl_list);
         genStmtList(stmt_list);
     }
     // block -> decl_list | stmt_list
     else {
         if (it->nodeType == VARIABLE_DECL_LIST_NODE){
-            // nothing to do
+            genDeclList(it);
         } else if (it->nodeType == STMT_LIST_NODE){
             genStmtList(it);
         } else {
