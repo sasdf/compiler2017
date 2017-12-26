@@ -224,9 +224,9 @@ void genFunctionPrologue(int size)
         offset += 8;
         fprintf(output, "str x%d, [sp, #%d]\n", i, -offset);
     }
-    fprintf(output, "add x29, sp, #-104\n");
+    fprintf(output, "add x29, sp, #-112\n");
     fprintf(output, ".data\n");
-    fprintf(output, "_AR_SIZE_%d: .word %d\n", const_n, size);
+    fprintf(output, "_AR_SIZE_%d: .word %d\n", const_n, ((size-1)|0xf)+1);
     fprintf(output, ".align 3\n");
     fprintf(output, ".text\n");
     fprintf(output, "ldr w19, _AR_SIZE_%d\n", const_n);
@@ -238,11 +238,11 @@ void genFunctionPrologue(int size)
 // does not need size actually
 void genFunctionEpilogue(int size, DATA_TYPE returnType)
 {
-    fprintf(output, "add sp, x29, #-104\n");
+    fprintf(output, "add sp, x29, #-112\n");
     int offset = 0;
     for (int i = 29; i >= 19; ++i){
-        fprintf(output, "ldr x%d, [x29, #%d]\n", i, offset);
         offset += 8;
+        fprintf(output, "ldr x%d, [x29, #%d]\n", i, offset);
     }
     fprintf(output, "ldr x30, [sp, #8]\n");
     fprintf(output, "ldr x29, [sp, #16]\n");
