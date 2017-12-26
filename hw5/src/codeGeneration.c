@@ -350,6 +350,7 @@ void genArrayAssign(AST_NODE *idNode, REG val)
         varReg = genIntLiteral(stackOffset);
         fprintf(output, "sub x%d, x29, x%d\n", varReg, varReg);
     }
+    freeReg(varReg);
 
     int i = 0;
     int *sizes = typeDescriptor->properties.arrayProperties.sizeInEachDimension;
@@ -420,6 +421,7 @@ void genAssignStmt(AST_NODE *assignNode)
     // TODO variable reference
     // stack[offset] = right_reg
     genVariableAssign(id, reg);
+    freeReg(reg);
 }
 
 void genIf(AST_NODE *ifNode)
@@ -462,7 +464,7 @@ void genWrite(AST_NODE *functionCallNode){
             fprintf(output, "bl _write_int\n");
             break;
         case FLOAT_TYPE:
-            fprintf(output, "mov s0, s%d\n", reg);
+            fprintf(output, "fmov s0, s%d\n", reg);
             fprintf(output, "bl _write_float\n");
             break;
         case CONST_STRING_TYPE:
