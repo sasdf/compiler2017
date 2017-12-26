@@ -222,14 +222,14 @@ void countVariableSize(AST_NODE *declNode, int* size)
     assert ( getIDAttr(id_list)->attributeKind == VARIABLE_ATTRIBUTE );
     forEach(id_list){
         setIDOffset(id_list, *size);
-        printf("%s offset %d\n", getIDName(id_list), getIDOffset(id_list));
+        //printf("%s offset %d\n", getIDName(id_list), getIDOffset(id_list));
         setIDGlobal(id_list, 0);
         if (id_list->child && getIDKind(id_list->child) == ARRAY_ID){
             *size += getArrayCount(id_list->child)*4;
         } else{
             *size += 4;
         }
-        printf("size: %d\n", *size);
+        //printf("size: %d\n", *size);
     }
 }
 
@@ -575,7 +575,7 @@ REG getReg()
     for (int i=19; i<29; ++i) {
         if (!isRegInUse[i]) {
             isRegInUse[i] = 1;
-            printf("getReg %d\n", i);
+            //printf("getReg %d\n", i);
             return i;
         }
     }
@@ -585,7 +585,7 @@ REG getReg()
 void freeReg(REG reg)
 {
     assert ( reg >= 19 && reg < 29 );
-    printf("freeReg %d\n", reg);
+    //printf("freeReg %d\n", reg);
     isRegInUse[reg] = 0;
 }
 
