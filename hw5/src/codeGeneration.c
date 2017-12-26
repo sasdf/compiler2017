@@ -350,7 +350,6 @@ void genArrayAssign(AST_NODE *idNode, REG val)
         varReg = genIntLiteral(stackOffset);
         fprintf(output, "sub x%d, x29, x%d\n", varReg, varReg);
     }
-    freeReg(varReg);
 
     int i = 0;
     int *sizes = typeDescriptor->properties.arrayProperties.sizeInEachDimension;
@@ -378,6 +377,7 @@ void genArrayAssign(AST_NODE *idNode, REG val)
     }else{
         fprintf(output, "str s%d, [x%d, #0]\n", val, varReg);
     }
+    freeReg(varReg);
 
 }
 
