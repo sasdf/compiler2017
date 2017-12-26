@@ -244,8 +244,8 @@ void genFunctionEpilogue(int size, DATA_TYPE returnType)
         offset += 8;
         fprintf(output, "ldr x%d, [x29, #%d]\n", i, offset);
     }
-    fprintf(output, "ldr x30, [sp, #8]\n");
-    fprintf(output, "ldr x29, [sp, #16]\n");
+    fprintf(output, "ldr x30, [sp, #-8]\n");
+    fprintf(output, "ldr x29, [sp, #-16]\n");
     fprintf(output, "ret x30\n");
 }
 
@@ -524,7 +524,7 @@ REG genExprRelated(AST_NODE *exprRelatedNode)
         break;
     case STMT_NODE:
         //function call
-		genFunctionCall(exprRelatedNode);
+		genFunctionCall(exprRelatedNode->child);
         reg = getReg();
         switch(exprRelatedNode->dataType){
           case INT_TYPE:
