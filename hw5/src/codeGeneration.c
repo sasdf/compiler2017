@@ -146,9 +146,9 @@ void genDeclList(AST_NODE *declList){
         if (it->child){
             REG reg = genExprRelated(it->child);
             if (type->dataType == INT_TYPE){
-                fprintf(output, "str w%d, [x29, #-%d]", reg, getIDOffset(it));
+                fprintf(output, "str w%d, [x29, #-%d]\n", reg, getIDOffset(it));
             } else if (type->dataType == FLOAT_TYPE){
-                fprintf(output, "str s%d, [x29, #-%d]", reg, getIDOffset(it));
+                fprintf(output, "str s%d, [x29, #-%d]\n", reg, getIDOffset(it));
             }
             freeReg(reg);
         }
@@ -224,7 +224,7 @@ void countVariableSize(AST_NODE *declNode, int* size)
         setIDOffset(id_list, *size);
         printf("%s offset %d\n", getIDName(id_list), getIDOffset(id_list));
         setIDGlobal(id_list, 0);
-        if (getIDKind(id_list->child) == ARRAY_ID){
+        if (id_list->child && getIDKind(id_list->child) == ARRAY_ID){
             *size += getArrayCount(id_list->child)*4;
         } else{
             *size += 4;
@@ -573,6 +573,7 @@ REG getReg()
     for (int i=19; i<29; ++i) {
         if (!isRegInUse[i]) {
             isRegInUse[i] = 1;
+            printf("getReg %d\n", i);
             return i;
         }
     }
@@ -582,6 +583,7 @@ REG getReg()
 void freeReg(REG reg)
 {
     assert ( reg >= 19 && reg < 29 );
+    printf("freeReg %d\n", reg);
     isRegInUse[reg] = 0;
 }
 
