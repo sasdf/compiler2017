@@ -357,6 +357,7 @@ void genArrayAssign(AST_NODE *idNode, REG val)
         int stackOffset = getIDOffset(idNode);
         varReg = genIntLiteral(stackOffset);
         fprintf(output, "sub x%d, x29, x%d\n", varReg, varReg);
+        fprintf(stderr, "Array assign name: %s, offset: %d\n", getIDName(idNode), stackOffset);
     }
 
     int i = 0;
@@ -378,7 +379,11 @@ void genArrayAssign(AST_NODE *idNode, REG val)
         ++i;
     }
 
-    fprintf(output, "add x%d, x%d, x%d\n", varReg, varReg, offsetReg);
+    if(getIDGlobal(idNode))
+        fprintf(output, "add x%d, x%d, x%d\n", varReg, varReg, offsetReg);
+    else
+        fprintf(output, "sub x%d, x%d, x%d\n", varReg, varReg, offsetReg);
+
     freeReg(offsetReg);
     if(idNode->dataType == INT_TYPE){
         fprintf(output, "str w%d, [x%d, #0]\n", val, varReg);
@@ -408,6 +413,7 @@ void genVariableAssign(AST_NODE *idNode, REG val)
             int offset = getIDOffset(idNode);
             addr = genIntLiteral(offset);
             fprintf(output, "sub x%d, x29, x%d\n", addr, addr);
+            fprintf(stderr, "Var assign name: %s, offset: %d\n", getIDName(idNode), offset);
         }
 
         if(idNode->dataType == INT_TYPE){
@@ -839,7 +845,7 @@ REG genArrayRef(AST_NODE *idNode)
         int stackOffset = getIDOffset(idNode);
         varReg = genIntLiteral(stackOffset);
         fprintf(output, "sub x%d, x29, x%d\n", varReg, varReg);
-        fprintf(stderr, "name: %s, offset: %d\n", getIDName(idNode), stackOffset);
+        fprintf(stderr, "Array ref name: %s, offset: %d\n", getIDName(idNode), stackOffset);
     }
 
     int i = 0;
@@ -861,7 +867,11 @@ REG genArrayRef(AST_NODE *idNode)
         ++i;
     }
 
-    fprintf(output, "add x%d, x%d, x%d\n", varReg, varReg, offsetReg);
+    if(getIDGlobal(idNode))
+        fprintf(output, "add x%d, x%d, x%d\n", varReg, varReg, offsetReg);
+    else
+        fprintf(output, "sub x%d, x%d, x%d\n", varReg, varReg, offsetReg);
+
     freeReg(offsetReg);
     if(idNode->dataType == INT_TYPE){
         fprintf(output, "ldr w%d, [x%d, #0]\n", varReg, varReg);
@@ -889,7 +899,7 @@ REG genVariableRef(AST_NODE *idNode)
             fprintf(output, "ldr x%d, =_g_%s\n", reg, getIDName(idNode));
         }else{
             int offset = getIDOffset(idNode);
-            fprintf(stderr, "name: %s, offset: %d\n", getIDName(idNode), offset);
+            fprintf(stderr, "Var ref name: %s, offset: %d\n", getIDName(idNode), offset);
             reg = genIntLiteral(offset);
             fprintf(output, "sub x%d, x29, x%d\n", reg, reg);
         }

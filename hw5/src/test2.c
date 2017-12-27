@@ -1,19 +1,6 @@
-int x() {
-    return 1;
-}
-
-int MAIN() {
-    int i = 2;
-    x();
-    if (i > 0) {
-        write(i);
-        i = i + 1;
-    }else if (x() == 1) {
-        write("x == 1\n");
-        i = i + 1;
-    }else{
-        write("7122\n");
-        i = i + 1;
-    }
-    return 0.5;
+typedef int INT;
+float g4;
+int MAIN(){
+    g4 = 4.000;
+    return g4;
 }
