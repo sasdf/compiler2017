@@ -3,6 +3,7 @@
 #include <string.h>
 #include "header.h"
 #include "symbolTable.h"
+#include "macros.h"
 int g_anyErrorOccur = 0;
 
 DATA_TYPE getBiggerType(DATA_TYPE dataType1, DATA_TYPE dataType2);
@@ -885,6 +886,21 @@ void processExprNode(AST_NODE* exprNode)
             evaluateExprValue(exprNode);
             exprNode->semantic_value.exprSemanticValue.isConstEval = 1;
         }
+
+        switch(getExprOp(exprNode)) {
+            case BINARY_OP_EQ:
+            case BINARY_OP_GE:
+            case BINARY_OP_LE:
+            case BINARY_OP_NE:
+            case BINARY_OP_GT:
+            case BINARY_OP_LT:
+            case BINARY_OP_AND:
+            case BINARY_OP_OR:
+                exprNode->dataType = INT_TYPE;
+                break;
+            default:
+                break;
+        }
     }
     else
     {
@@ -909,7 +925,6 @@ void processExprNode(AST_NODE* exprNode)
         {
             exprNode->dataType = operand->dataType;
         }
-
         
         if((exprNode->dataType != ERROR_TYPE) &&
            (operand->nodeType == CONST_VALUE_NODE || (operand->nodeType == EXPR_NODE && operand->semantic_value.exprSemanticValue.isConstEval))
@@ -919,6 +934,13 @@ void processExprNode(AST_NODE* exprNode)
             exprNode->semantic_value.exprSemanticValue.isConstEval = 1;
         }
 
+        switch(getExprOp(exprNode)) {
+            case UNARY_OP_LOGICAL_NEGATION:
+                exprNode->dataType = INT_TYPE;
+                break;
+            default:
+                break;
+        }
     }
 }
 
