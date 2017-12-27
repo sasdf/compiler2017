@@ -108,12 +108,21 @@ void genVariableDecl(AST_NODE *variableDeclNode)
     unpack(it, type, id_list);
     forEach(id_list){
         setIDGlobal(id_list, 1);
-        if (id_list->child){
-            int size = getArrayCount(id_list->child)*4;
-            fprintf(output, "_g_%s: .space %d\n", getIDName(id_list), size);
-        } else{
-            fprintf(output, "_g_%s: .word 0\n", getIDName(id_list));
+        TypeDescriptor* typeDescriptor = getIDTypeDescriptor(id_list);
+        int varSize = 4;
+
+        if (typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR) {
+            ArrayProperties* arr = &typeDescriptor->properties.arrayProperties;
+            for (int i=0; i<arr->dimension; i++) {
+                varSize *= arr->sizeInEachDimension[i];
+            }
         }
+
+        if (id_list->child){
+            varSize *= getArrayCount(id_list->child);
+        }
+
+        fprintf(output, "_g_%s: .space %d\n", getIDName(id_list), varSize);
     }
 }
 
@@ -230,13 +239,24 @@ void countVariableSize(AST_NODE *declNode, int* size)
         setIDOffset(id_list, *size);
         printf("%s offset %d\n", getIDName(id_list), getIDOffset(id_list));
         setIDGlobal(id_list, 0);
-        if (id_list->child && getIDKind(id_list) == ARRAY_ID){
-            puts("it is array");
-            *size += getArrayCount(id_list->child)*4;
-        } else{
-            puts("it is var");
-            *size += 4;
+        
+        TypeDescriptor* typeDescriptor = getIDTypeDescriptor(id_list);
+        int varSize = 4;
+
+        if (typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR) {
+            ArrayProperties* arr = &typeDescriptor->properties.arrayProperties;
+            for (int i=0; i<arr->dimension; i++) {
+                varSize *= arr->sizeInEachDimension[i];
+            }
         }
+
+        if (id_list->child && getIDKind(id_list) == ARRAY_ID){
+            varSize *= getArrayCount(id_list->child);
+            printf("it is array with size %d\n", varSize);
+        } else{
+            printf("it is var with size %d\n", varSize);
+        }
+        *size += varSize;
         //printf("size: %d\n", *size);
     }
 }
