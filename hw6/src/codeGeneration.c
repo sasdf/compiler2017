@@ -645,13 +645,13 @@ void genPushParam(AST_NODE *param, int *size)
         size_tmp += 8;
         assert ( params );
         DATA_TYPE t = params->type->properties.dataType;
-        if (dataType == INT_TYPE && t == FLOAT_TYPE) {
+        if (t == INT_TYPE && dataType == FLOAT_TYPE) {
             fprintf(output, "fcvtzs w%d, s%d\n", reg, reg);
-        } else if (dataType == FLOAT_TYPE && t == INT_TYPE) {
+        } else if (t == FLOAT_TYPE && dataType == INT_TYPE) {
             fprintf(output, "scvtf s%d, w%d\n", reg, reg);
         }
         params = params->next;
-        if (dataType == FLOAT_TYPE)
+        if (t == FLOAT_TYPE)
             fprintf(output, "str s%d, [sp, #-%d]\n", reg, size_tmp);
         else
             fprintf(output, "str x%d, [sp, #-%d]\n", reg, size_tmp);
