@@ -139,19 +139,27 @@ void genFunctionDecl(AST_NODE *functionDeclNode)
     it = param->child;
     int size = 0;
     forEach(it){
+        /*
         AST_NODE *itt = it->child;
         unpack(itt, head, id);
         if (head->dataType == INT_TYPE || head->dataType == FLOAT_TYPE) size += 4;
         else size += 8;
+        */
+        size += 8;
     }
 
     it = param->child;
     int size_tmp = 0;
     forEach(it){
+        /*
         AST_NODE *itt = it->child;
         unpack(itt, head, id);
         if (head->dataType == INT_TYPE || head->dataType == FLOAT_TYPE) size_tmp += 4;
         else size_tmp += 8;
+        */
+        AST_NODE *itt = it->child;
+        unpack(itt, head, id);
+        size_tmp += 8;
         setIDOffset(id, -size-prologue_stack_size + size_tmp);
     }
     
@@ -532,11 +540,13 @@ void genPushParam(AST_NODE *param, int *size)
     AST_NODE *it = param->child;
     *size = 0;
     forEach(it){
-        puts("JIZZZZ");
+        /*
         DATA_TYPE dataType = getExprType(it);
         //__asm__("int3;");
         if (dataType == INT_TYPE || dataType == FLOAT_TYPE) *size += 4;
         else *size += 8;
+        */
+        *size += 8;
     }
 
     it = param->child;
@@ -545,6 +555,7 @@ void genPushParam(AST_NODE *param, int *size)
         DATA_TYPE dataType = getExprType(it);
         // fill stack
         REG reg = genExprRelated(it);
+        /*
         if (dataType == INT_TYPE || dataType == FLOAT_TYPE){
             size_tmp += 4;
             fprintf(output, "str w%d, [sp, #%d]\n", reg, size_tmp);
@@ -553,6 +564,12 @@ void genPushParam(AST_NODE *param, int *size)
             size_tmp += 8;
             fprintf(output, "str x%d, [sp, #%d]\n", reg, size_tmp);
         }
+        */
+        size_tmp += 8;
+        if (dataType == FLOAT_TYPE)
+            fprintf(output, "str s%d, [sp, #-%d]\n", reg, size_tmp);
+        else
+            fprintf(output, "str x%d, [sp, #-%d]\n", reg, size_tmp);
         freeReg(reg);
         // set offset in function decl
         //setIDOffset(it, -*size-prologue_stack_size + size_tmp);

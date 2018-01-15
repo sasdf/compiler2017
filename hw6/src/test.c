@@ -1,6 +1,11 @@
-/*int f(int a, int b, float c){*/
-int f(int a){
+float f(float a, float b, float c, float d){
     write(a);
+    write("\n");
+    write(b);
+    write("\n");
+    write(c);
+    write("\n");
+    write(d);
     write("\n");
 }
 
@@ -12,6 +17,6 @@ int MAIN(){
         write("\n");
     }
     */
-    f(123);
+    f(1.2, 2.2, 3.3, 4.4);
     return 0;
 }
