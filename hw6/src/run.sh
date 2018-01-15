@@ -1,3 +1,4 @@
 #!/bin/bash 
-$1 $2
+./parser $1
 aarch64-linux-gnu-gcc -O0 -g -static main.S
+qemu-aarch64-static ./a.out
