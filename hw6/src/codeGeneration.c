@@ -313,7 +313,7 @@ void genFunctionPrologue(int size)
     fprintf(output, "str x30, [sp, #-8]\n");
     fprintf(output, "str x29, [sp, #-16]\n");
     int offset = 16;
-    for(int i = 19; i <= 29; ++i){
+    for(int i = 19; i <= 28; ++i){
         offset += 8;
         fprintf(output, "str x%d, [sp, #%d]\n", i, -offset);
     }
@@ -332,8 +332,8 @@ void genFunctionPrologue(int size)
 void genFunctionEpilogue(int size, DATA_TYPE returnType)
 {
     fprintf(output, "add sp, x29, #112\n");
-    int offset = 0;
-    for (int i = 29; i >= 19; --i){
+    int offset = 8;
+    for (int i = 28; i >= 19; --i){
         offset += 8;
         fprintf(output, "ldr x%d, [x29, #%d]\n", i, offset);
     }
