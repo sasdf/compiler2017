@@ -314,7 +314,7 @@ void genFunctionPrologue(int size)
     fprintf(output, "str x30, [sp, #-8]\n");
     fprintf(output, "str x29, [sp, #-16]\n");
     int offset = 16;
-    for(int i = 19; i <= 29; ++i){
+    for(int i = 19; i <= 28; ++i){
         offset += 8;
         fprintf(output, "str x%d, [sp, #%d]\n", i, -offset);
     }
@@ -334,8 +334,8 @@ void genFunctionEpilogue(char *funcName, DATA_TYPE returnType)
 {
     fprintf(output, "_epilogue_%s:\n", funcName);
     fprintf(output, "add sp, x29, #112\n");
-    int offset = 0;
-    for (int i = 29; i >= 19; --i){
+    int offset = 8;
+    for (int i = 28; i >= 19; --i){
         offset += 8;
         fprintf(output, "ldr x%d, [x29, #%d]\n", i, offset);
     }
@@ -626,6 +626,8 @@ void genPushParam(AST_NODE *param, int *size)
 
     it = param->child;
     int size_tmp = 0;
+    Parameter *params = param->parent->child->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.functionSignature->parameterList;
+    
     forEach(it){
         DATA_TYPE dataType = getExprType(it);
         // fill stack
@@ -641,6 +643,14 @@ void genPushParam(AST_NODE *param, int *size)
         }
         */
         size_tmp += 8;
+        assert ( params );
+        DATA_TYPE t = params->type->properties.dataType;
+        if (dataType == INT_TYPE && t == FLOAT_TYPE) {
+            fprintf(output, "fcvtzs w%d, s%d\n", reg, reg);
+        } else if (dataType == FLOAT_TYPE && t == INT_TYPE) {
+            fprintf(output, "scvtf s%d, w%d\n", reg, reg);
+        }
+        params = params->next;
         if (dataType == FLOAT_TYPE)
             fprintf(output, "str s%d, [sp, #-%d]\n", reg, size_tmp);
         else
