@@ -120,11 +120,26 @@ void genVariableDecl(AST_NODE *variableDeclNode)
             }
         }
 
-        if (id_list->child){
-            varSize *= getArrayCount(id_list->child);
+        if (getIDKind(id_list) == WITH_INIT_ID) {
+            assert ( id_list->child );
+            assert ( isConstExpr(id_list->child) );
+            if (id_list->child->dataType == INT_TYPE) {
+                int val = getExprValue(id_list->child);
+                fprintf(output, "_g_%s: .word %d\n", getIDName(id_list), val);
+            } else if (id_list->child->dataType == FLOAT_TYPE) {
+                float val = getExprValue(id_list->child);
+                fprintf(output, "_g_%s: .float %f\n", getIDName(id_list), val);
+            } else {
+                fprintf(stderr, "Unknown type for initialize\n");
+                exit(-1);
+            }
+        } else {
+            if (getIDKind(id_list) == ARRAY_ID) {
+                assert ( id_list->child );
+                varSize *= getArrayCount(id_list->child);
+            }
+            fprintf(output, "_g_%s: .space %d\n", getIDName(id_list), varSize);
         }
-
-        fprintf(output, "_g_%s: .space %d\n", getIDName(id_list), varSize);
     }
 }
 
@@ -175,6 +190,11 @@ void genDeclList(AST_NODE *declList){
         forEach(it){
             if (it->child){
                 REG reg = genExprRelated(it->child);
+                if (type->dataType == INT_TYPE && it->child->dataType == FLOAT_TYPE) {
+                    fprintf(output, "fcvtzs w%d, s%d\n", reg, reg);
+                } else if (type->dataType == FLOAT_TYPE && it->child->dataType == INT_TYPE) {
+                    fprintf(output, "scvtf s%d, w%d\n", reg, reg);
+                }
                 REG addr = genIntLiteral(getIDOffset(it));
                 fprintf(output, "sub x%d, x29, x%d\n", addr, addr);
                 if (type->dataType == INT_TYPE){
@@ -517,11 +537,16 @@ void genAssignStmt(AST_NODE *assignNode)
 {
     AST_NODE *it = assignNode;
     unpack(it, id, relop_expr);
-    REG reg = genExprRelated(relop_expr);
+    REG val = genExprRelated(relop_expr);
     // TODO variable reference
     // stack[offset] = right_reg
-    genVariableAssign(id, reg);
-    freeReg(reg);
+    if (id->dataType == INT_TYPE && relop_expr->dataType == FLOAT_TYPE) {
+        fprintf(output, "fcvtzs w%d, s%d\n", val, val);
+    } else if (id->dataType == FLOAT_TYPE && relop_expr->dataType == INT_TYPE) {
+        fprintf(output, "scvtf s%d, w%d\n", val, val);
+    }
+    genVariableAssign(id, val);
+    freeReg(val);
 }
 
 void genIf(AST_NODE *ifNode)
