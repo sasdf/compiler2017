@@ -6,6 +6,7 @@
 #include "offsetInAR.h"
 #include "myRegister.h"
 #include "printSourceFile.h"
+#include "macros.h"
 
 FILE* g_codeGenOutputFp = NULL;
 char* g_currentFunctionName = NULL;
