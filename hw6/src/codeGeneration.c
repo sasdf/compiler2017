@@ -624,6 +624,8 @@ void genPushParam(AST_NODE *param, int *size)
 
     it = param->child;
     int size_tmp = 0;
+    Parameter *params = param->parent->child->semantic_value.identifierSemanticValue.symbolTableEntry->attribute->attr.functionSignature->parameterList;
+    
     forEach(it){
         DATA_TYPE dataType = getExprType(it);
         // fill stack
@@ -639,6 +641,14 @@ void genPushParam(AST_NODE *param, int *size)
         }
         */
         size_tmp += 8;
+        assert ( params );
+        DATA_TYPE t = params->type->properties.dataType;
+        if (dataType == INT_TYPE && t == FLOAT_TYPE) {
+            fprintf(output, "fcvtzs w%d, s%d\n", reg, reg);
+        } else if (dataType == FLOAT_TYPE && t == INT_TYPE) {
+            fprintf(output, "scvtf s%d, w%d\n", reg, reg);
+        }
+        params = params->next;
         if (dataType == FLOAT_TYPE)
             fprintf(output, "str s%d, [sp, #-%d]\n", reg, size_tmp);
         else
