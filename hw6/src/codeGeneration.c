@@ -136,9 +136,26 @@ void genFunctionDecl(AST_NODE *functionDeclNode)
     DATA_TYPE returnType = td->properties.dataType;
     fprintf(output, "_start_%s:\n", getIDName(id));
     // proceed param
-    // genPushParam();
-    
+    it = param->child;
     int size = 0;
+    forEach(it){
+        AST_NODE *itt = it->child;
+        unpack(itt, head, id);
+        if (head->dataType == INT_TYPE || head->dataType == FLOAT_TYPE) size += 4;
+        else size += 8;
+    }
+
+    it = param->child;
+    int size_tmp = 0;
+    forEach(it){
+        AST_NODE *itt = it->child;
+        unpack(itt, head, id);
+        if (head->dataType == INT_TYPE || head->dataType == FLOAT_TYPE) size_tmp += 4;
+        else size_tmp += 8;
+        setIDOffset(id, -size-prologue_stack_size + size_tmp);
+    }
+    
+    size = 0;
     // size = ...
     countDeclListInBlock(block, &size);
     printf("local stack size %d\n", size);
@@ -515,29 +532,33 @@ void genPushParam(AST_NODE *param, int *size)
     AST_NODE *it = param->child;
     *size = 0;
     forEach(it){
-        TypeDescriptor* typeDescriptor = getIDTypeDescriptor(it);
-        if (typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR) *size += 8;
-        else *size += 4;
+        puts("JIZZZZ");
+        DATA_TYPE dataType = getExprType(it);
+        //__asm__("int3;");
+        if (dataType == INT_TYPE || dataType == FLOAT_TYPE) *size += 4;
+        else *size += 8;
     }
 
     it = param->child;
     int size_tmp = 0;
     forEach(it){
-        TypeDescriptor* typeDescriptor = getIDTypeDescriptor(it);
+        DATA_TYPE dataType = getExprType(it);
         // fill stack
         REG reg = genExprRelated(it);
-        if (typeDescriptor->kind == ARRAY_TYPE_DESCRIPTOR){
-            size_tmp += 8;
-            fprintf(output, "str x%d, [sp, #%d]\n", reg, size_tmp);
-        }
-        else {
+        if (dataType == INT_TYPE || dataType == FLOAT_TYPE){
             size_tmp += 4;
             fprintf(output, "str w%d, [sp, #%d]\n", reg, size_tmp);
         }
-        // set offset
-        setIDOffset(it, -*size-prologue_stack_size + size_tmp);
+        else {
+            size_tmp += 8;
+            fprintf(output, "str x%d, [sp, #%d]\n", reg, size_tmp);
+        }
+        freeReg(reg);
+        // set offset in function decl
+        //setIDOffset(it, -*size-prologue_stack_size + size_tmp);
     }
-    fprintf(output, "add sp, sp, #-%d\n", size);
+    printf("param size: %d\n", *size);
+    fprintf(output, "add sp, sp, #-%d\n", *size);
 }
 
 void genPopParam(int size)
@@ -560,7 +581,7 @@ void genFunctionCall(AST_NODE *functionCallNode)
     } else {
         // proceed param
         int size = 0;
-        genPushParam(functionCallNode->rightSibling->child, &size);
+        genPushParam(param, &size);
         fprintf(output, "bl _start_%s\n", name);
         genPopParam(size);
     }
@@ -668,11 +689,15 @@ REG genIntLiteral(int i){
     static int counter = 0;
     fprintf(output, ".data\n");
     fprintf(output, "_INT_CONST_%d: .word %d\n", counter, i);
+    if (i >= 0)
+        fprintf(output, "_INT_CONST_%d: .word %d\n", counter+1, 0);
+    else
+        fprintf(output, "_INT_CONST_%d: .word %d\n", counter+1, 0xffffffff);
     genAlignment();
     fprintf(output, ".text\n");
     REG reg = getReg();
     fprintf(output, "ldr x%d, _INT_CONST_%d\n", reg, counter);
-    counter++;
+    counter+=2;
     return reg;
 }
 
