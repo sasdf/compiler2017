@@ -19,7 +19,7 @@ void countVariableListSize(AST_NODE *declListNode, int* size);
 void countVariableSize(AST_NODE *declNode, int* size);
 void genBlock(AST_NODE *block);
 void genFunctionPrologue(int size);
-void genFunctionEpilogue(int size, DATA_TYPE returnType);
+void genFunctionEpilogue(char *funcName, DATA_TYPE returnType);
 void genStmtList(AST_NODE *stmtList);
 void genStmt(AST_NODE *stmt);
 void genFor(AST_NODE *forNode);
@@ -150,7 +150,8 @@ void genFunctionDecl(AST_NODE *functionDeclNode)
 
     TypeDescriptor *td = getTypeDescriptor(head);
     DATA_TYPE returnType = td->properties.dataType;
-    fprintf(output, "_start_%s:\n", getIDName(id));
+    char *funcName = getIDName(id);
+    fprintf(output, "_start_%s:\n", funcName);
     // proceed param
     it = param->child;
     int size = 0;
@@ -187,7 +188,7 @@ void genFunctionDecl(AST_NODE *functionDeclNode)
 
     genBlock(block);
 
-    genFunctionEpilogue(size, returnType);
+    genFunctionEpilogue(funcName, returnType);
 }
 
 void genDeclList(AST_NODE *declList){
@@ -329,8 +330,9 @@ void genFunctionPrologue(int size)
 }
 
 // does not need size actually
-void genFunctionEpilogue(int size, DATA_TYPE returnType)
+void genFunctionEpilogue(char *funcName, DATA_TYPE returnType)
 {
+    fprintf(output, "_epilogue_%s:\n", funcName);
     fprintf(output, "add sp, x29, #112\n");
     int offset = 0;
     for (int i = 29; i >= 19; --i){
@@ -716,6 +718,7 @@ void genReturn(AST_NODE *returnNode)
             puts("Undefined return type");
             break;
     }
+    fprintf(output, "b _epilogue_%s\n", getIDName(parent->child->rightSibling));
     freeReg(reg);
 }
 

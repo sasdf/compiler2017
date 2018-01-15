@@ -1,4 +1,4 @@
-float f(float a, float b, float c, float d){
+float f(int a, float b, float c, float d){
     write(a);
     write("\n");
     write(b);
@@ -17,6 +17,6 @@ int MAIN(){
         write("\n");
     }
     */
-    f(1.2, 2.2, 3.3, 4.4);
+    f(7122, 2.2, 3.3, 4.4);
     return 0;
 }
