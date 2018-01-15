@@ -725,6 +725,7 @@ void genBranchBoolean(REG LReg, REG RReg, char* branch, bool isFloat)
 
 REG genRelopExpr(AST_NODE *exprNode)
 {
+    static int counter = 0;
     AST_NODE* it = exprNode->child;
 
     if (isConstExpr(exprNode))
@@ -736,8 +737,36 @@ REG genRelopExpr(AST_NODE *exprNode)
         REG LReg = genExprRelated(lvalue);
         REG RReg;
         if (getExprOp(exprNode) == BINARY_OP_OR || getExprOp(exprNode) == BINARY_OP_AND) {
+            if(lvalue->dataType == INT_TYPE){
+                fprintf(output, "cmp w%d, #0\n", LReg);
+            }else{
+                fprintf(output, "fcmp s%d, #0\n", LReg);
+            }
+            // Float expr
+            switch(getExprOp(exprNode)){
+                case BINARY_OP_AND:
+                    fprintf(output, "beq _BOOLEAN_FALSE_%d\n", counter);
+                    break;
+                case BINARY_OP_OR:
+                    fprintf(output, "bne _BOOLEAN_TRUE_%d\n", counter);
+                    break;
+            }
+            RReg = genExprRelated(rvalue);
+            if(rvalue->dataType == INT_TYPE){
+                fprintf(output, "cmp w%d, #0\n", RReg);
+            }else{
+                fprintf(output, "fcmp s%d, #0\n", RReg);
+            }
+            fprintf(output, "bne _BOOLEAN_TRUE_%d\n", counter);
+            fprintf(output, "_BOOLEAN_FALSE_%d:\n", counter);
+            fprintf(output, "mov w%d, #0\n", LReg);
+            fprintf(output, "b _BOOLEAN_END_%d\n", counter);
+            fprintf(output, "_BOOLEAN_TRUE_%d:\n", counter);
+            fprintf(output, "mov w%d, #1\n", LReg);
+            fprintf(output, "_BOOLEAN_END_%d:\n", counter);
+            counter++;
         } else {
-            REG RReg = genExprRelated(rvalue);
+            RReg = genExprRelated(rvalue);
 
             if(lvalue->dataType == INT_TYPE && rvalue->dataType == INT_TYPE){
                 switch(getExprOp(exprNode)){
@@ -777,21 +806,6 @@ REG genRelopExpr(AST_NODE *exprNode)
                     case BINARY_OP_LT:
                         fprintf(output, "cmp w%d, w%d\n", LReg, RReg);
                         fprintf(output, "cset w%d, lt\n", LReg);
-                        break;
-
-                    case BINARY_OP_AND:
-                        fprintf(output, "cmp w%d, #0\n", LReg);
-                        fprintf(output, "cset w%d, ne\n", LReg);
-                        fprintf(output, "cmp w%d, #0\n", RReg);
-                        fprintf(output, "cset w%d, ne\n", RReg);
-                        fprintf(output, "and w%d, w%d, w%d\n", LReg, LReg, RReg);
-                        break;
-                    case BINARY_OP_OR:
-                        fprintf(output, "cmp w%d, #0\n", LReg);
-                        fprintf(output, "cset w%d, ne\n", LReg);
-                        fprintf(output, "cmp w%d, #0\n", RReg);
-                        fprintf(output, "cset w%d, ne\n", RReg);
-                        fprintf(output, "orr w%d, w%d, w%d\n", LReg, LReg, RReg);
                         break;
                 }
             }else{
@@ -838,20 +852,6 @@ REG genRelopExpr(AST_NODE *exprNode)
                     case BINARY_OP_LT:
                         fprintf(output, "fcmp s%d, s%d\n", LReg, RReg);
                         fprintf(output, "cset w%d, lt\n", LReg);
-                        break;
-                    case BINARY_OP_AND:
-                        fprintf(output, "fcmp s%d, #0\n", LReg);
-                        fprintf(output, "cset w%d, ne\n", LReg);
-                        fprintf(output, "fcmp s%d, #0\n", RReg);
-                        fprintf(output, "cset w%d, ne\n", RReg);
-                        fprintf(output, "orr w%d, w%d, w%d\n", LReg, LReg, RReg);
-                        break;
-                    case BINARY_OP_OR:
-                        fprintf(output, "fcmp s%d, #0\n", LReg);
-                        fprintf(output, "cset w%d, ne\n", LReg);
-                        fprintf(output, "fcmp s%d, #0\n", RReg);
-                        fprintf(output, "cset w%d, ne\n", RReg);
-                        fprintf(output, "orr w%d, w%d, w%d\n", LReg, LReg, RReg);
                         break;
                 }
             }
