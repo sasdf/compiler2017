@@ -22,6 +22,7 @@ void genFunctionPrologue(int size);
 void genFunctionEpilogue(int size, DATA_TYPE returnType);
 void genStmtList(AST_NODE *stmtList);
 void genStmt(AST_NODE *stmt);
+void genFor(AST_NODE *forNode);
 void genWhile(AST_NODE *whileNode);
 void genAssignStmt(AST_NODE *assignNode);
 void genIf(AST_NODE *ifNode);
@@ -119,11 +120,26 @@ void genVariableDecl(AST_NODE *variableDeclNode)
             }
         }
 
-        if (id_list->child){
-            varSize *= getArrayCount(id_list->child);
+        if (getIDKind(id_list) == WITH_INIT_ID) {
+            assert ( id_list->child );
+            assert ( isConstExpr(id_list->child) );
+            if (id_list->child->dataType == INT_TYPE) {
+                int val = getExprValue(id_list->child);
+                fprintf(output, "_g_%s: .word %d\n", getIDName(id_list), val);
+            } else if (id_list->child->dataType == FLOAT_TYPE) {
+                float val = getExprValue(id_list->child);
+                fprintf(output, "_g_%s: .float %f\n", getIDName(id_list), val);
+            } else {
+                fprintf(stderr, "Unknown type for initialize\n");
+                exit(-1);
+            }
+        } else {
+            if (getIDKind(id_list) == ARRAY_ID) {
+                assert ( id_list->child );
+                varSize *= getArrayCount(id_list->child);
+            }
+            fprintf(output, "_g_%s: .space %d\n", getIDName(id_list), varSize);
         }
-
-        fprintf(output, "_g_%s: .space %d\n", getIDName(id_list), varSize);
     }
 }
 
@@ -182,6 +198,11 @@ void genDeclList(AST_NODE *declList){
         forEach(it){
             if (it->child){
                 REG reg = genExprRelated(it->child);
+                if (type->dataType == INT_TYPE && it->child->dataType == FLOAT_TYPE) {
+                    fprintf(output, "fcvtzs w%d, s%d\n", reg, reg);
+                } else if (type->dataType == FLOAT_TYPE && it->child->dataType == INT_TYPE) {
+                    fprintf(output, "scvtf s%d, w%d\n", reg, reg);
+                }
                 REG addr = genIntLiteral(getIDOffset(it));
                 fprintf(output, "sub x%d, x29, x%d\n", addr, addr);
                 if (type->dataType == INT_TYPE){
@@ -337,6 +358,9 @@ void genStmt(AST_NODE *stmt)
             break;
         case STMT_NODE:
             switch(getStmtKind(stmt)){
+                case FOR_STMT:
+                    genFor(stmt->child);
+                    break;
                 case WHILE_STMT:
                     genWhile(stmt->child);
                     break;
@@ -362,6 +386,50 @@ void genStmt(AST_NODE *stmt)
         default:
             puts("Undefined stmt node");
     }
+}
+
+void genFor(AST_NODE *forNode)
+{
+    static int counter = 0;
+    int label = counter++;
+    AST_NODE *it = forNode;
+    unpack(it, assign, condition, next, stmt);
+
+    if (assign->nodeType == NONEMPTY_ASSIGN_EXPR_LIST_NODE){
+        AST_NODE *it = assign->child;
+        forEach(it) {
+            genAssignStmt(it->child);
+        }
+    }
+
+    fprintf(output, "_FOR_%d:\n", label);
+    if (condition->nodeType == NONEMPTY_RELOP_EXPR_LIST_NODE){
+        AST_NODE *it = condition->child;
+        REG cond;
+        AST_NODE *last;
+        forEach(it) {
+            last = it;
+            cond = genExprRelated(it);
+        }
+        if (last->dataType == INT_TYPE)
+            fprintf(output, "cmp w%d, #0\n", cond);
+        else
+            fprintf(output, "fcmp s%d, #0\n", cond);
+        freeReg(cond);
+        fprintf(output, "beq _FOR_END_%d\n", label);
+    }
+
+    genStmt(stmt);
+
+    if (next->nodeType == NONEMPTY_ASSIGN_EXPR_LIST_NODE){
+        AST_NODE *it = next->child;
+        forEach(it) {
+            genAssignStmt(it->child);
+        }
+    }
+
+    fprintf(output, "b _FOR_%d\n", label);
+    fprintf(output, "_FOR_END_%d:\n", label);
 }
 
 void genWhile(AST_NODE *whileNode)
@@ -477,11 +545,16 @@ void genAssignStmt(AST_NODE *assignNode)
 {
     AST_NODE *it = assignNode;
     unpack(it, id, relop_expr);
-    REG reg = genExprRelated(relop_expr);
+    REG val = genExprRelated(relop_expr);
     // TODO variable reference
     // stack[offset] = right_reg
-    genVariableAssign(id, reg);
-    freeReg(reg);
+    if (id->dataType == INT_TYPE && relop_expr->dataType == FLOAT_TYPE) {
+        fprintf(output, "fcvtzs w%d, s%d\n", val, val);
+    } else if (id->dataType == FLOAT_TYPE && relop_expr->dataType == INT_TYPE) {
+        fprintf(output, "scvtf s%d, w%d\n", val, val);
+    }
+    genVariableAssign(id, val);
+    freeReg(val);
 }
 
 void genIf(AST_NODE *ifNode)
@@ -775,6 +848,7 @@ REG genRelopExpr(AST_NODE *exprNode)
 
     if (getExprKind(exprNode) == BINARY_OPERATION) {
         unpack(it, lvalue, rvalue);
+        int label = counter++;
 
         REG LReg = genExprRelated(lvalue);
         REG RReg;
@@ -787,10 +861,10 @@ REG genRelopExpr(AST_NODE *exprNode)
             // Float expr
             switch(getExprOp(exprNode)){
                 case BINARY_OP_AND:
-                    fprintf(output, "beq _BOOLEAN_FALSE_%d\n", counter);
+                    fprintf(output, "beq _BOOLEAN_FALSE_%d\n", label);
                     break;
                 case BINARY_OP_OR:
-                    fprintf(output, "bne _BOOLEAN_TRUE_%d\n", counter);
+                    fprintf(output, "bne _BOOLEAN_TRUE_%d\n", label);
                     break;
             }
             RReg = genExprRelated(rvalue);
@@ -799,14 +873,13 @@ REG genRelopExpr(AST_NODE *exprNode)
             }else{
                 fprintf(output, "fcmp s%d, #0\n", RReg);
             }
-            fprintf(output, "bne _BOOLEAN_TRUE_%d\n", counter);
-            fprintf(output, "_BOOLEAN_FALSE_%d:\n", counter);
+            fprintf(output, "bne _BOOLEAN_TRUE_%d\n", label);
+            fprintf(output, "_BOOLEAN_FALSE_%d:\n", label);
             fprintf(output, "mov w%d, #0\n", LReg);
-            fprintf(output, "b _BOOLEAN_END_%d\n", counter);
-            fprintf(output, "_BOOLEAN_TRUE_%d:\n", counter);
+            fprintf(output, "b _BOOLEAN_END_%d\n", label);
+            fprintf(output, "_BOOLEAN_TRUE_%d:\n", label);
             fprintf(output, "mov w%d, #1\n", LReg);
-            fprintf(output, "_BOOLEAN_END_%d:\n", counter);
-            counter++;
+            fprintf(output, "_BOOLEAN_END_%d:\n", label);
         } else {
             RReg = genExprRelated(rvalue);
 
