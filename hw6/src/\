@@ -46,7 +46,7 @@ void genAlignment();
 
 FILE *output;
 int const_n;
-const int prologue_stack_size = 176;
+const int prologue_stack_size = 112;
 
 void codeGeneration(AST_NODE *root)
 {
@@ -318,11 +318,7 @@ void genFunctionPrologue(int size)
         offset += 8;
         fprintf(output, "str x%d, [sp, #%d]\n", i, -offset);
     }
-    for(int i = 19; i <= 28; ++i){
-        offset += 8;
-        fprintf(output, "str s%d, [sp, #%d]\n", i, -offset);
-    }
-    fprintf(output, "add x29, sp, #-%d\n", prologue_stack_size);
+    fprintf(output, "add x29, sp, #-112\n");
     fprintf(output, ".data\n");
     fprintf(output, "_AR_SIZE_%d: .word %d\n", const_n, ((size-1)|0xf)+1);
     fprintf(output, ".align 3\n");
@@ -337,15 +333,11 @@ void genFunctionPrologue(int size)
 void genFunctionEpilogue(char *funcName, DATA_TYPE returnType)
 {
     fprintf(output, "_epilogue_%s:\n", funcName);
-    fprintf(output, "add sp, x29, #%d\n", prologue_stack_size);
-    int offset = 0;
+    fprintf(output, "add sp, x29, #112\n");
+    int offset = 8;
     for (int i = 28; i >= 19; --i){
-        fprintf(output, "ldr s%d, [x29, #%d]\n", i, offset);
         offset += 8;
-    }
-    for (int i = 28; i >= 19; --i){
         fprintf(output, "ldr x%d, [x29, #%d]\n", i, offset);
-        offset += 8;
     }
     fprintf(output, "ldr x30, [sp, #-8]\n");
     fprintf(output, "ldr x29, [sp, #-16]\n");
@@ -711,10 +703,10 @@ void genReturn(AST_NODE *returnNode)
     FunctionSignature *fs = getHeadFunctionSignature(parent->child);
     switch(fs->returnType){
         case INT_TYPE:
-            if (returnNode->dataType == INT_TYPE){
+            if (returnNode->dataType == INT_TYPE)
                 printf("[DEBUG] %s int to int\n", getIDName(parent->child->rightSibling));
                 fprintf(output, "mov w0, w%d\n", reg);
-            } else if (returnNode->dataType == FLOAT_TYPE){
+            else if (returnNode->dataType == FLOAT_TYPE){
                 fprintf(output, "fmov s0, s%d\n", reg);
                 fprintf(output, "fcvtzs w0, s0\n");
                 printf("[DEBUG] %s float to int\n", getIDName(parent->child->rightSibling));

@@ -1,5 +1,10 @@
 float pi=3.1416;
 
+float c(){
+    int d = 0;
+    return d;
+}
+
 float sqr(float num)
 {
   return (num*num);
@@ -7,7 +12,8 @@ float sqr(float num)
 
 float calarea(int r)
 {
-  float area;
+  float area, tmp;
+  tmp = sqr(r);
   area = pi * sqr(r);
   return area;
 }
