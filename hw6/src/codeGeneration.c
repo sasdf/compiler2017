@@ -46,7 +46,7 @@ void genAlignment();
 
 FILE *output;
 int const_n;
-const int prologue_stack_size = 112;
+const int prologue_stack_size = 176;
 
 void codeGeneration(AST_NODE *root)
 {
@@ -318,7 +318,11 @@ void genFunctionPrologue(int size)
         offset += 8;
         fprintf(output, "str x%d, [sp, #%d]\n", i, -offset);
     }
-    fprintf(output, "add x29, sp, #-112\n");
+    for(int i = 19; i <= 28; ++i){
+        offset += 8;
+        fprintf(output, "str s%d, [sp, #%d]\n", i, -offset);
+    }
+    fprintf(output, "add x29, sp, #-176\n");
     fprintf(output, ".data\n");
     fprintf(output, "_AR_SIZE_%d: .word %d\n", const_n, ((size-1)|0xf)+1);
     fprintf(output, ".align 3\n");
@@ -333,8 +337,12 @@ void genFunctionPrologue(int size)
 void genFunctionEpilogue(char *funcName, DATA_TYPE returnType)
 {
     fprintf(output, "_epilogue_%s:\n", funcName);
-    fprintf(output, "add sp, x29, #112\n");
-    int offset = 8;
+    fprintf(output, "add sp, x29, #176\n");
+    int offset = 0;
+    for (int i = 28; i >= 19; --i){
+        offset += 8;
+        fprintf(output, "ldr s%d, [x29, #%d]\n", i, offset);
+    }
     for (int i = 28; i >= 19; --i){
         offset += 8;
         fprintf(output, "ldr x%d, [x29, #%d]\n", i, offset);
